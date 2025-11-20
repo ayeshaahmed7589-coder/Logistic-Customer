@@ -9,7 +9,7 @@ import 'package:logisticscustomer/features/authentication/set_up_profile.dart';
 import '../../export.dart';
 
 class CreatePasswordScreen extends StatefulWidget {
-  const CreatePasswordScreen({Key? key}) : super(key: key);
+  const CreatePasswordScreen({Key? key, required String token}) : super(key: key);
 
   @override
   State<CreatePasswordScreen> createState() => _CreatePasswordScreenState();

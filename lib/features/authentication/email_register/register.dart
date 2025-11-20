@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:logisticscustomer/common_widgets/cuntom_textfield.dart';
-import 'package:logisticscustomer/common_widgets/custom_button.dart';
-import 'package:logisticscustomer/constants/colors.dart';
-import 'package:logisticscustomer/constants/gap.dart';
-import 'package:logisticscustomer/features/authentication/login.dart';
-import 'package:logisticscustomer/features/authentication/otp.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/features/authentication/email_register/email_register_controller.dart';
 
-import '../../export.dart';
+import '../../../export.dart';
 
-class SignUpScreen extends StatefulWidget {
+class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final emailFocus = FocusNode();
   final FocusNode _focusNode = FocusNode();
   final TextEditingController emailController = TextEditingController();
@@ -30,6 +26,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final emailRegisterState = ref.watch(authControllerProvider);
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
       body: SafeArea(
@@ -146,17 +143,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: CustomButton(
                   isChecked: isChecked,
-                  text: "Sign Up",
+                  // text: "Sign Up",
+                  text: emailRegisterState.isLoading
+                      ? "Processing..."
+                      : "Sign Up",
                   backgroundColor: AppColors.electricTeal,
                   borderColor: AppColors.electricTeal,
                   textColor: AppColors.pureWhite,
-                  onPressed: () {
-                         
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => VerificationScreen()),
-                      );
-                    
+                  onPressed: () async {
+                    if (emailController.text.isEmpty) return;
+
+                    await ref
+                        .read(authControllerProvider.notifier)
+                        .sendOtpToEmail(emailController.text.trim());
+
+                    final state = ref.read(authControllerProvider);
+
+                    if (state is AsyncData && state.value != null) {
+                    Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => VerificationScreen(
+      emailRegisterModal: state.value!, // AsyncData value from previous screen
+    ),
+  ),
+);
+
+                    }
                   },
                 ),
               ),

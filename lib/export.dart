@@ -1,7 +1,7 @@
 export 'package:logisticscustomer/features/authentication/create_password.dart';
 export 'package:logisticscustomer/features/authentication/login.dart';
-export 'package:logisticscustomer/features/authentication/otp.dart';
-export 'package:logisticscustomer/features/authentication/register.dart';
+export 'package:logisticscustomer/features/authentication/otp/otp.dart';
+export 'package:logisticscustomer/features/authentication/email_register/register.dart';
 export 'package:logisticscustomer/features/authentication/set_up_profile.dart';
 
 export 'dart:ui';

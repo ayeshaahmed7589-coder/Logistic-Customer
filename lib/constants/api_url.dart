@@ -6,5 +6,5 @@ abstract class ApiUrls {
   static String postEmailRegister = "/api/v1/customer/auth/register/initiate";
 
   // Register VerifyOTP
-  static String postVerifyOTP = "/api/v1/customer/auth/register/initiate";
+  static String postVerifyOTP = "/api/v1/customer/auth/register/verify-otp";
 }

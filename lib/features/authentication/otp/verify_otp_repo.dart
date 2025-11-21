@@ -13,10 +13,7 @@ class VerifyOtpRepository {
   final Dio dio;
   final Ref ref;
 
-  VerifyOtpRepository({
-    required this.dio,
-    required this.ref,
-  });
+  VerifyOtpRepository({required this.dio, required this.ref});
 
   Future<VerifyOtpModel> verifyOtp({
     required String email,
@@ -38,13 +35,11 @@ class VerifyOtpRepository {
       if (response.statusCode == 200 && response.data['success'] == true) {
         return VerifyOtpModel.fromJson(response.data);
       } else {
-        throw Exception(response.data["message"] ?? "OTP verification failed");
+        throw Exception(response.data["message"] ?? "Invalid OTP");
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw Exception(e.response?.data["message"] ?? "Server error occurred");
-      }
-      throw Exception("Network error occurred");
+      throw Exception(
+          e.response?.data["message"] ?? "OTP verify request failed");
     }
   }
 }

@@ -39,6 +39,7 @@ class CustomAnimatedTextField extends StatefulWidget {
 class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
   bool _isFocused = false;
   bool _hasText = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -56,6 +57,17 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
   void _handleTextChange() {
     setState(() {
       _hasText = widget.controller.text.isNotEmpty;
+
+      if (widget.validator != null) {
+        final error = widget.validator!(widget.controller.text);
+        _errorText = error;
+      }
+    });
+  }
+
+  void _setError(String? error) {
+    setState(() {
+      _errorText = error;
     });
   }
 
@@ -69,47 +81,51 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
   @override
   Widget build(BuildContext context) {
     final bool shouldFloat = _isFocused || _hasText;
+    final bool hasError = _errorText != null;
+
+    /// FIX: Same border radius & width for all states
+    final borderRadius = BorderRadius.circular(12);
+    final normalSide = BorderSide(
+      color: widget.borderColor.withOpacity(0.8),
+      width: 1.4,
+    );
+    final focusedSide = BorderSide(color: widget.borderColor, width: 1.4);
+    final errorSide = const BorderSide(color: Colors.red, width: 1.4);
+
     return SizedBox(
-      height: 80,
+      height: 85,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Input Field
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: borderRadius,
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.4),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+                    color: Colors.white.withOpacity(0.25),
+                    borderRadius: borderRadius,
                   ),
                   child: TextFormField(
                     controller: widget.controller,
                     focusNode: widget.focusNode,
                     keyboardType: widget.keyboardType,
                     obscureText: widget.obscureText,
-                    validator: widget.validator,
-                    style: TextStyle(color: widget.textColor),
+                    validator: (value) {
+                      final error = widget.validator?.call(value);
+                      _setError(error);
+                      return error;
+                    },
                     decoration: InputDecoration(
+                      isDense: true, // Prevents height jump
+
                       prefixIcon: Icon(
                         widget.prefixIcon,
-                        color: widget.iconColor,
+                        color: hasError ? Colors.red : widget.iconColor,
                       ),
                       suffixIcon: widget.suffixIcon,
 
@@ -119,30 +135,35 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
                         fontSize: 15,
                       ),
 
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                      // FIX: Same borders everywhere (no jump)
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: borderRadius,
+                        borderSide: hasError ? errorSide : normalSide,
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: widget.borderColor,
-                          width: 2,
-                        ),
+                        borderRadius: borderRadius,
+                        borderSide: hasError ? errorSide : focusedSide,
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: widget.borderColor.withOpacity(0.6),
-                          width: 1.5,
-                        ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: borderRadius,
+                        borderSide: errorSide,
                       ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: borderRadius,
+                        borderSide: errorSide,
+                      ),
+
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.25),
+
+                      border: OutlineInputBorder(borderRadius: borderRadius),
+
+                      errorStyle: const TextStyle(height: 0, fontSize: 0),
+
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 18,
                         horizontal: 16,
                       ),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.3),
                     ),
                   ),
                 ),
@@ -150,21 +171,21 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
             ),
           ),
 
-          // Animated Label
+          // Floating Label
           AnimatedPositioned(
             duration: const Duration(milliseconds: 250),
-            left: 6,
-            top: shouldFloat ? -2 : 20,
+            left: 8,
+            top: shouldFloat ? -2 : 22,
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 250),
               opacity: shouldFloat ? 1 : 0,
               child: Container(
-                color: const Color(0xFFF8F9FD),
-                padding: const EdgeInsets.symmetric(horizontal: 2),
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   widget.labelText,
                   style: TextStyle(
-                    color: widget.borderColor,
+                    color: hasError ? Colors.red : widget.borderColor,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -172,12 +193,25 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
               ),
             ),
           ),
+
+          if (hasError)
+            Positioned(
+              left: 10,
+              bottom: -18,
+              child: Text(
+                _errorText!,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
-
 
 
  // SizedBox(

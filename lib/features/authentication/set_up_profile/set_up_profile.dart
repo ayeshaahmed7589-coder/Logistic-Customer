@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:logisticscustomer/common_widgets/cuntom_textfield.dart';
-import 'package:logisticscustomer/common_widgets/custom_button.dart';
-import 'package:logisticscustomer/constants/colors.dart';
+
 import 'package:logisticscustomer/features/authentication/register_successful.dart';
 
-import '../../export.dart';
-export '../../common_widgets/cuntom_textfield.dart';
-export '../../common_widgets/custom_button.dart';
+import '../../../export.dart';
+export '../../../common_widgets/cuntom_textfield.dart';
+export '../../../common_widgets/custom_button.dart';
 
 class SetUpProfile extends StatefulWidget {
   const SetUpProfile({super.key});

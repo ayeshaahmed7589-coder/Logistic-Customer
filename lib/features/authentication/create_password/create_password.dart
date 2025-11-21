@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/features/authentication/create_password/create_pass_controller.dart';
 
 import '../../../export.dart';
 
-class CreatePasswordScreen extends StatefulWidget {
-  const CreatePasswordScreen({Key? key, required String token})
-    : super(key: key);
+class CreatePasswordScreen extends ConsumerStatefulWidget {
+  final String token;
+  const CreatePasswordScreen({
+    Key? key,
+    required this.token, // <-- assign here
+  }) : super(key: key);
 
   @override
-  State<CreatePasswordScreen> createState() => _CreatePasswordScreenState();
+  ConsumerState<CreatePasswordScreen> createState() =>
+      _CreatePasswordScreenState();
 }
 
-class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
+class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
   final passwordFocus = FocusNode();
   final confrompasswordFocus = FocusNode();
 
@@ -165,12 +171,50 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                   backgroundColor: AppColors.electricTeal,
                   borderColor: AppColors.electricTeal,
                   textColor: AppColors.pureWhite,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SetUpProfile()),
-                    );
+                  onPressed: () async {
+                    final password = newPasswordController.text.trim();
+                    final confirmPassword = confirmPasswordController.text
+                        .trim();
+
+                    if (password.isEmpty || confirmPassword.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Please enter password")),
+                      );
+                      return;
+                    }
+
+                    if (password != confirmPassword) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Passwords do not match")),
+                      );
+                      return;
+                    }
+
+                    // TOKEN tumne screen me pass kiya hai → widget.token hi use hoga
+                    await ref
+                        .read(createPasswordControllerProvider.notifier)
+                        .createPassword(
+                          token: widget.token,
+                          password: password,
+                          confirmPassword: confirmPassword,
+                        );
+
+                    final state = ref.read(createPasswordControllerProvider);
+
+                    if (state is AsyncData && state.value != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SetUpProfile()),
+                      );
+                    }
                   },
+
+                  // onPressed: () {
+                  //   Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(builder: (context) => SetUpProfile()),
+                  //   );
+                  // },
                 ),
               ),
 

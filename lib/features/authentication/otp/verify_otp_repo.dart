@@ -43,3 +43,40 @@ class VerifyOtpRepository {
     }
   }
 }
+
+
+// Rsent OTP
+
+final resendOtpRepositoryProvider = Provider<ResendOtpRepository>((ref) {
+  final dio = ref.watch(dioProvider);
+  return ResendOtpRepository(dio: dio, ref: ref);
+});
+
+class ResendOtpRepository {
+  final Dio dio;
+  final Ref ref;
+
+  ResendOtpRepository({required this.dio, required this.ref});
+
+  Future<ResendOtpModel> resendOtp(String email) async {
+    final url = ApiUrls.postResentOTP;
+
+    try {
+      final response = await dio.post(
+        url,
+        data: {"email": email},
+      );
+
+      print("Resend OTP => ${response.data}");
+
+      if (response.statusCode == 200 && response.data["success"] == true) {
+        return ResendOtpModel.fromJson(response.data);
+      } else {
+        throw Exception(response.data["message"] ?? "OTP resend failed");
+      }
+    } on DioException catch (e) {
+      throw Exception(
+          e.response?.data["message"] ?? "Resend OTP request failed");
+    }
+  }
+}

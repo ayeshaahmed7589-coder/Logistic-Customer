@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
 
-import '../../export.dart';
-import '../bottom_navbar/bottom_navbar_screen.dart';
+import '../../../export.dart';
+import '../../bottom_navbar/bottom_navbar_screen.dart';
 
-class Login extends StatefulWidget {
+class Login extends ConsumerStatefulWidget {
   const Login({super.key});
 
   @override
-  State<Login> createState() => _LoginState();
+  ConsumerState<Login> createState() => _LoginState();
 }
 
-class _LoginState extends State<Login> {
+class _LoginState extends ConsumerState<Login> {
   final emailFocus = FocusNode();
   // final FocusNode _focusNode = FocusNode();
   final TextEditingController emailController = TextEditingController();
@@ -113,7 +115,7 @@ class _LoginState extends State<Login> {
                   return null;
                 },
               ),
-              gapH8,
+              gapH24,
 
               /// New Password Field
               CustomAnimatedTextField(
@@ -180,15 +182,34 @@ class _LoginState extends State<Login> {
                   borderColor: AppColors.electricTeal,
                   textColor: AppColors.lightGrayBackground,
                   onPressed: _isFormFilled
-                      ? () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const TripsBottomNavBarScreen(
-                                initialIndex: 0,
+                      ? () async {
+                          final email = emailController.text.trim();
+                          final password = PasswordController.text.trim();
+
+                          await ref
+                              .read(loginControllerProvider.notifier)
+                              .login(email, password);
+
+                          final state = ref.read(loginControllerProvider);
+
+                          if (state is AsyncData && state.value != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const TripsBottomNavBarScreen(
+                                  initialIndex: 0,
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          } else if (state is AsyncError) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Login failed, galat email ya password!",
+                                ),
+                              ),
+                            );
+                          }
                         }
                       : null,
                 ),

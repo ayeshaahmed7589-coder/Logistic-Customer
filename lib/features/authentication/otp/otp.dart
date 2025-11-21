@@ -215,12 +215,42 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
               const SizedBox(height: 20),
 
               // Resend Timer
-              CustomText(
-                txt: _seconds > 0
-                    ? "Resend - 00:${_seconds.toString().padLeft(2, '0')}"
-                    : "Resend Code",
-                color: AppColors.mediumGray,
-                fontSize: 14,
+              GestureDetector(
+                onTap: () async {
+                  if (_seconds == 0) {
+                    final email = widget.emailRegisterModal.email;
+
+                    await ref
+                        .read(resendOtpControllerProvider.notifier)
+                        .resendOtp(email);
+
+                    final state = ref.read(resendOtpControllerProvider);
+
+                    if (state is AsyncData && state.value != null) {
+                      setState(() {
+                        _seconds = 59; // restart timer
+                      });
+                      startTimer();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("OTP resend hogaya!")),
+                      );
+                    } else if (state is AsyncError) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("OTP resend nahi hua.")),
+                      );
+                    }
+                  }
+                },
+                child: CustomText(
+                  txt: _seconds > 0
+                      ? "Resend - 00:${_seconds.toString().padLeft(2, '0')}"
+                      : "Resend Code",
+                  color: _seconds == 0
+                      ? AppColors.electricTeal
+                      : AppColors.mediumGray,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),

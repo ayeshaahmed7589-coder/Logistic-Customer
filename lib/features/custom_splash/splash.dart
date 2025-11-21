@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:logisticscustomer/constants/gap.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../authentication/login/login.dart';
+import '../../features/bottom_navbar/bottom_navbar_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -19,7 +21,6 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Animation Controller
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -32,13 +33,32 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate after delay
-    Future.delayed(const Duration(seconds: 2), () {
+    _navigate();
+  }
+
+  Future<void> _navigate() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("access_token");
+
+    if (!mounted) return;
+
+    if (token != null && token.isNotEmpty) {
+      // USER ALREADY LOGGED IN → GO TO HOME
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => Login()),
+        MaterialPageRoute(
+          builder: (_) => const TripsBottomNavBarScreen(initialIndex: 0),
+        ),
       );
-    });
+    } else {
+      // NO LOGIN → GO TO LOGIN
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const Login()),
+      );
+    }
   }
 
   @override

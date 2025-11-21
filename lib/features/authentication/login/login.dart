@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../export.dart';
 import '../../bottom_navbar/bottom_navbar_screen.dart';
@@ -186,27 +187,38 @@ class _LoginState extends ConsumerState<Login> {
                           final email = emailController.text.trim();
                           final password = PasswordController.text.trim();
 
+                          // FIRE LOGIN API
                           await ref
                               .read(loginControllerProvider.notifier)
                               .login(email, password);
 
+                          // READ STATE
                           final state = ref.read(loginControllerProvider);
 
                           if (state is AsyncData && state.value != null) {
-                            Navigator.push(
+                            final loginData = state.value!;
+
+                            // SAVE TOKEN HERE
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setString(
+                              "access_token",
+                              loginData.data.accessToken,
+                            );
+
+                            // MOVE TO HOME
+                            Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const TripsBottomNavBarScreen(
                                   initialIndex: 0,
                                 ),
                               ),
+                              (route) => false,
                             );
                           } else if (state is AsyncError) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  "Login failed, galat email ya password!",
-                                ),
+                                content: Text("Invalid email or password"),
                               ),
                             );
                           }

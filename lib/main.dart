@@ -32,7 +32,6 @@ class MyApp extends StatelessWidget {
           systemNavigationBarIconBrightness: Brightness.dark,
         ),
         child: SplashScreen(),
-        // child:  TripsBottomNavBarScreen(initialIndex: 0),
       ),
       //  routerConfig: router,
     );

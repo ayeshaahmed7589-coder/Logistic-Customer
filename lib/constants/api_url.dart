@@ -7,4 +7,7 @@ abstract class ApiUrls {
 
   // Register VerifyOTP
   static String postVerifyOTP = "/api/v1/customer/auth/register/verify-otp";
+
+    // Create Password
+  static String postCreatePassword = "/api/v1/customer/auth/register/set-password";
 }

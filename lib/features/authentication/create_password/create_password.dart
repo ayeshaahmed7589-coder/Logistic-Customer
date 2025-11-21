@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:logisticscustomer/common_widgets/cuntom_textfield.dart';
-import 'package:logisticscustomer/common_widgets/custom_button.dart';
-import 'package:logisticscustomer/common_widgets/custom_text.dart';
-import 'package:logisticscustomer/constants/colors.dart';
-import 'package:logisticscustomer/constants/gap.dart';
-import 'package:logisticscustomer/features/authentication/set_up_profile.dart';
 
-import '../../export.dart';
+import '../../../export.dart';
 
 class CreatePasswordScreen extends StatefulWidget {
-  const CreatePasswordScreen({Key? key, required String token}) : super(key: key);
+  const CreatePasswordScreen({Key? key, required String token})
+    : super(key: key);
 
   @override
   State<CreatePasswordScreen> createState() => _CreatePasswordScreenState();
@@ -172,9 +167,9 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                   textColor: AppColors.pureWhite,
                   onPressed: () {
                     Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SetUpProfile()),
-                      );
+                      context,
+                      MaterialPageRoute(builder: (context) => SetUpProfile()),
+                    );
                   },
                 ),
               ),

@@ -39,7 +39,7 @@ class CustomAnimatedTextField extends StatefulWidget {
 class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
   bool _isFocused = false;
   bool _hasText = false;
-  String? _errorText;
+  String? _errorText; // store manually
 
   @override
   void initState() {
@@ -49,25 +49,15 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
   }
 
   void _handleFocusChange() {
-    setState(() {
-      _isFocused = widget.focusNode.hasFocus;
-    });
+    setState(() => _isFocused = widget.focusNode.hasFocus);
   }
 
   void _handleTextChange() {
     setState(() {
       _hasText = widget.controller.text.isNotEmpty;
-
       if (widget.validator != null) {
-        final error = widget.validator!(widget.controller.text);
-        _errorText = error;
+        _errorText = widget.validator!(widget.controller.text);
       }
-    });
-  }
-
-  void _setError(String? error) {
-    setState(() {
-      _errorText = error;
     });
   }
 
@@ -80,102 +70,79 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final bool shouldFloat = _isFocused || _hasText;
-    final bool hasError = _errorText != null;
-
-    /// FIX: Same border radius & width for all states
+    bool shouldFloat = _isFocused || _hasText;
     final borderRadius = BorderRadius.circular(12);
-    final normalSide = BorderSide(
-      color: widget.borderColor.withOpacity(0.8),
-      width: 1.4,
-    );
-    final focusedSide = BorderSide(color: widget.borderColor, width: 1.4);
-    final errorSide = const BorderSide(color: Colors.red, width: 1.4);
 
     return SizedBox(
-      height: 85,
+      height: 80,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: ClipRRect(
-              borderRadius: borderRadius,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
-                    borderRadius: borderRadius,
+          ClipRRect(
+            borderRadius: borderRadius,
+            child: TextFormField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              keyboardType: widget.keyboardType,
+              obscureText: widget.obscureText,
+
+              // ❌ Yahan setState NAHI chalega
+              validator: (value) {
+                return null; // suppress default error
+              },
+
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+
+              onChanged: (val) {
+                if (widget.validator != null) {
+                  final err = widget.validator!(val);
+                  setState(() => _errorText = err);
+                }
+              },
+
+              decoration: InputDecoration(
+                isDense: true,
+                prefixIcon: Icon(
+                  widget.prefixIcon,
+                  color: _errorText != null ? Colors.red : widget.iconColor,
+                ),
+                suffixIcon: widget.suffixIcon,
+                hintText: widget.hintText,
+                hintStyle: TextStyle(
+                  color: widget.textColor.withOpacity(0.5),
+                  fontSize: 15,
+                ),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.25),
+
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: borderRadius,
+                  borderSide: BorderSide(
+                    color: _errorText != null
+                        ? Colors.red
+                        : widget.borderColor.withOpacity(0.7),
+                    width: 1.4,
                   ),
-                  child: TextFormField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    keyboardType: widget.keyboardType,
-                    obscureText: widget.obscureText,
-                    validator: (value) {
-                      final error = widget.validator?.call(value);
-                      _setError(error);
-                      return error;
-                    },
-                    decoration: InputDecoration(
-                      isDense: true, // Prevents height jump
-
-                      prefixIcon: Icon(
-                        widget.prefixIcon,
-                        color: hasError ? Colors.red : widget.iconColor,
-                      ),
-                      suffixIcon: widget.suffixIcon,
-
-                      hintText: widget.hintText,
-                      hintStyle: TextStyle(
-                        color: widget.textColor.withOpacity(0.5),
-                        fontSize: 15,
-                      ),
-
-                      // FIX: Same borders everywhere (no jump)
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: borderRadius,
-                        borderSide: hasError ? errorSide : normalSide,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: borderRadius,
-                        borderSide: hasError ? errorSide : focusedSide,
-                      ),
-                      errorBorder: OutlineInputBorder(
-                        borderRadius: borderRadius,
-                        borderSide: errorSide,
-                      ),
-                      focusedErrorBorder: OutlineInputBorder(
-                        borderRadius: borderRadius,
-                        borderSide: errorSide,
-                      ),
-
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.25),
-
-                      border: OutlineInputBorder(borderRadius: borderRadius),
-
-                      errorStyle: const TextStyle(height: 0, fontSize: 0),
-
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 18,
-                        horizontal: 16,
-                      ),
-                    ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: borderRadius,
+                  borderSide: BorderSide(
+                    color: _errorText != null ? Colors.red : widget.borderColor,
+                    width: 1.4,
                   ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 18,
+                  horizontal: 16,
                 ),
               ),
             ),
           ),
-
-          // Floating Label
+          // ----------------------- FLOATING LABEL ---------------------------
           AnimatedPositioned(
             duration: const Duration(milliseconds: 250),
-            left: 8,
-            top: shouldFloat ? -2 : 22,
+            left: 12,
+            top: shouldFloat ? -20 : 18,
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 250),
               opacity: shouldFloat ? 1 : 0,
@@ -185,8 +152,8 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
                 child: Text(
                   widget.labelText,
                   style: TextStyle(
-                    color: hasError ? Colors.red : widget.borderColor,
-                    fontSize: 13,
+                    color: _errorText != null ? Colors.red : widget.borderColor,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -194,17 +161,13 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
             ),
           ),
 
-          if (hasError)
-            Positioned(
-              left: 10,
-              bottom: -18,
+          // ----------------------- RIGHT SIDE ERROR BADGE -------------------
+          if (_errorText != null)
+            Align(
+              alignment: Alignment.bottomRight, // ❌ move to right
               child: Text(
                 _errorText!,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: const TextStyle(color: Colors.red, fontSize: 14),
               ),
             ),
         ],

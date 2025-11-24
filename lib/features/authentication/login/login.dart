@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../constants/validation_regx.dart';
 import '../../../export.dart';
 import '../../bottom_navbar/bottom_navbar_screen.dart';
 
@@ -106,15 +107,7 @@ class _LoginState extends ConsumerState<Login> {
                 borderColor: AppColors.electricTeal,
                 textColor: AppColors.mediumGray,
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Email required";
-                  }
-                  if (!value.contains('@')) {
-                    return "Enter valid email";
-                  }
-                  return null;
-                },
+                validator: AppValidators.email,
               ),
               gapH24,
 
@@ -129,6 +122,7 @@ class _LoginState extends ConsumerState<Login> {
                 borderColor: AppColors.electricTeal,
                 textColor: AppColors.mediumGray,
                 obscureText: _obscureNewPass,
+                validator: AppValidators.password,
                 suffixIcon: _showNewPassEye
                     ? IconButton(
                         icon: Icon(

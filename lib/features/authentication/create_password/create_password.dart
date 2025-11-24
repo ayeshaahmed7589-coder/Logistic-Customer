@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/authentication/create_password/create_pass_controller.dart';
 
+import '../../../constants/validation_regx.dart';
 import '../../../export.dart';
 
 class CreatePasswordScreen extends ConsumerStatefulWidget {
   final String token;
-  const CreatePasswordScreen({
-    Key? key,
-    required this.token, // <-- assign here
-  }) : super(key: key);
+  const CreatePasswordScreen({Key? key, required this.token}) : super(key: key);
 
   @override
   ConsumerState<CreatePasswordScreen> createState() =>
@@ -17,6 +15,8 @@ class CreatePasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   final passwordFocus = FocusNode();
   final confrompasswordFocus = FocusNode();
 
@@ -69,184 +69,175 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
 
-              /// App Title
-              CustomText(
-                txt: "DROVVI",
-                color: AppColors.electricTeal,
-                fontSize: 50,
-                fontWeight: FontWeight.bold,
-              ),
-              const SizedBox(height: 40),
+                CustomText(
+                  txt: "DROVVI",
+                  color: AppColors.electricTeal,
+                  fontSize: 50,
+                  fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 40),
 
-              /// Page Heading
-              CustomText(
-                txt: "Create New Password",
-                color: AppColors.electricTeal,
-                fontSize: 25,
-                fontWeight: FontWeight.w700,
-              ),
-              const SizedBox(height: 10),
+                CustomText(
+                  txt: "Create New Password",
+                  color: AppColors.electricTeal,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                ),
+                const SizedBox(height: 10),
 
-              /// Subtitle
-              CustomText(
-                txt:
-                    "Set your new password so you can Log In\nand access Resolve",
-                align: TextAlign.center,
-                color: AppColors.mediumGray,
-                fontSize: 14,
-                height: 1.5,
-              ),
+                CustomText(
+                  txt:
+                      "Set your new password so you can Log In\nand access Resolve",
+                  align: TextAlign.center,
+                  color: AppColors.mediumGray,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
 
-              const SizedBox(height: 35),
+                const SizedBox(height: 35),
 
-              /// New Password Field
-              CustomAnimatedTextField(
-                controller: newPasswordController,
-                focusNode: passwordFocus,
-                labelText: "New Password",
-                hintText: "New Password",
-                prefixIcon: Icons.lock_outline,
-                iconColor: AppColors.electricTeal,
-                borderColor: AppColors.electricTeal,
-                textColor: AppColors.darkText,
-                obscureText: _obscureNewPass,
-                suffixIcon: _showNewPassEye
-                    ? IconButton(
-                        icon: Icon(
-                          _obscureNewPass
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppColors.darkText,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureNewPass = !_obscureNewPass;
-                          });
-                        },
-                      )
-                    : null,
-              ),
-
-              const SizedBox(height: 20),
-
-              CustomAnimatedTextField(
-                controller: confirmPasswordController,
-                focusNode: confrompasswordFocus,
-                labelText: "Confirm Password",
-                hintText: "Confirm Password",
-                prefixIcon: Icons.lock_outline,
-                iconColor: AppColors.electricTeal,
-                borderColor: AppColors.electricTeal,
-                textColor: AppColors.darkText,
-                obscureText: _obscureConPass,
-                suffixIcon: _showConPassEye
-                    ? IconButton(
-                        icon: Icon(
-                          _obscureConPass
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppColors.darkText,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureConPass = !_obscureConPass;
-                          });
-                        },
-                      )
-                    : null,
-              ),
-
-              gapH64,
-
-              /// Sign Up Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: CustomButton(
-                  text: "Sign Up",
-                  backgroundColor: AppColors.electricTeal,
+                // 🔹 NEW PASSWORD FIELD — With Validation
+                CustomAnimatedTextField(
+                  controller: newPasswordController,
+                  focusNode: passwordFocus,
+                  labelText: "New Password",
+                  hintText: "New Password",
+                  prefixIcon: Icons.lock_outline,
+                  iconColor: AppColors.electricTeal,
                   borderColor: AppColors.electricTeal,
-                  textColor: AppColors.pureWhite,
-                  onPressed: () async {
-                    final password = newPasswordController.text.trim();
-                    final confirmPassword = confirmPasswordController.text
-                        .trim();
+                  textColor: AppColors.darkText,
+                  obscureText: _obscureNewPass,
+                  validator: AppValidators.newPassword,
+                  suffixIcon: _showNewPassEye
+                      ? IconButton(
+                          icon: Icon(
+                            _obscureNewPass
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppColors.darkText,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscureNewPass = !_obscureNewPass,
+                          ),
+                        )
+                      : null,
+                ),
 
-                    if (password.isEmpty || confirmPassword.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Please enter password")),
-                      );
-                      return;
-                    }
+                const SizedBox(height: 20),
 
-                    if (password != confirmPassword) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Passwords do not match")),
-                      );
-                      return;
-                    }
+                // 🔹 CONFIRM PASSWORD FIELD — With Validation
+                CustomAnimatedTextField(
+                  controller: confirmPasswordController,
+                  focusNode: confrompasswordFocus,
+                  labelText: "Confirm Password",
+                  hintText: "Confirm Password",
+                  prefixIcon: Icons.lock_outline,
+                  iconColor: AppColors.electricTeal,
+                  borderColor: AppColors.electricTeal,
+                  textColor: AppColors.darkText,
+                  obscureText: _obscureConPass,
+                  validator: (value) => AppValidators.confirmPassword(
+                    value,
+                    newPasswordController.text,
+                  ),
+                  suffixIcon: _showConPassEye
+                      ? IconButton(
+                          icon: Icon(
+                            _obscureConPass
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppColors.darkText,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscureConPass = !_obscureConPass,
+                          ),
+                        )
+                      : null,
+                ),
 
-                    // TOKEN tumne screen me pass kiya hai → widget.token hi use hoga
-                    await ref
-                        .read(createPasswordControllerProvider.notifier)
-                        .createPassword(
-                          token: widget.token,
-                          password: password,
-                          confirmPassword: confirmPassword,
+                gapH64,
+
+                // 🔹 BUTTON
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: CustomButton(
+                    text: "Sign Up",
+                    backgroundColor: AppColors.electricTeal,
+                    borderColor: AppColors.electricTeal,
+                    textColor: AppColors.pureWhite,
+                    onPressed: () async {
+                      // 🔥 FORM VALIDATION MUST FIRST
+                      if (!_formKey.currentState!.validate()) {
+                        return;
+                      }
+
+                      final password = newPasswordController.text.trim();
+                      final confirmPassword = confirmPasswordController.text
+                          .trim();
+
+                      await ref
+                          .read(createPasswordControllerProvider.notifier)
+                          .createPassword(
+                            token: widget.token,
+                            password: password,
+                            confirmPassword: confirmPassword,
+                          );
+
+                      final state = ref.read(createPasswordControllerProvider);
+
+                      if (state is AsyncData && state.value != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SetUpProfile(
+                              verificationToken: "your_verification_token_here",
+                            ),
+                          ),
                         );
-
-                    final state = ref.read(createPasswordControllerProvider);
-
-                    if (state is AsyncData && state.value != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SetUpProfile()),
-                      );
-                    }
-                  },
-
-                  // onPressed: () {
-                  //   Navigator.push(
-                  //     context,
-                  //     MaterialPageRoute(builder: (context) => SetUpProfile()),
-                  //   );
-                  // },
+                      }
+                    },
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 35),
+                const SizedBox(height: 35),
 
-              /// Password Policy
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      "Password Policy:",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.darkText,
+                /// Password Policy
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Password Policy:",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.darkText,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 10),
-                    _PolicyItem(text: "Length must between 8 to 20 character"),
-                    _PolicyItem(
-                      text: "A combination of upper and lower case letters.",
-                    ),
-                    _PolicyItem(text: "Contain letters and numbers"),
-                    _PolicyItem(
-                      text: "A special character such as @, #, !, * and \$",
-                    ),
-                  ],
+                      SizedBox(height: 10),
+                      _PolicyItem(
+                        text: "Length must between 8 to 20 character",
+                      ),
+                      _PolicyItem(
+                        text: "A combination of upper and lower case letters.",
+                      ),
+                      _PolicyItem(text: "Contain letters and numbers"),
+                      _PolicyItem(
+                        text: "A special character such as @, #, !, * and \$",
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

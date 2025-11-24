@@ -1,42 +1,71 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:logisticscustomer/features/authentication/register_successful.dart';
 
+import '../../../constants/validation_regx.dart';
 import '../../../export.dart';
-export '../../../common_widgets/cuntom_textfield.dart';
-export '../../../common_widgets/custom_button.dart';
+import 'set_up_profile_controller.dart';
+import 'set_up_profile_modal.dart';
 
-class SetUpProfile extends StatefulWidget {
-  const SetUpProfile({super.key});
+class SetUpProfile extends ConsumerStatefulWidget {
+  final String verificationToken;
+  const SetUpProfile({super.key, required this.verificationToken});
 
   @override
-  State<SetUpProfile> createState() => _SetUpProfileState();
+  ConsumerState<SetUpProfile> createState() => _SetUpProfileState();
 }
 
-class _SetUpProfileState extends State<SetUpProfile> {
-  final TextEditingController firstNameController = TextEditingController();
-  final TextEditingController lastNameController = TextEditingController();
+class _SetUpProfileState extends ConsumerState<SetUpProfile> {
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController fullNameController = TextEditingController();
   final TextEditingController mobileController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
 
-  final FocusNode firstNameFocus = FocusNode();
-  final FocusNode lastNameFocus = FocusNode();
+  final FocusNode fullNameFocus = FocusNode();
   final FocusNode mobileFocus = FocusNode();
   final FocusNode dobFocus = FocusNode();
 
-  bool isChecked = false;
   XFile? profileImage;
-
   final ImagePicker _picker = ImagePicker();
 
-  void checkFields() {
-    setState(() {
-      isChecked =
-          firstNameController.text.isNotEmpty &&
-          lastNameController.text.isNotEmpty &&
-          mobileController.text.isNotEmpty &&
-          dobController.text.isNotEmpty;
-    });
+  bool isButtonEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fullNameController.addListener(_validateForm);
+    mobileController.addListener(_validateForm);
+    dobController.addListener(_validateForm);
+  }
+
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    mobileController.dispose();
+    dobController.dispose();
+    fullNameFocus.dispose();
+    mobileFocus.dispose();
+    dobFocus.dispose();
+    super.dispose();
+  }
+
+  void _validateForm() {
+    final isValid =
+        fullNameController.text.isNotEmpty &&
+        mobileController.text.isNotEmpty &&
+        dobController.text.isNotEmpty &&
+        AppValidators.name(fullNameController.text) == null &&
+        AppValidators.phone(mobileController.text) == null &&
+        AppValidators.dob(dobController.text) == null;
+
+    if (isValid != isButtonEnabled) {
+      setState(() {
+        isButtonEnabled = isValid;
+      });
+    }
   }
 
   Future<void> pickProfileImage() async {
@@ -51,43 +80,43 @@ class _SetUpProfileState extends State<SetUpProfile> {
   Future<void> selectDate() async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: DateTime(1990, 1, 1),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
 
     if (pickedDate != null) {
       dobController.text =
-          "${pickedDate.day.toString().padLeft(2, '0')}/"
-          "${pickedDate.month.toString().padLeft(2, '0')}/"
-          "${pickedDate.year}";
+          "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
     }
   }
 
   @override
-  void initState() {
-    super.initState();
-    firstNameController.addListener(checkFields);
-    lastNameController.addListener(checkFields);
-    mobileController.addListener(checkFields);
-    dobController.addListener(checkFields);
-  }
-
-  @override
-  void dispose() {
-    firstNameController.dispose();
-    lastNameController.dispose();
-    mobileController.dispose();
-    dobController.dispose();
-    firstNameFocus.dispose();
-    lastNameFocus.dispose();
-    mobileFocus.dispose();
-    dobFocus.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final state = ref.watch(setUpProfileControllerProvider);
+
+    ref.listen<AsyncValue<SetUpProfileModel?>>(setUpProfileControllerProvider, (
+      previous,
+      next,
+    ) {
+      next.when(
+        data: (data) {
+          if (data != null && data.success) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const RegisterSuccessful()),
+            );
+          }
+        },
+        loading: () {},
+        error: (e, st) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.toString())));
+        },
+      );
+    });
+
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
       appBar: AppBar(
@@ -102,153 +131,118 @@ class _SetUpProfileState extends State<SetUpProfile> {
         foregroundColor: AppColors.pureWhite,
         backgroundColor: AppColors.electricTeal,
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-        child: Column(
-          children: [
-            // Profile Picture Section
-            GestureDetector(
-              onTap: pickProfileImage,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Outer Circle (border + image)
-                  Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.electricTeal,
-                        width: 2.5,
-                      ),
-                      color: profileImage == null
-                          ? AppColors.electricTeal.withOpacity(0.4)
-                          : Colors.transparent,
-                      image: profileImage != null
-                          ? DecorationImage(
-                              image: FileImage(File(profileImage!.path)),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: profileImage == null
-                        ? Icon(
-                            Icons.person,
-                            size: 0,
-                            color: AppColors.electricTeal,
-                          )
-                        : null,
-                  ),
-
-                  //  Blue overlay icon (only visible when no image is selected)
-                  if (profileImage == null)
-                    Container(
-                      width: 55,
-                      height: 55,
-                      decoration: BoxDecoration(
-                        color: AppColors.electricTeal,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.person_outlined,
-                        color: AppColors.pureWhite,
-                        size: 28,
-                      ),
-                    ),
-                ],
+        child: Form(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: Column(
+            children: [
+              // Profile Image
+              GestureDetector(
+                onTap: pickProfileImage,
+                child: CircleAvatar(
+                  radius: 75,
+                  backgroundColor: AppColors.electricTeal.withOpacity(0.4),
+                  backgroundImage: profileImage != null
+                      ? FileImage(File(profileImage!.path))
+                      : null,
+                  child: profileImage == null
+                      ? const Icon(
+                          Icons.person_outline,
+                          size: 50,
+                          color: Colors.white,
+                        )
+                      : null,
+                ),
               ),
-            ),
-
-            const SizedBox(height: 10),
-            const Text(
-              "Profile Picture",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-
-            const SizedBox(height: 20),
-
-            //  First Name
-            CustomAnimatedTextField(
-              controller: firstNameController,
-              focusNode: firstNameFocus,
-              labelText: "First Name",
-              hintText: "First Name",
-              prefixIcon: Icons.person_outline,
-              iconColor: AppColors.electricTeal,
-              borderColor: AppColors.electricTeal,
-              textColor:AppColors.mediumGray,
-            ),
-            const SizedBox(height: 10),
-
-            // Last Name
-            CustomAnimatedTextField(
-              controller: lastNameController,
-              focusNode: lastNameFocus,
-              labelText: "Last Name",
-              hintText: "Last Name",
-              prefixIcon: Icons.person_outline,
-              iconColor: AppColors.electricTeal,
-              borderColor: AppColors.electricTeal,
-              textColor: AppColors.mediumGray,
-            ),
-            const SizedBox(height: 10),
-
-            //  Mobile Number
-            CustomAnimatedTextField(
-              controller: mobileController,
-              focusNode: mobileFocus,
-              labelText: "Mobile Number",
-              hintText: "Mobile Number",
-              prefixIcon: Icons.phone_outlined,
-              iconColor: AppColors.electricTeal,
-              borderColor: AppColors.electricTeal,
-              textColor:AppColors.mediumGray,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 10),
-
-            // Date of Birth
-            CustomAnimatedTextField(
-              controller: dobController,
-              focusNode: dobFocus,
-              labelText: "Date of Birth",
-              hintText: "DD/MM/YYYY",
-              prefixIcon: Icons.calendar_today_outlined,
-              iconColor: AppColors.electricTeal,
-              borderColor: AppColors.electricTeal,
-              textColor: Colors.black87,
-              keyboardType: TextInputType.datetime,
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                color: AppColors.electricTeal,
-                onPressed: selectDate,
+              const SizedBox(height: 10),
+              const Text(
+                "Profile Picture",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-            ),
+              const SizedBox(height: 20),
 
-            const SizedBox(height: 30),
-
-            //  Next Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              child: CustomButton(
-                isChecked: isChecked,
-                text: "Next",
-                backgroundColor: AppColors.electricTeal,
+              // Full Name
+              CustomAnimatedTextField(
+                controller: fullNameController,
+                focusNode: fullNameFocus,
+                labelText: "Full Name",
+                hintText: "Full Name",
+                prefixIcon: Icons.person_outline,
+                iconColor: AppColors.electricTeal,
                 borderColor: AppColors.electricTeal,
-                textColor: AppColors.pureWhite,
-                onPressed: () {
-                  if (isChecked) {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => RegisterSuccessful()),
-                      );
-                  }
-                },
+                textColor: AppColors.mediumGray,
+                validator: (value) =>
+                    AppValidators.name(value, fieldName: "Full Name"),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+
+              // Mobile
+              CustomAnimatedTextField(
+                controller: mobileController,
+                focusNode: mobileFocus,
+                labelText: "Mobile Number",
+                hintText: "Mobile Number",
+                prefixIcon: Icons.phone_outlined,
+                iconColor: AppColors.electricTeal,
+                borderColor: AppColors.electricTeal,
+                textColor: AppColors.mediumGray,
+                keyboardType: TextInputType.phone,
+                validator: AppValidators.phone,
+              ),
+              const SizedBox(height: 10),
+
+              // DOB
+              CustomAnimatedTextField(
+                controller: dobController,
+                focusNode: dobFocus,
+                labelText: "Date of Birth",
+                hintText: "YYYY-MM-DD",
+                prefixIcon: Icons.calendar_today_outlined,
+                iconColor: AppColors.electricTeal,
+                borderColor: AppColors.electricTeal,
+                textColor: Colors.black87,
+                keyboardType: TextInputType.datetime,
+                validator: AppValidators.dob,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  color: AppColors.electricTeal,
+                  onPressed: selectDate,
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // Next Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: CustomButton(
+                  isChecked: isButtonEnabled && state is! AsyncLoading,
+                  text: state is AsyncLoading ? "Submitting..." : "Next",
+                  backgroundColor: AppColors.electricTeal,
+                  borderColor: AppColors.electricTeal,
+                  textColor: AppColors.pureWhite,
+                  onPressed: isButtonEnabled && state is! AsyncLoading
+                      ? () async {
+                          if (!_formKey.currentState!.validate()) return;
+
+                          await ref
+                              .read(setUpProfileControllerProvider.notifier)
+                              .completeProfile(
+                                verificationToken: widget.verificationToken,
+                                name: fullNameController.text.trim(),
+                                phone: mobileController.text.trim(),
+                                dob: dobController.text.trim(),
+                                profilePhoto: profileImage != null
+                                    ? File(profileImage!.path)
+                                    : null,
+                              );
+                        }
+                      : null,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/authentication/email_register/email_register_controller.dart';
 
+import '../../../constants/validation_regx.dart';
 import '../../../export.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -74,24 +75,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
                   textColor: AppColors.mediumGray,
                   keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Email required";
-                    } else if (!value.contains('@')) {
-                      return "Invalid Email ID";
-                    } else if (!value.contains('.')) {
-                      return "Invalid Email ID";
-                    } else if (value.length < 5) {
-                      return "Invalid Email ID";
-                    } else if (value.contains(' ')) {
-                      return "Invalid Email ID";
-                    } else if (!RegExp(
-                      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-                    ).hasMatch(value)) {
-                      return "Invalid Email ID";
-                    }
-                    return null;
-                  },
+                  validator: AppValidators.email,
                 ),
                 const SizedBox(height: 40),
 
@@ -227,10 +211,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     );
   }
 }
-
-
-
-
 
 // import 'dart:ui';
 // import 'package:flutter/material.dart';

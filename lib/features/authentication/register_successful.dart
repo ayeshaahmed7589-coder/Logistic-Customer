@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../constants/colors.dart';
+import '../bottom_navbar/bottom_navbar_screen.dart';
 
 class RegisterSuccessful extends StatefulWidget {
   const RegisterSuccessful({super.key});
@@ -12,27 +14,43 @@ class RegisterSuccessful extends StatefulWidget {
 
 class _RegisterSuccessfulState extends State<RegisterSuccessful> {
   @override
+  void initState() {
+    super.initState();
+
+    // Ensure widget tree is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Navigate after 3 seconds
+      Timer(const Duration(seconds: 3), () {
+        if (!mounted) return; // Safety check
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const TripsBottomNavBarScreen(initialIndex: 0),
+          ),
+          (route) => false,
+        );
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // vertical center
-          crossAxisAlignment: CrossAxisAlignment.center, // horizontal center
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // ✅ Centered Lottie Animation
             Lottie.asset(
               "assets/Success.json",
               width: 130,
               height: 130,
               fit: BoxFit.contain,
               repeat: false,
-              frameRate: const FrameRate(30), // slower animation
+              frameRate: const FrameRate(30),
             ),
-
             const SizedBox(height: 10),
-
-            // ✅ Headings
             const Text(
               "Registration",
               style: TextStyle(
@@ -51,21 +69,16 @@ class _RegisterSuccessfulState extends State<RegisterSuccessful> {
               ),
               textAlign: TextAlign.center,
             ),
-
             const SizedBox(height: 15),
-
-            // ✅ Description
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-            child:  Text(
-              "Your account has been successfully created.",
-              style: TextStyle(fontSize: 17, color: AppColors.darkGray),
-              textAlign: TextAlign.center,
-            ),),
-
+              child: Text(
+                "Your account has been successfully created.",
+                style: TextStyle(fontSize: 17, color: AppColors.darkGray),
+                textAlign: TextAlign.center,
+              ),
+            ),
             const SizedBox(height: 10),
-
-            // ✅ Secondary Text with proper horizontal padding
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25),
               child: Text(

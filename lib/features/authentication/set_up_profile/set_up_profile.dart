@@ -99,22 +99,25 @@ class _SetUpProfileState extends ConsumerState<SetUpProfile> {
       previous,
       next,
     ) {
-      next.when(
-        data: (data) {
-          if (data != null && data.success) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const RegisterSuccessful()),
-            );
-          }
-        },
-        loading: () {},
-        error: (e, st) {
-          ScaffoldMessenger.of(
+      if (next is AsyncLoading) return;
+
+      if (next is AsyncError) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.error.toString())));
+      }
+      print("VERIFICATION TOKEN => ${widget.verificationToken}");
+
+      if (next is AsyncData) {
+        final data = next.value;
+
+        if (data != null && data.success) {
+          Navigator.pushReplacement(
             context,
-          ).showSnackBar(SnackBar(content: Text(e.toString())));
-        },
-      );
+            MaterialPageRoute(builder: (_) => const RegisterSuccessful()),
+          );
+        }
+      }
     });
 
     return Scaffold(

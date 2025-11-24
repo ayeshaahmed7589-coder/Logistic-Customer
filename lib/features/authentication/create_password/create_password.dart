@@ -173,10 +173,7 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
                     borderColor: AppColors.electricTeal,
                     textColor: AppColors.pureWhite,
                     onPressed: () async {
-                      // 🔥 FORM VALIDATION MUST FIRST
-                      if (!_formKey.currentState!.validate()) {
-                        return;
-                      }
+                      if (!_formKey.currentState!.validate()) return;
 
                       final password = newPasswordController.text.trim();
                       final confirmPassword = confirmPasswordController.text
@@ -193,11 +190,13 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
                       final state = ref.read(createPasswordControllerProvider);
 
                       if (state is AsyncData && state.value != null) {
+                        final data = state.value!.data;
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => SetUpProfile(
-                              verificationToken: "your_verification_token_here",
+                            builder: (_) => SetUpProfile(
+                              verificationToken: data.verificationToken,
                             ),
                           ),
                         );

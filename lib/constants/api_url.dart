@@ -24,4 +24,7 @@ abstract class ApiUrls {
   // Set Up Profile
   static String postSetUpProfile =
       "/api/v1/customer/auth/register/complete-profile";
+
+  // Home
+  static String getHome = "/api/v1/customer/dashboard";
 }

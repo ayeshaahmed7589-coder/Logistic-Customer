@@ -5,14 +5,16 @@ import 'set_up_profile_modal.dart';
 
 final setUpProfileControllerProvider = StateNotifierProvider<
     SetUpProfileController, AsyncValue<SetUpProfileModel?>>((ref) {
-  final repo = SetUpProfileRepository();
+  final repo = ref.watch(setUpProfileRepositoryProvider);
   return SetUpProfileController(repo);
 });
 
-class SetUpProfileController extends StateNotifier<AsyncValue<SetUpProfileModel?>> {
+class SetUpProfileController
+    extends StateNotifier<AsyncValue<SetUpProfileModel?>> {
   final SetUpProfileRepository repository;
 
-  SetUpProfileController(this.repository) : super(const AsyncValue.data(null));
+  SetUpProfileController(this.repository)
+      : super(const AsyncValue.data(null));
 
   Future<void> completeProfile({
     required String verificationToken,
@@ -21,7 +23,7 @@ class SetUpProfileController extends StateNotifier<AsyncValue<SetUpProfileModel?
     required String dob,
     File? profilePhoto,
   }) async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading();
 
     try {
       final result = await repository.completeProfile(
@@ -31,9 +33,9 @@ class SetUpProfileController extends StateNotifier<AsyncValue<SetUpProfileModel?
         dob: dob,
         profilePhoto: profilePhoto,
       );
-      state = AsyncValue.data(result);
+      state = AsyncData(result);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      state = AsyncError(e, st);
     }
   }
 }

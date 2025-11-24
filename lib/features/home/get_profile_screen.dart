@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/constants/gap.dart';
+import 'package:logisticscustomer/constants/local_storage.dart';
+import 'package:logisticscustomer/features/authentication/login/login.dart';
+
+import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
 
 import '../../constants/colors.dart';
 
-class GetProfileScreen extends StatelessWidget {
+class GetProfileScreen extends ConsumerStatefulWidget {
   const GetProfileScreen({super.key});
 
+  @override
+  ConsumerState<GetProfileScreen> createState() => _GetProfileScreenState();
+}
+
+class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final Color blueColor = AppColors.electricTeal;
@@ -26,14 +36,117 @@ class GetProfileScreen extends StatelessWidget {
         centerTitle: true,
         backgroundColor: blueColor,
         elevation: 0,
-        actions: const [
+        actions: [
           Padding(
-            padding: EdgeInsets.only(right: 15.0),
-            child: Icon(Icons.logout, color: AppColors.pureWhite, size: 28),
+            padding: const EdgeInsets.only(right: 15.0),
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (context) {
+                    return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      title: const Text(
+                        "Logout",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                      content: const Text(
+                        "Are you sure you want to logout?",
+                        style: TextStyle(fontSize: 15, color: Colors.black87),
+                      ),
+                      actions: [
+                        /// CANCEL BUTTON (bordered)
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            side: const BorderSide(
+                              color: AppColors.electricTeal,
+                              width: 1,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 9,
+                            ),
+                          ),
+                          child: const Text(
+                            "Cancel",
+                            style: TextStyle(
+                              color: AppColors.electricTeal,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+
+                        /// LOGOUT BUTTON (actual API call)
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: blueColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () async {
+                            // Solution 1 use karo - safe rahega
+                            final currentContext = context;
+                            Navigator.pop(currentContext);
+
+                            /// Call API
+                            final msg = await ref
+                                .read(logoutControllerProvider.notifier)
+                                .logoutUser();
+
+                            if (msg != null) {
+                              // Check karo context still mounted hai ya nahi
+                              if (currentContext.mounted) {
+                                ScaffoldMessenger.of(
+                                  currentContext,
+                                ).showSnackBar(SnackBar(content: Text(msg)));
+
+                                await LocalStorage.clearToken();
+
+                                Navigator.pushAndRemoveUntil(
+                                  currentContext,
+                                  MaterialPageRoute(builder: (_) => Login()),
+                                  (route) => false,
+                                );
+                              } else {
+                                // Agar context mounted nahi hai, direct token clear karo
+                                await LocalStorage.clearToken();
+                                // Yahan pe direct MaterialApp ka context use karna padega
+                                // ya fir main.dart mein navigation handle karna padega
+                              }
+                            }
+                          },
+                          child: const Text(
+                            "Logout",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              child: const Icon(
+                Icons.logout,
+                color: AppColors.pureWhite,
+                size: 28,
+              ),
+            ),
           ),
         ],
       ),
-      // *** Yahan Body Structure Change Kiya Hai ***
+
       body: Column(
         children: [
           Expanded(

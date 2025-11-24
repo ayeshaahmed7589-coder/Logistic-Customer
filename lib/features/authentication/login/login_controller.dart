@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/constants/local_storage.dart';
 import 'package:logisticscustomer/features/authentication/login/login_modal.dart';
 import 'package:logisticscustomer/features/authentication/login/login_repo.dart';
 
@@ -12,6 +13,7 @@ class LoginController extends StateNotifier<AsyncValue<LoginModel?>> {
 
     try {
       final result = await repository.login(email: email, password: password);
+      await LocalStorage.saveToken(result.data.accessToken);
       state = AsyncValue.data(result);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -21,6 +23,32 @@ class LoginController extends StateNotifier<AsyncValue<LoginModel?>> {
 
 final loginControllerProvider =
     StateNotifierProvider<LoginController, AsyncValue<LoginModel?>>((ref) {
-  final repo = ref.watch(loginRepositoryProvider);
-  return LoginController(repo);
-});
+      final repo = ref.watch(loginRepositoryProvider);
+      return LoginController(repo);
+    });
+
+// Logout
+class LogoutController extends StateNotifier<AsyncValue<String?>> {
+  final LogoutRepository repository;
+
+  LogoutController(this.repository) : super(const AsyncValue.data(null));
+
+  Future<String?> logoutUser() async {
+    state = const AsyncValue.loading();
+
+    try {
+      final msg = await repository.logout();
+      state = AsyncValue.data(msg);
+      return msg;
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      return null;
+    }
+  }
+}
+
+final logoutControllerProvider =
+    StateNotifierProvider<LogoutController, AsyncValue<String?>>((ref) {
+      final repo = ref.watch(logoutRepositoryProvider);
+      return LogoutController(repo);
+    });

@@ -1,4 +1,3 @@
-
 class EmailRegisterModal {
   final bool success;
   final String message;

@@ -40,7 +40,8 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(seconds: 2));
 
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString("access_token");
+    final token = prefs.getString("auth_token");
+
 
     if (!mounted) return;
 

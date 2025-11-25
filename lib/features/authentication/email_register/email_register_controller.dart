@@ -20,7 +20,9 @@ class AuthController extends StateNotifier<AsyncValue<EmailRegisterModal?>> {
 }
 
 final authControllerProvider =
-    StateNotifierProvider<AuthController, AsyncValue<EmailRegisterModal?>>((ref) {
-  final repo = ref.watch(authRepositoryProvider);
-  return AuthController(repo);
-});
+    StateNotifierProvider<AuthController, AsyncValue<EmailRegisterModal?>>((
+      ref,
+    ) {
+      final repo = ref.watch(authRepositoryProvider);
+      return AuthController(repo);
+    });

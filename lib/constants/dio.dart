@@ -16,7 +16,6 @@
 //     ),
 //   );
 // }
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/constants/api_url.dart';
 import 'package:logisticscustomer/constants/local_storage.dart';
@@ -39,10 +38,24 @@ Dio dio(Ref ref) {
     ),
   );
 
-  /// 🔥 Token Interceptor
+  // API jin par token nahi lagana
+  final noAuthPaths = [
+    "/register/send-otp",
+    "/register/verify-otp",
+    "/register/create-password",
+    "/register/complete-profile",
+    "/login",
+  ];
+
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
+        // Skip auth-free APIs
+        if (noAuthPaths.any((p) => options.path.contains(p))) {
+          print("🚫 Skipping token for → ${options.path}");
+          return handler.next(options);
+        }
+
         final token = await LocalStorage.getToken();
 
         if (token != null && token.isNotEmpty) {

@@ -187,21 +187,53 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
                             confirmPassword: confirmPassword,
                           );
 
+                      if (!mounted) return;
+
                       final state = ref.read(createPasswordControllerProvider);
 
                       if (state is AsyncData && state.value != null) {
-                        final data = state.value!.data;
-
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => SetUpProfile(
-                              verificationToken: data.verificationToken,
+                              verificationToken:
+                                  state.value!.data.verificationToken,
                             ),
                           ),
                         );
                       }
                     },
+
+                    // onPressed: () async {
+                    //   if (!_formKey.currentState!.validate()) return;
+
+                    //   final password = newPasswordController.text.trim();
+                    //   final confirmPassword = confirmPasswordController.text
+                    //       .trim();
+
+                    //   await ref
+                    //       .read(createPasswordControllerProvider.notifier)
+                    //       .createPassword(
+                    //         token: widget.token,
+                    //         password: password,
+                    //         confirmPassword: confirmPassword,
+                    //       );
+
+                    //   final state = ref.read(createPasswordControllerProvider);
+
+                    //   if (state is AsyncData && state.value != null) {
+                    //     final data = state.value!.data;
+
+                    //     Navigator.push(
+                    //       context,
+                    //       MaterialPageRoute(
+                    //         builder: (_) => SetUpProfile(
+                    //           verificationToken: data.verificationToken,
+                    //         ),
+                    //       ),
+                    //     );
+                    //   }
+                    // },
                   ),
                 ),
 

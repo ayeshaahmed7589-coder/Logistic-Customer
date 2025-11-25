@@ -5,6 +5,7 @@ final authTokenProvider = FutureProvider<String?>((ref) async {
   return await LocalStorage.getToken();
 });
 
+
 class LocalStorage {
   static const String _keyToken = "auth_token";
 

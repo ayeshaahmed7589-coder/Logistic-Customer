@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/constants/gap.dart';
 import 'package:logisticscustomer/constants/local_storage.dart';
 import 'package:logisticscustomer/features/authentication/login/login.dart';
 import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
@@ -329,8 +330,10 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
         ),
       ),
       padding: const EdgeInsets.fromLTRB(25, 120, 25, 50),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListView(
+        // crossAxisAlignment: CrossAxisAlignment.start,
+        shrinkWrap: true,
+
         children: [
           const Text(
             'Personal Info',
@@ -388,6 +391,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
             value: customer.country ?? "N/A",
             showVerification: false,
           ),
+          gapH32,
         ],
       ),
     );

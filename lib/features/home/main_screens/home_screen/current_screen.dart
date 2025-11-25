@@ -41,6 +41,8 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
         final user = dashboard.data.customerInfo;
         final stats = dashboard.data.stats;
+        final profile = user.profilePhoto.trim();
+        final hasPhoto = profile.isNotEmpty && profile.toLowerCase() != "null";
 
         return Scaffold(
           backgroundColor: AppColors.lightGrayBackground,
@@ -67,24 +69,17 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                               alpha: 0.4,
                             ),
 
-                            child: user.profilePhoto.isEmpty
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : ClipOval(
-                                    child: Image.network(
-                                      user.profilePhoto,
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return const Icon(
-                                              Icons.person,
-                                              color: Colors.white,
-                                            );
-                                          },
-                                    ),
-                                  ),
+                            // <-- Image network yahan laga do (Ye MOST correct hai)
+                            backgroundImage: hasPhoto
+                                ? NetworkImage(profile)
+                                : null,
+
+                            // Default icon jab photo nahi ho
+                            child: hasPhoto
+                                ? null
+                                : const Icon(Icons.person, color: Colors.white),
                           ),
+
                           // CircleAvatar(
                           //   radius: 22,
                           //   backgroundColor: AppColors.mediumGray.withValues(
@@ -200,6 +195,7 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                           gapH4,
 
                           // Stats UI (values API se bharna)
+                          // Stats UI (values API se bharna)
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -215,82 +211,42 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                                 ),
                               ],
                             ),
-
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
                               children: [
-                                // Total Orders
-                                Column(
+                                // Pehli row
+                                Row(
                                   children: [
-                                    CustomText(
-                                      txt: stats.totalOrders.toString(),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.darkText,
+                                    Expanded(
+                                      child: _buildStatItem(
+                                        value: stats.totalOrders.toString(),
+                                        label: "Total Orders",
+                                      ),
                                     ),
-                                    gapH4,
-                                    CustomText(
-                                      txt: "Total Orders",
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.electricTeal,
+                                    SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildStatItem(
+                                        value: stats.activeOrders.toString(),
+                                        label: "Active Orders",
+                                      ),
                                     ),
                                   ],
                                 ),
-
-                                // Active Orders
-                                Column(
+                                SizedBox(height: 16),
+                                // Doosri row
+                                Row(
                                   children: [
-                                    CustomText(
-                                      txt: stats.activeOrders.toString(),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.darkText,
+                                    Expanded(
+                                      child: _buildStatItem(
+                                        value: stats.completedOrders.toString(),
+                                        label: "Complete Orders",
+                                      ),
                                     ),
-                                    gapH4,
-                                    CustomText(
-                                      txt: "Active Orders",
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.electricTeal,
-                                    ),
-                                  ],
-                                ),
-
-                                // Completed
-                                Column(
-                                  children: [
-                                    CustomText(
-                                      txt: stats.completedOrders.toString(),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.darkText,
-                                    ),
-                                    gapH4,
-                                    CustomText(
-                                      txt: "Complete Orders",
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.electricTeal,
-                                    ),
-                                  ],
-                                ),
-
-                                // Spent
-                                Column(
-                                  children: [
-                                    CustomText(
-                                      txt: "${stats.totalSpent}",
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.darkText,
-                                    ),
-                                    gapH4,
-                                    CustomText(
-                                      txt: "Spent",
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.electricTeal,
+                                    SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildStatItem(
+                                        value: "${stats.totalSpent}",
+                                        label: "Spent",
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -455,6 +411,36 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
           ),
         );
       },
+    );
+  }
+
+  // Helper widget
+  Widget _buildStatItem({required String value, required String label}) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: AppColors.subtleGray,
+        // color: AppColors.mediumGray.withOpacity(0.1),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CustomText(
+            txt: value,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.darkText,
+          ),
+          gapH4,
+          CustomText(
+            txt: label,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.electricTeal,
+          ),
+        ],
+      ),
     );
   }
 

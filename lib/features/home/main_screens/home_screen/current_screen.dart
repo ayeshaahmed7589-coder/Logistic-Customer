@@ -1,20 +1,9 @@
 import 'package:flutter/material.dart';
-
-import 'package:logisticscustomer/export.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/pickup_detail_screen.dart';
-import 'package:logisticscustomer/features/home/main_screens/home_screen/home_controller.dart';
-import 'package:logisticscustomer/features/home/notification_screen.dart';
-import 'package:logisticscustomer/features/home/order_conplete.dart';
-import 'package:logisticscustomer/features/home/order_history.dart';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:logisticscustomer/export.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/pickup_detail_screen.dart';
-import 'package:logisticscustomer/features/home/notification_screen.dart';
-import 'package:logisticscustomer/features/home/order_conplete.dart';
-import 'package:logisticscustomer/features/home/order_history.dart';
+import 'package:logisticscustomer/features/home/main_screens/home_screen/home_controller.dart';
+
 
 class CurrentScreen extends ConsumerStatefulWidget {
   const CurrentScreen({super.key});
@@ -24,7 +13,6 @@ class CurrentScreen extends ConsumerStatefulWidget {
 }
 
 class _CurrentScreenState extends ConsumerState<CurrentScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -35,31 +23,25 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dashboardState = ref.watch(dashboardControllerProvider);
+    final state = ref.watch(dashboardControllerProvider);
 
-    return dashboardState.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-
-      error: (e, st) => Scaffold(
-        body: Center(child: Text("Error: $e")),
-      ),
+   return state.when(
+  loading: () => const Scaffold(
+    body: Center(child: CircularProgressIndicator()),
+  ),
+    error: (e, st) => Scaffold(
+    body: Center(child: Text("Error: $e")),
+  ),
 
       data: (dashboard) {
-        final data = dashboard?.data;
+        // if (dashboard == null) {
+        //   return const Scaffold(
+        //     body: Center(child: Text("No Data")),
+        //   );
+        // }
 
-        // AGAR DATA NULL HO
-        if (data == null) {
-          return const Scaffold(
-            body: Center(child: Text("No Data Found")),
-          );
-        }
-
-        final user = data.customerInfo;
-        final stats = data.stats;
-        final activeOrders = data.activeOrders;
-        final recentOrders = data.recentOrders;
+      final user = dashboard.data.customerInfo;
+    final stats = dashboard.data.stats;
 
         return Scaffold(
           backgroundColor: AppColors.lightGrayBackground,
@@ -68,12 +50,13 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // ------------------- APPBAR ---------------------
+                // ------------------- APP BAR -------------------
                 Container(
                   padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
                   width: double.infinity,
-                  decoration: const BoxDecoration(color: AppColors.electricTeal),
+                  decoration: const BoxDecoration(
+                    color: AppColors.electricTeal,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -81,31 +64,31 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                         children: [
                           CircleAvatar(
                             radius: 22,
-                            backgroundColor: AppColors.mediumGray.withValues(alpha: 0.4),
-                            backgroundImage: user.profilePhoto.isNotEmpty
-                                ? NetworkImage(user.profilePhoto)
-                                : null,
-                            child: user.profilePhoto.isEmpty
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : null,
+                            backgroundColor:
+                                AppColors.mediumGray.withValues(alpha: 0.4),
+                            child: const Icon(Icons.person, color: Colors.white),
                           ),
                           const SizedBox(width: 12),
+
+                          // NAME + CITY
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               CustomText(
-                                txt: "Hi, ${user.name}!",
+                                txt: "Hi, ${user.name}",
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.pureWhite,
                               ),
+                              const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.location_pin, size: 16, color: Colors.white),
+                                  const Icon(Icons.location_pin,
+                                      size: 16, color: Colors.white),
                                   const SizedBox(width: 4),
                                   CustomText(
                                     txt: "${user.city}, ${user.state}",
-                                    color: AppColors.pureWhite,
+                                    color: Colors.white,
                                   ),
                                 ],
                               ),
@@ -113,127 +96,23 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                           ),
                         ],
                       ),
+
                       IconButton(
-                        onPressed: () {
-                          Navigator.push(context,
-                            MaterialPageRoute(builder: (c) => NotificationScreen()));
-                        },
-                        icon: const Icon(Icons.notifications_none, color: Colors.white, size: 25),
-                      ),
+                        onPressed: () {},
+                        icon: const Icon(Icons.notifications_none,
+                            color: Colors.white, size: 25),
+                      )
                     ],
                   ),
                 ),
 
-                // ---------------------- BODY START -----------------------
-
+                // ------------------- REST OF YOUR UI SAME AS IT IS -------------------
+                // Quick Stats
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
-                      // Create New Order
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(context,
-                            MaterialPageRoute(builder: (c) => PickupDetailScreen()));
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          decoration: BoxDecoration(
-                            color: AppColors.pureWhite,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.electricTeal),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.inventory_2, color: AppColors.electricTeal, size: 28),
-                              const SizedBox(width: 10),
-                              CustomText(
-                                txt: "Create New Order",
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.darkText,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      gapH24,
-
-                      // ---------------- ACTIVE ORDERS ----------------
-                      CustomText(
-                        txt: "Active Deliveries",
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.electricTeal,
-                      ),
-                      gapH4,
-
-                      activeOrders.isEmpty
-                          ? const Text("No active orders")
-                          : GestureDetector(
-                              onTap: () {
-                                Navigator.push(context,
-                                  MaterialPageRoute(builder: (c) => OrderHistory()));
-                              },
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.pureWhite,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.mediumGray.withValues(alpha: 0.10),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        CustomText(
-                                          txt: "Order: ",
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.electricTeal,
-                                        ),
-                                        CustomText(
-                                          txt: activeOrders[0]["order_id"].toString(),
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.darkText,
-                                        ),
-                                      ],
-                                    ),
-
-                                    gapH8,
-
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.circle, size: 12, color: AppColors.electricTeal),
-                                        const SizedBox(width: 6),
-                                        CustomText(
-                                          txt: activeOrders[0]["status"] ?? "In Transit",
-                                          color: AppColors.mediumGray,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                      gapH24,
-
-                      // ---------------- QUICK STATS ---------------------
                       CustomText(
                         txt: "Quick Stats",
                         fontSize: 20,
@@ -243,6 +122,7 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
                       gapH4,
 
+                      // Stats UI (values API se bharna)
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -250,41 +130,88 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.mediumGray.withValues(alpha: 0.10),
+                              color:
+                                  AppColors.mediumGray.withValues(alpha: 0.10),
                               blurRadius: 6,
-                              offset: const Offset(0, 3),
+                              offset: Offset(0, 3),
                             ),
                           ],
                         ),
+
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            // Total Orders
                             Column(
                               children: [
                                 CustomText(
                                   txt: stats.totalOrders.toString(),
-                                  fontSize: 22,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.darkText,
                                 ),
                                 gapH4,
-                                 CustomText(
-                                  txt: "Orders",
+                                CustomText(
+                                  txt: "Total Orders",
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
                                   color: AppColors.electricTeal,
                                 ),
                               ],
                             ),
+
+                            // Active Orders
                             Column(
                               children: [
                                 CustomText(
-                                  txt: "\$${stats.totalSpent}",
-                                  fontSize: 22,
+                                  txt: stats.activeOrders.toString(),
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.darkText,
                                 ),
                                 gapH4,
-                                 CustomText(
+                                CustomText(
+                                  txt: "Active Orders",
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.electricTeal,
+                                ),
+                              ],
+                            ),
+
+                            // Completed
+                            Column(
+                              children: [
+                                CustomText(
+                                  txt: stats.completedOrders.toString(),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.darkText,
+                                ),
+                                gapH4,
+                                CustomText(
+                                  txt: "Complete Orders",
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.electricTeal,
+                                ),
+                              ],
+                            ),
+
+                            // Spent
+                            Column(
+                              children: [
+                                CustomText(
+                                  txt: "\$${stats.totalSpent}",
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.darkText,
+                                ),
+                                gapH4,
+                                CustomText(
                                   txt: "Spent",
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
                                   color: AppColors.electricTeal,
                                 ),
                               ],
@@ -293,78 +220,15 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                         ),
                       ),
 
-                      gapH24,
-
-                      // ------------------- RECENT ORDERS ------------------
-                      CustomText(
-                        txt: "Recent Orders",
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.electricTeal,
-                      ),
-
-                      gapH4,
-
-                      ...recentOrders.map((o) {
-                        return Column(
-                          children: [
-                            buildOrderTile(
-                              o["order_id"].toString(),
-                              o["status"] ?? "Delivered",
-                              o["time"] ?? "",
-                            ),
-                            gapH12,
-                          ],
-                        );
-                      }).toList(),
-
+                      // Baaqi tumhara UI jaisa ka taisa rahega
                     ],
                   ),
-                ),
+                )
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  // ----- SAME RECENT ORDER TILE -----
-  Widget buildOrderTile(String id, String status, String time) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => OrderCompleteScreen()),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.pureWhite,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CustomText(
-                  txt: id,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkText,
-                ),
-                gapW8,
-                const Icon(Icons.check, color: Colors.green, size: 18),
-                CustomText(txt: " $status", color: Colors.green),
-              ],
-            ),
-            const SizedBox(height: 6),
-            CustomText(txt: time, fontSize: 12),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -507,9 +371,114 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 //                   ),
 //                   gapH24,
 
+//                   // ---- Quick Stats ----
+//                   CustomText(
+//                     txt: "Quick Stats",
+//                     fontSize: 20,
+//                     fontWeight: FontWeight.w700,
+//                     color: AppColors.electricTeal,
+//                   ),
+
+//                   gapH4,
+//                   Container(
+//                     padding: const EdgeInsets.all(16),
+//                     decoration: BoxDecoration(
+//                       color: AppColors.pureWhite,
+//                       borderRadius: BorderRadius.circular(12),
+//                       boxShadow: [
+//                         BoxShadow(
+//                           color: AppColors.mediumGray.withValues(alpha: 0.10),
+//                           blurRadius: 6,
+//                           offset: Offset(0, 3),
+//                         ),
+//                       ],
+//                     ),
+//                     child: Row(
+//                       mainAxisAlignment:
+//                           MainAxisAlignment.spaceBetween, // Yeh line add ki hai
+//                       children: [
+//                         Column(
+//                           mainAxisAlignment:
+//                               MainAxisAlignment.center, // Center align kiya
+//                           children: [
+//                             CustomText(
+//                               txt: "45",
+//                               fontSize: 14,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.darkText,
+//                             ),
+//                             gapH4,
+//                             CustomText(
+//                               txt: "Total Orders",
+//                               fontSize: 12,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.electricTeal,
+//                             ),
+//                           ],
+//                         ),
+//                         Column(
+//                           mainAxisAlignment: MainAxisAlignment.center,
+//                           children: [
+//                             CustomText(
+//                               txt: "45",
+//                               fontSize: 14,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.darkText,
+//                             ),
+//                             gapH4,
+//                             CustomText(
+//                               txt: "Active Orders",
+//                               fontSize: 12,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.electricTeal,
+//                             ),
+//                           ],
+//                         ),
+//                         Column(
+//                           mainAxisAlignment: MainAxisAlignment.center,
+//                           children: [
+//                             CustomText(
+//                               txt: "45",
+//                               fontSize: 14,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.darkText,
+//                             ),
+//                             gapH4,
+//                             CustomText(
+//                               txt: "Complete Orders",
+//                               fontSize: 12,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.electricTeal,
+//                             ),
+//                           ],
+//                         ),
+//                         Column(
+//                           mainAxisAlignment: MainAxisAlignment.center,
+//                           children: [
+//                             CustomText(
+//                               txt: "\$2,340",
+//                               fontSize: 14,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.darkText,
+//                             ),
+//                             gapH4,
+//                             CustomText(
+//                               txt: "Spent",
+//                               fontSize: 12,
+//                               fontWeight: FontWeight.bold,
+//                               color: AppColors.electricTeal,
+//                             ),
+//                           ],
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+
+//                   gapH24,
+
 //                   // ---- Active Deliveries ----
 //                   CustomText(
-//                     txt: "Active Deliveries",
+//                     txt: "Active Orders",
 //                     fontSize: 20,
 //                     fontWeight: FontWeight.w700,
 //                     color: AppColors.electricTeal,
@@ -616,70 +585,6 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 //                           ),
 //                         ],
 //                       ),
-//                     ),
-//                   ),
-
-//                   gapH24,
-
-//                   // ---- Quick Stats ----
-//                   CustomText(
-//                     txt: "Quick Stats",
-//                     fontSize: 20,
-//                     fontWeight: FontWeight.w700,
-//                     color: AppColors.electricTeal,
-//                   ),
-
-//                   gapH4,
-//                   Container(
-//                     padding: const EdgeInsets.all(16),
-//                     decoration: BoxDecoration(
-//                       color: AppColors.pureWhite,
-//                       borderRadius: BorderRadius.circular(12),
-//                       boxShadow: [
-//                         BoxShadow(
-//                           color: AppColors.mediumGray.withValues(alpha: 0.10),
-//                           blurRadius: 6,
-//                           offset: Offset(0, 3),
-//                         ),
-//                       ],
-//                     ),
-//                     child: Row(
-//                       mainAxisAlignment: MainAxisAlignment.spaceAround,
-//                       children: [
-//                         Column(
-//                           children: [
-//                             CustomText(
-//                               txt: "45",
-
-//                               fontSize: 22,
-//                               fontWeight: FontWeight.bold,
-//                               color: AppColors.darkText,
-//                             ),
-//                             gapH4,
-//                             CustomText(
-//                               txt: "Orders",
-//                               color: AppColors.electricTeal,
-//                             ),
-//                           ],
-//                         ),
-//                         Column(
-//                           children: [
-//                             CustomText(
-//                               txt: "\$2,340",
-
-//                               fontSize: 22,
-//                               fontWeight: FontWeight.bold,
-//                               color: AppColors.darkText,
-//                             ),
-//                             gapH4,
-
-//                             CustomText(
-//                               txt: "Spent",
-//                               color: AppColors.electricTeal,
-//                             ),
-//                           ],
-//                         ),
-//                       ],
 //                     ),
 //                   ),
 

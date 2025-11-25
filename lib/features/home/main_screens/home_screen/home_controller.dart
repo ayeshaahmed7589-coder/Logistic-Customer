@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/home_modal.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/home_repo.dart';
 
-class DashboardController extends StateNotifier<AsyncValue<DashboardModel?>> {
+class DashboardController extends StateNotifier<AsyncValue<DashboardModel>> {
   final DashboardRepository repository;
 
   DashboardController(this.repository)
@@ -21,7 +21,7 @@ class DashboardController extends StateNotifier<AsyncValue<DashboardModel?>> {
 }
 
 final dashboardControllerProvider =
-    StateNotifierProvider<DashboardController, AsyncValue<DashboardModel?>>(
+    StateNotifierProvider<DashboardController, AsyncValue<DashboardModel>>(
   (ref) {
     final repo = ref.watch(dashboardRepositoryProvider);
     return DashboardController(repo);

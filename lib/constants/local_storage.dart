@@ -1,4 +1,9 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+final authTokenProvider = FutureProvider<String?>((ref) async {
+  return await LocalStorage.getToken();
+});
 
 class LocalStorage {
   static const String _keyToken = "auth_token";

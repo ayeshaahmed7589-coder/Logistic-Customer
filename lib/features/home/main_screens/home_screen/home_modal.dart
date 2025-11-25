@@ -1,6 +1,6 @@
 class DashboardModel {
   final bool success;
-  final DashboardData? data;
+  final DashboardData data;
 
   DashboardModel({required this.success, required this.data});
 

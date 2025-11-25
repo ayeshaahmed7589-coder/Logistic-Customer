@@ -123,10 +123,10 @@ class AppValidators {
       return "Date of Birth is required";
     }
 
-    // Check format DD/MM/YYYY
-    final dobRegex = RegExp(r'^\d{2}/\d{2}/\d{4}$');
+    // Check format YYYY-MM-DD
+    final dobRegex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
     if (!dobRegex.hasMatch(value)) {
-      return "Enter DOB in DD/MM/YYYY format";
+      return "Enter DOB in YYYY-MM-DD format";
     }
 
     return null;

@@ -27,4 +27,10 @@ abstract class ApiUrls {
 
   // Home
   static String getHome = "/api/v1/customer/dashboard";
+
+  //Get Profile
+  static String getprofile = "/api/v1/customer/auth/profile";
+
+  //Edit Profile
+  static String editprofile = "/api/v1/customer/auth/profile";
 }

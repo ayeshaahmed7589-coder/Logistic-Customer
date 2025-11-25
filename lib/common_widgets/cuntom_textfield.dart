@@ -13,6 +13,8 @@ class CustomAnimatedTextField extends StatefulWidget {
   final String? Function(String?)? validator;
   final TextInputType keyboardType;
   final bool obscureText;
+  final bool readOnly; // ✅ new
+  final VoidCallback? onTap; // ✅ new
   final Widget? suffixIcon;
 
   const CustomAnimatedTextField({
@@ -28,6 +30,8 @@ class CustomAnimatedTextField extends StatefulWidget {
     this.validator,
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
+    this.readOnly = false, // default false
+    this.onTap, // optional
     this.suffixIcon,
   }) : super(key: key);
 
@@ -85,12 +89,10 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
               focusNode: widget.focusNode,
               keyboardType: widget.keyboardType,
               obscureText: widget.obscureText,
+              readOnly: widget.readOnly, // ✅ support readOnly
+              onTap: widget.onTap, // ✅ support optional onTap
 
-              // ❌ Yahan setState NAHI chalega
-              validator: (value) {
-                return null; // suppress default error
-              },
-
+              validator: (value) => null, // suppress default error
               autovalidateMode: AutovalidateMode.onUserInteraction,
 
               onChanged: (val) {

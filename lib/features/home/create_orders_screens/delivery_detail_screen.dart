@@ -3,8 +3,35 @@ import 'package:flutter/material.dart';
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/service_payment_screen.dart';
 
+import 'search_screen/search_screen.dart';
+
 class PackageDetailsScreen extends StatelessWidget {
   const PackageDetailsScreen({super.key});
+
+  void showSearchProductsModal(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.7), // background dim
+      builder: (context) {
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(vertical: 40),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            height:
+                MediaQuery.of(context).size.height *
+                0.75, // center modal height
+            decoration: BoxDecoration(
+              color: AppColors.pureWhite,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: SearchProductWidget(), // tumhara UI
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,49 +100,61 @@ class PackageDetailsScreen extends StatelessWidget {
                   _sectionTitle("PACKAGE DETAILS"),
 
                   const SizedBox(height: 15),
-                  //Search bar
-                  Container(
-                    height: 52,
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.pureWhite,
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.electricTeal.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.search_rounded,
-                          color: AppColors.electricTeal,
-                          size: 24,
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: "Search Shopify Products...",
-                              hintStyle: TextStyle(
-                                color: AppColors.mediumGray,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w400,
+                  GestureDetector(
+                    onTap: () {
+                      showSearchProductsModal(
+                        context,
+                      ); // ← yeh function modal kholta hai
+                    },
+                    child: Container(
+                      height: 52,
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.pureWhite,
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.electricTeal.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search_rounded,
+                            color: AppColors.electricTeal,
+                            size: 24,
+                          ),
+                          SizedBox(width: 12),
+
+                          // Yahan TextField ko readOnly kar diya — taake click sirf modal khole
+                          Expanded(
+                            child: TextField(
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                hintText: "Search Shopify Products...",
+                                hintStyle: TextStyle(
+                                  color: AppColors.mediumGray,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
                               ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            style: TextStyle(
-                              color: AppColors.darkText,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              style: TextStyle(
+                                color: AppColors.darkText,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              onTap: () {
+                                showSearchProductsModal(context);
+                              },
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
 

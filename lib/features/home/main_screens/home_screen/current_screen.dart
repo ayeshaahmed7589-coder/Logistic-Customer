@@ -146,7 +146,7 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => PickupDetailScreen(),
+                              builder: (context) => PickupDeliveryScreen(),
                             ),
                           );
                         },

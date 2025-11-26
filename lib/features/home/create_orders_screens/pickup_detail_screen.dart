@@ -330,7 +330,7 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                   ),
 
                   // delivery address end
-                  const SizedBox(height: 30),
+                  gapH16,
 
                   // ---------- Pickup Details Heading ----------
                   Column(
@@ -401,7 +401,6 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                       },
                     ),
                   ),
-                  gapH12,
                 ],
               ),
             ),

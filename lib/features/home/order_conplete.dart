@@ -32,7 +32,7 @@ class OrderCompleteScreen extends StatelessWidget {
 
               // ------------------- TITLE -------------------
               CustomText(
-                txt: "Order Delivered!",
+                txt: "Order Delivered Successfully!",
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppColors.darkText,
@@ -41,7 +41,7 @@ class OrderCompleteScreen extends StatelessWidget {
               const SizedBox(height: 8),
 
               CustomText(
-                txt: "Your package has been delivered successfully",
+                txt: "How your experience with Driver John?",
                 fontSize: 14,
                 color: AppColors.mediumGray,
               ),

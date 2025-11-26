@@ -63,7 +63,7 @@ class _ServicePaymentScreenState extends State<ServicePaymentScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: CustomText(
-                      txt: "[4/4]",
+                      txt: "[3/3]",
                       fontSize: 14,
                       color: AppColors.pureWhite,
                     ),

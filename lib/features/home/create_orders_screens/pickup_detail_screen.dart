@@ -96,7 +96,7 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: CustomText(
-                      txt: "[1/4]",
+                      txt: "[1/3]",
                       fontSize: 14,
                       color: AppColors.pureWhite,
                     ),

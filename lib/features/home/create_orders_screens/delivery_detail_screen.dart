@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:logisticscustomer/export.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/service_payment_screen.dart';
 
 class PackageDetailsScreen extends StatelessWidget {
   const PackageDetailsScreen({super.key});
@@ -54,7 +55,7 @@ class PackageDetailsScreen extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: CustomText(
-                      txt: "[2/4]",
+                      txt: "[2/3]",
                       fontSize: 14,
                       color: AppColors.pureWhite,
                     ),
@@ -356,7 +357,14 @@ class PackageDetailsScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ServicePaymentScreen(),
+                                ),
+                              );
+                            },
                             child: const Text(
                               "Next",
                               style: TextStyle(

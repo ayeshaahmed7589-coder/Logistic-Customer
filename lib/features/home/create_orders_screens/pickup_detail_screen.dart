@@ -56,55 +56,7 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //appbar
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.electricTeal,
-                // boxShadow: [
-                //   BoxShadow(
-                //     color: Colors.black26,
-                //     blurRadius: 6,
-                //     offset: Offset(0, 3),
-                //   )
-                // ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // --- LEFT SIDE (Close Icon) ---
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: Icon(Icons.close, color: AppColors.pureWhite),
-                    ),
-                  ),
-
-                  // --- CENTER TITLE ---
-                  CustomText(
-                    txt: "New Order",
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.pureWhite,
-                  ),
-
-                  // --- RIGHT SIDE (Step indicator) ---
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: CustomText(
-                      txt: "[1/3]",
-                      fontSize: 14,
-                      color: AppColors.pureWhite,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            //appbar end
+        
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(

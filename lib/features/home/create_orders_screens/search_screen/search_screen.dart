@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-
-import '../../../../common_widgets/cuntom_textfield.dart';
+import '../../../../common_widgets/custom_button.dart';
 import '../../../../common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
 
 class SearchProductWidget extends StatefulWidget {
+  const SearchProductWidget({super.key});
+
   @override
   State<SearchProductWidget> createState() => _SearchProductWidgetState();
 }
@@ -13,6 +14,8 @@ class _SearchProductWidgetState extends State<SearchProductWidget> {
   final TextEditingController searchCtrl = TextEditingController();
   final searchfocus = FocusNode();
   bool isLoading = false;
+
+  int? selectedIndex; // <-- SELECTED PRODUCT INDEX
 
   List<Map<String, dynamic>> demoProducts = [
     {
@@ -87,7 +90,6 @@ class _SearchProductWidgetState extends State<SearchProductWidget> {
                 ),
                 SizedBox(width: 12),
 
-                // Yahan TextField ko readOnly kar diya — taake click sirf modal khole
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
@@ -116,55 +118,98 @@ class _SearchProductWidgetState extends State<SearchProductWidget> {
           // PRODUCT LIST
           Expanded(
             child: ListView.separated(
+              padding: EdgeInsets.symmetric(vertical: 8),
               itemCount: demoProducts.length,
-              separatorBuilder: (_, __) => Divider(color: Colors.grey.shade300),
+              separatorBuilder: (_, __) => SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final p = demoProducts[index];
+                bool isSelected = selectedIndex == index;
 
-                return Row(
-                  children: [
-                    Icon(p["icon"], size: 30, color: AppColors.electricTeal),
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedIndex = index;
+                    });
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.pureWhite
+                          : AppColors.pureWhite,
+                      borderRadius: BorderRadius.circular(12),
 
-                    SizedBox(width: 12),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.electricTeal
+                            : AppColors.mediumGray.withOpacity(0.2),
+                        width: 1.5,
+                      ),
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText(
-                            txt: p["name"],
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.mediumGray.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CustomText(
+                                txt: p["name"],
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              SizedBox(height: 2),
+                              CustomText(txt: "SKU: ${p["sku"]}", fontSize: 13),
+                              CustomText(txt: p["price"], fontSize: 13),
+                              CustomText(txt: p["weight"], fontSize: 13),
+                            ],
                           ),
-                          CustomText(txt: "SKU: ${p["sku"]}"),
-                          CustomText(txt: p["price"]),
-                          CustomText(txt: p["weight"]),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-
-                    GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.electricTeal),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: CustomText(
-                          txt: "Add",
-                          color: AppColors.electricTeal,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 );
               },
             ),
           ),
+
+          SizedBox(height: 10),
+
+          // BOTTOM BUTTON OUTSIDE CARD
+          
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: CustomButton(
+                text: selectedIndex == null
+                    ? "Please select your product"
+                    : "Add to your product",
+                backgroundColor: selectedIndex == null
+                    ? AppColors.lightGrayBackground
+                    : AppColors.electricTeal,
+                borderColor: selectedIndex == null
+                    ? AppColors.electricTeal
+                    : AppColors.electricTeal,
+                textColor: selectedIndex == null
+                    ? AppColors.electricTeal
+                    : AppColors.pureWhite,
+                onPressed: selectedIndex == null
+                    ? null
+                    : () {
+                        // ADD LOGIC HERE
+                      },
+              ),
+            ),
+          
         ],
       ),
     );

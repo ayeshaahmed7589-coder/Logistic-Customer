@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/service_payment_screen.dart';
-
+import 'add_product_manualy_screen/add_product_manualy_screen.dart';
 import 'search_screen/search_screen.dart';
 
 class PackageDetailsScreen extends StatelessWidget {
@@ -15,13 +14,13 @@ class PackageDetailsScreen extends StatelessWidget {
       barrierColor: Colors.black.withOpacity(0.7), // background dim
       builder: (context) {
         return Dialog(
-          insetPadding: EdgeInsets.symmetric(vertical: 40),
-          backgroundColor: Colors.transparent,
+          insetPadding: EdgeInsets.symmetric(vertical: 30),
+          backgroundColor: AppColors.lightGrayBackground,
           child: Container(
             width: double.infinity,
             height:
                 MediaQuery.of(context).size.height *
-                0.75, // center modal height
+                0.73, // center modal height
             decoration: BoxDecoration(
               color: AppColors.pureWhite,
               borderRadius: BorderRadius.circular(20),
@@ -199,7 +198,29 @@ class PackageDetailsScreen extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor:
+                                      AppColors.lightGrayBackground,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(22),
+                                    ),
+                                  ),
+                                  transitionAnimationController:
+                                      AnimationController(
+                                        duration: Duration(
+                                          milliseconds: 450,
+                                        ), // Slow & Smooth
+                                        vsync: Navigator.of(context),
+                                      ),
+
+                                  // --------------------------------------------------------
+                                  builder: (_) => const AddManualItemModal(),
+                                );
+                              },
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [

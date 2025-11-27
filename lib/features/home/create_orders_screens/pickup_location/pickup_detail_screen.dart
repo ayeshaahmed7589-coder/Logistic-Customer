@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:logisticscustomer/export.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/pickup_controller.dart';
 
-class PickupDeliveryScreen extends StatefulWidget {
+class PickupDeliveryScreen extends ConsumerStatefulWidget {
   const PickupDeliveryScreen({super.key});
 
   @override
-  State<PickupDeliveryScreen> createState() => _PickupDeliveryScreenState();
+  ConsumerState<PickupDeliveryScreen> createState() =>
+      _PickupDeliveryScreenState();
 }
 
-class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
+class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
   bool showEditor = false;
 
   int selectedCardIndex = 0;
+  String selectedAddress = "";
 
-  String selectedAddress = "House 123, Street 5\nDHA Phase 6, Karachi";
+  // String selectedAddress = "House 123, Street 5\nDHA Phase 6, Karachi";
 
   final TextEditingController editlocationController = TextEditingController();
   final TextEditingController contactnameController = TextEditingController();
@@ -30,6 +34,11 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
   @override
   void initState() {
     super.initState();
+    Future.microtask(() {
+      ref.read(defaultAddressControllerProvider.notifier).loadDefaultAddress();
+      ref.read(allAddressControllerProvider.notifier).loadAllAddress();
+    });
+
     contactnameController.addListener(_checkFormFilled);
     editlocationController.addListener(_checkFormFilled);
     locationController.addListener(_checkFormFilled);
@@ -291,6 +300,8 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
   }
 
   Widget _defaultAddressSection() {
+    final defaultAddressState = ref.watch(defaultAddressControllerProvider);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -324,6 +335,13 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                 onTap: () {
                   setState(() {
                     showEditor = !showEditor;
+
+                    if (showEditor) {
+                      // all address load on toggle
+                      ref
+                          .read(allAddressControllerProvider.notifier)
+                          .loadAllAddress();
+                    }
                   });
                 },
                 child: Container(
@@ -392,26 +410,71 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
           ],
 
           // ===================================================
-          // ALWAYS VISIBLE — DEFAULT (SELECTED CARD)
+          // API DATA — DEFAULT ADDRESS CARD
           // ===================================================
-          _selectableCard(index: selectedCardIndex, text: selectedAddress),
+          defaultAddressState.when(
+            loading: () =>
+                _selectableCard(index: 0, text: "Loading address..."),
+
+            error: (err, _) =>
+                _selectableCard(index: 0, text: "Failed to load address"),
+
+            data: (addressModel) {
+              final address = addressModel.data;
+
+              final formattedAddress =
+                  "${address.address}\n${address.city}, ${address.state}";
+
+              // pehli baar default set karna
+              if (selectedAddress.isEmpty) {
+                selectedAddress = formattedAddress;
+              }
+
+              return _selectableCard(
+                index: 0,
+                text: selectedAddress, // 🔥 Always show selected card
+              );
+            },
+          ),
 
           // ===================================================
-          // EXTRA CARDS — ONLY WHEN EDIT EDITOR OPEN
+          // ALL ADDRESSES FROM API (when editor is open)
           // ===================================================
           if (showEditor) ...[
             SizedBox(height: 12),
 
-            _selectableCard(
-              index: 1,
-              text: "House 200, Street 8\nKarachi, Sindh",
-            ),
+            Consumer(
+              builder: (context, ref, _) {
+                final allAddressState = ref.watch(allAddressControllerProvider);
 
-            SizedBox(height: 12),
+                return allAddressState.when(
+                  loading: () => _selectableCard(
+                    index: 999,
+                    text: "Loading saved addresses...",
+                  ),
 
-            _selectableCard(
-              index: 2,
-              text: "Flat 12, Block C\nNorth Nazimabad, Karachi",
+                  error: (err, _) => _selectableCard(
+                    index: 999,
+                    text: "Failed to load addresses",
+                  ),
+
+                  data: (model) {
+                    final list = model?.data ?? [];
+
+                    return Column(
+                      children: List.generate(list.length, (i) {
+                        final a = list[i];
+                        final formatted = "${a.address}\n${a.city}, ${a.state}";
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _selectableCard(index: i + 1, text: formatted),
+                        );
+                      }),
+                    );
+                  },
+                );
+              },
             ),
           ],
         ],
@@ -440,7 +503,7 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
           color: AppColors.pureWhite,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? AppColors.electricTeal : AppColors.mediumGray,
+            color: isSelected ? AppColors.electricTeal : AppColors.electricTeal,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -493,6 +556,138 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
     );
   }
 }
+
+
+
+  // Widget _defaultAddressSection() {
+  //   return Container(
+  //     width: double.infinity,
+  //     padding: const EdgeInsets.all(16),
+  //     decoration: BoxDecoration(
+  //       color: AppColors.pureWhite,
+  //       borderRadius: BorderRadius.circular(12),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: AppColors.mediumGray.withOpacity(0.1),
+  //           blurRadius: 6,
+  //           offset: Offset(0, 3),
+  //         ),
+  //       ],
+  //     ),
+
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         // ===================================================
+  //         // HEADER + EDIT BUTTON
+  //         // ===================================================
+  //         Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             Text(
+  //               "Default Address",
+  //               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+  //             ),
+
+  //             GestureDetector(
+  //               onTap: () {
+  //                 setState(() {
+  //                   showEditor = !showEditor;
+  //                 });
+  //               },
+  //               child: Container(
+  //                 decoration: BoxDecoration(
+  //                   color: AppColors.electricTeal,
+  //                   borderRadius: BorderRadius.circular(8),
+  //                 ),
+  //                 padding: const EdgeInsets.symmetric(
+  //                   horizontal: 10,
+  //                   vertical: 6,
+  //                 ),
+  //                 child: Row(
+  //                   children: [
+  //                     Icon(
+  //                       showEditor ? Icons.close : Icons.add,
+  //                       size: 18,
+  //                       color: AppColors.pureWhite,
+  //                     ),
+  //                     SizedBox(width: 6),
+  //                     Text(
+  //                       "Edit Location",
+  //                       style: TextStyle(
+  //                         color: AppColors.pureWhite,
+  //                         fontSize: 15,
+  //                         fontWeight: FontWeight.bold,
+  //                       ),
+  //                     ),
+  //                   ],
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+
+  //         const SizedBox(height: 16),
+
+  //         // ===================================================
+  //         // TEXT FIELD + OR (only when editing)
+  //         // ===================================================
+  //         if (showEditor) ...[
+  //           CustomAnimatedTextField(
+  //             controller: editlocationController,
+  //             focusNode: editlocationFocus,
+  //             labelText: "Add new location",
+  //             hintText: "Add new location",
+  //             prefixIcon: Icons.location_on_outlined,
+  //             iconColor: AppColors.electricTeal,
+  //             borderColor: AppColors.electricTeal,
+  //             textColor: AppColors.mediumGray,
+  //             keyboardType: TextInputType.text,
+  //             validator: (value) => null,
+  //           ),
+
+  //           Center(
+  //             child: Text(
+  //               "OR",
+  //               style: TextStyle(
+  //                 fontSize: 16,
+  //                 color: AppColors.darkText,
+  //                 fontWeight: FontWeight.bold,
+  //               ),
+  //             ),
+  //           ),
+
+  //           SizedBox(height: 12),
+  //         ],
+
+  //         // ===================================================
+  //         // ALWAYS VISIBLE — DEFAULT (SELECTED CARD)
+  //         // ===================================================
+  //         _selectableCard(index: selectedCardIndex, text: selectedAddress),
+
+  //         // ===================================================
+  //         // EXTRA CARDS — ONLY WHEN EDIT EDITOR OPEN
+  //         // ===================================================
+  //         if (showEditor) ...[
+  //           SizedBox(height: 12),
+
+  //           _selectableCard(
+  //             index: 1,
+  //             text: "House 200, Street 8\nKarachi, Sindh",
+  //           ),
+
+  //           SizedBox(height: 12),
+
+  //           _selectableCard(
+  //             index: 2,
+  //             text: "Flat 12, Block C\nNorth Nazimabad, Karachi",
+  //           ),
+  //         ],
+  //       ],
+  //     ),
+  //   );
+  // }
+
 
 ///////////////
 

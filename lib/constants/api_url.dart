@@ -33,4 +33,11 @@ abstract class ApiUrls {
 
   //Edit Profile
   static String editprofile = "/api/v1/customer/auth/profile";
+
+  //Default Address
+  static String getDefaultAddress = "/api/v1/customer/addresses/default";
+  
+
+  //All Address
+  static String getAllAddress = "/api/v1/customer/addresses";
 }

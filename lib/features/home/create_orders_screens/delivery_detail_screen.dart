@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:logisticscustomer/export.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/service_payment_screen.dart';
 import 'add_product_manualy_screen/add_product_manualy_screen.dart';
 import 'search_screen/search_screen.dart';
 
@@ -41,56 +40,7 @@ class PackageDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //appbar
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 30, 16, 14),
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: AppColors.electricTeal,
-                // boxShadow: [
-                //   BoxShadow(
-                //     color: Colors.black26,
-                //     blurRadius: 6,
-                //     offset: Offset(0, 3),
-                //   )
-                // ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // --- LEFT SIDE (Close Icon) ---
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: Icon(Icons.arrow_back, color: AppColors.pureWhite),
-                    ),
-                  ),
-
-                  // --- CENTER TITLE ---
-                  CustomText(
-                    txt: "New Order",
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.pureWhite,
-                  ),
-
-                  // --- RIGHT SIDE (Step indicator) ---
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: CustomText(
-                      txt: "[2/3]",
-                      fontSize: 14,
-                      color: AppColors.pureWhite,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            //appbar end
+       
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -381,62 +331,63 @@ class PackageDetailsScreen extends StatelessWidget {
                     ),
                   ),
 
-                  gapH12,
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: AppColors.electricTeal,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text(
-                              "Back",
-                              style: TextStyle(
-                                color: AppColors.electricTeal,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.electricTeal,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ServicePaymentScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              "Next",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // gapH12,
+                  // Padding(
+                  //   padding: const EdgeInsets.all(8.0),
+                  //   child: Row(
+                  //     children: [
+                  //       Expanded(
+                  //         child: OutlinedButton(
+                  //           style: OutlinedButton.styleFrom(
+                  //             side: const BorderSide(
+                  //               color: AppColors.electricTeal,
+                  //             ),
+                  //             padding: const EdgeInsets.symmetric(vertical: 16),
+                  //             shape: RoundedRectangleBorder(
+                  //               borderRadius: BorderRadius.circular(8),
+                  //             ),
+                  //           ),
+                  //           onPressed: () => Navigator.pop(context),
+                  //           child: const Text(
+                  //             "Back",
+                  //             style: TextStyle(
+                  //               color: AppColors.electricTeal,
+                  //               fontWeight: FontWeight.w600,
+                  //             ),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //       const SizedBox(width: 12),
+                  //       Expanded(
+                  //         child: ElevatedButton(
+                  //           style: ElevatedButton.styleFrom(
+                  //             backgroundColor: AppColors.electricTeal,
+                  //             padding: const EdgeInsets.symmetric(vertical: 16),
+                  //             shape: RoundedRectangleBorder(
+                  //               borderRadius: BorderRadius.circular(8),
+                  //             ),
+                  //           ),
+                  //           onPressed: () {
+                  //             Navigator.push(
+                  //               context,
+                  //               MaterialPageRoute(
+                  //                 builder: (_) => const ServicePaymentScreen(),
+                  //               ),
+                  //             );
+                  //           },
+                  //           child: const Text(
+                  //             "Next",
+                  //             style: TextStyle(
+                  //               color: Colors.white,
+                  //               fontWeight: FontWeight.w600,
+                  //             ),
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
+             
                 ],
               ),
             ),

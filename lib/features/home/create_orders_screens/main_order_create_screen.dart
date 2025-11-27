@@ -125,6 +125,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
     return Container(
       padding: const EdgeInsets.all(3.0),
       decoration: BoxDecoration(
+      color: AppColors.lightGrayBackground,
         border: Border.all(color: AppColors.electricTeal),
         borderRadius: BorderRadius.circular(10),
       ),

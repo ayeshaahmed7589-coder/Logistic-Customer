@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:logisticscustomer/export.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/delivery_detail_screen.dart';
 
 class PickupDeliveryScreen extends StatefulWidget {
   const PickupDeliveryScreen({super.key});
@@ -336,23 +335,23 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                   ),
 
                   // ---------- Continue Button ----------
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: CustomButton(
-                      text: "Continue",
-                      backgroundColor: AppColors.electricTeal,
-                      borderColor: AppColors.electricTeal,
-                      textColor: AppColors.lightGrayBackground,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PackageDetailsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.symmetric(horizontal: 20),
+                  //   child: CustomButton(
+                  //     text: "Continue",
+                  //     backgroundColor: AppColors.electricTeal,
+                  //     borderColor: AppColors.electricTeal,
+                  //     textColor: AppColors.lightGrayBackground,
+                  //     onPressed: () {
+                  //       Navigator.push(
+                  //         context,
+                  //         MaterialPageRoute(
+                  //           builder: (_) => PackageDetailsScreen(),
+                  //         ),
+                  //       );
+                  //     },
+                  //   ),
+                  // ),
                 ],
               ),
             ),

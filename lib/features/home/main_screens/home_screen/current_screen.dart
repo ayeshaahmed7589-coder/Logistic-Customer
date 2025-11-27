@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/main_order_create_screen.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/pickup_detail_screen.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/home_controller.dart';
 import 'package:logisticscustomer/features/home/order_conplete.dart';
 import 'package:logisticscustomer/features/home/order_history.dart';

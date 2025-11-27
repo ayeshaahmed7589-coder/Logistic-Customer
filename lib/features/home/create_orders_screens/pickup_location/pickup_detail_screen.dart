@@ -10,9 +10,19 @@ class PickupDeliveryScreen extends StatefulWidget {
 }
 
 class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
+  bool showEditor = false;
+
+  int selectedCardIndex = 0;
+
+  String selectedAddress = "House 123, Street 5\nDHA Phase 6, Karachi";
+
+  final TextEditingController editlocationController = TextEditingController();
   final TextEditingController contactnameController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
 
+  final editlocationFocus = FocusNode();
+  final locationFocus = FocusNode();
   final contactnameFocus = FocusNode();
   final phoneFocus = FocusNode();
 
@@ -21,13 +31,17 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
   void initState() {
     super.initState();
     contactnameController.addListener(_checkFormFilled);
+    editlocationController.addListener(_checkFormFilled);
+    locationController.addListener(_checkFormFilled);
     phoneController.addListener(_checkFormFilled);
   }
 
   bool _isFormFilled = false;
   void _checkFormFilled() {
     final isFilled =
+        editlocationController.text.isNotEmpty &&
         contactnameController.text.isNotEmpty &&
+        locationController.text.isNotEmpty &&
         phoneController.text.isNotEmpty;
 
     if (isFilled != _isFormFilled) {
@@ -37,11 +51,14 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
 
   @override
   void dispose() {
+    editlocationFocus.dispose();
     contactnameFocus.dispose();
+    locationFocus.dispose();
     phoneFocus.dispose();
     phoneFocus.dispose();
-    //
     contactnameController.dispose();
+    editlocationController.dispose();
+    locationController.dispose();
     phoneController.dispose();
     super.dispose();
   }
@@ -55,7 +72,6 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-        
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -64,96 +80,8 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                   _sectionTitle("PICKUP LOCATION"),
                   const SizedBox(height: 10),
 
-                  // Defult address
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.pureWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.mediumGray.withValues(alpha: 0.10),
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CustomText(
-                              txt: "Default Address",
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.electricTeal,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.mediumGray.withValues(
-                                      alpha: 0.10,
-                                    ),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              child: GestureDetector(
-                                onTap: () {},
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    CustomText(
-                                      txt: "Edit Location",
-                                      fontSize: 15,
-                                      color: AppColors.pureWhite,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        gapH8,
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: _boxStyle,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-
-                            children: [
-                              Icon(
-                                Icons.home,
-                                size: 20,
-                                color: AppColors.electricTeal,
-                              ),
-                              SizedBox(width: 12),
-                              CustomText(
-                                txt:
-                                    "House 123, Street 5\nDHA Phase 6, Karachi",
-                                color: AppColors.darkText,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
+                  // Default Address
+                  _defaultAddressSection(),
                   // Defult address end
                   const SizedBox(height: 10),
                   _linkText(
@@ -172,7 +100,11 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                   // delivery address
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.only(
+                      top: 16,
+                      right: 16,
+                      left: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.pureWhite,
                       borderRadius: BorderRadius.circular(12),
@@ -196,86 +128,102 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.electricTeal,
-                                borderRadius: BorderRadius.circular(8),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.mediumGray.withValues(
-                                      alpha: 0.10,
-                                    ),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              child: GestureDetector(
-                                onTap: () {},
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    CustomText(
-                                      txt: "Edit Location",
-                                      fontSize: 15,
-                                      color: AppColors.pureWhite,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+
+                            // Container(
+                            //   decoration: BoxDecoration(
+                            //     color: AppColors.electricTeal,
+                            //     borderRadius: BorderRadius.circular(8),
+                            //     boxShadow: [
+                            //       BoxShadow(
+                            //         color: AppColors.mediumGray.withValues(
+                            //           alpha: 0.10,
+                            //         ),
+                            //         blurRadius: 4,
+                            //         offset: Offset(0, 2),
+                            //       ),
+                            //     ],
+                            //   ),
+                            //   padding: EdgeInsets.symmetric(
+                            //     horizontal: 8,
+                            //     vertical: 4,
+                            //   ),
+                            //   child: GestureDetector(
+                            //     onTap: () {},
+                            //     child: Row(
+                            //       mainAxisSize: MainAxisSize.min,
+                            //       children: [
+                            //         CustomText(
+                            //           txt: "Edit Location",
+                            //           fontSize: 15,
+                            //           color: AppColors.pureWhite,
+                            //           fontWeight: FontWeight.bold,
+                            //         ),
+                            //       ],
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
-                        gapH8,
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: _boxStyle,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    Icons.home,
-                                    size: 20,
-                                    color: AppColors.electricTeal,
-                                  ),
-                                  SizedBox(width: 12),
-                                  CustomText(
-                                    txt:
-                                        "House 123, Street 5\nDHA Phase 6, Karachi",
-                                    color: AppColors.darkText,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ],
-                              ),
-                              gapH4,
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Icon(
-                                    Icons.location_on_outlined,
-                                    size: 16,
-                                    color: AppColors.electricTeal,
-                                  ),
-                                  CustomText(
-                                    txt: "Search on Map",
-                                    color: AppColors.electricTeal,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                        gapH16,
+                        CustomAnimatedTextField(
+                          controller: locationController,
+                          focusNode: locationFocus,
+                          labelText: "Location",
+                          hintText: "Location",
+                          prefixIcon: Icons.pin_drop,
+                          iconColor: AppColors.electricTeal,
+                          borderColor: AppColors.electricTeal,
+                          textColor: AppColors.mediumGray,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            return null;
+                          },
                         ),
+
+                        // Container(
+                        //   padding: const EdgeInsets.all(16),
+                        //   decoration: _boxStyle,
+                        //   child: Column(
+                        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //     children: [
+                        //       Row(
+                        //         crossAxisAlignment: CrossAxisAlignment.start,
+                        //         children: [
+                        //           Icon(
+                        //             Icons.home,
+                        //             size: 20,
+                        //             color: AppColors.electricTeal,
+                        //           ),
+                        //           SizedBox(width: 12),
+                        //           CustomText(
+                        //             txt:
+                        //                 "House 123, Street 5\nDHA Phase 6, Karachi",
+                        //             color: AppColors.darkText,
+                        //             fontSize: 14,
+                        //             fontWeight: FontWeight.bold,
+                        //           ),
+                        //         ],
+                        //       ),
+                        //       gapH4,
+                        //       Row(
+                        //         mainAxisAlignment: MainAxisAlignment.end,
+                        //         children: [
+                        //           Icon(
+                        //             Icons.location_on_outlined,
+                        //             size: 16,
+                        //             color: AppColors.electricTeal,
+                        //           ),
+                        //           CustomText(
+                        //             txt: "Search on Map",
+                        //             color: AppColors.electricTeal,
+                        //             fontWeight: FontWeight.w500,
+                        //             fontSize: 14,
+                        //           ),
+                        //         ],
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
@@ -333,26 +281,183 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
                       gapH8,
                     ],
                   ),
-
-                  // ---------- Continue Button ----------
-                  // Padding(
-                  //   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  //   child: CustomButton(
-                  //     text: "Continue",
-                  //     backgroundColor: AppColors.electricTeal,
-                  //     borderColor: AppColors.electricTeal,
-                  //     textColor: AppColors.lightGrayBackground,
-                  //     onPressed: () {
-                  //       Navigator.push(
-                  //         context,
-                  //         MaterialPageRoute(
-                  //           builder: (_) => PackageDetailsScreen(),
-                  //         ),
-                  //       );
-                  //     },
-                  //   ),
-                  // ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _defaultAddressSection() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.mediumGray.withOpacity(0.1),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ===================================================
+          // HEADER + EDIT BUTTON
+          // ===================================================
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Default Address",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    showEditor = !showEditor;
+                  });
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.electricTeal,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        showEditor ? Icons.close : Icons.add,
+                        size: 18,
+                        color: AppColors.pureWhite,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        "Edit Location",
+                        style: TextStyle(
+                          color: AppColors.pureWhite,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // ===================================================
+          // TEXT FIELD + OR (only when editing)
+          // ===================================================
+          if (showEditor) ...[
+            CustomAnimatedTextField(
+              controller: editlocationController,
+              focusNode: editlocationFocus,
+              labelText: "Add new location",
+              hintText: "Add new location",
+              prefixIcon: Icons.location_on_outlined,
+              iconColor: AppColors.electricTeal,
+              borderColor: AppColors.electricTeal,
+              textColor: AppColors.mediumGray,
+              keyboardType: TextInputType.text,
+              validator: (value) => null,
+            ),
+
+            Center(
+              child: Text(
+                "OR",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.darkText,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            SizedBox(height: 12),
+          ],
+
+          // ===================================================
+          // ALWAYS VISIBLE — DEFAULT (SELECTED CARD)
+          // ===================================================
+          _selectableCard(index: selectedCardIndex, text: selectedAddress),
+
+          // ===================================================
+          // EXTRA CARDS — ONLY WHEN EDIT EDITOR OPEN
+          // ===================================================
+          if (showEditor) ...[
+            SizedBox(height: 12),
+
+            _selectableCard(
+              index: 1,
+              text: "House 200, Street 8\nKarachi, Sindh",
+            ),
+
+            SizedBox(height: 12),
+
+            _selectableCard(
+              index: 2,
+              text: "Flat 12, Block C\nNorth Nazimabad, Karachi",
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // =====================================================
+  // SELECTABLE CARD (DEFAULT + EXTRA)
+  // =====================================================
+  Widget _selectableCard({required int index, required String text}) {
+    bool isSelected = selectedCardIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedCardIndex = index;
+          selectedAddress = text; // yeh card upar default ban jayega
+          showEditor = false; // editor close
+        });
+      },
+
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.pureWhite,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AppColors.electricTeal : AppColors.mediumGray,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.home, size: 20, color: AppColors.electricTeal),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: AppColors.darkText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -388,12 +493,6 @@ class _PickupDeliveryScreenState extends State<PickupDeliveryScreen> {
     );
   }
 }
-
-const _boxStyle = BoxDecoration(
-  color: Colors.white,
-  borderRadius: BorderRadius.all(Radius.circular(12)),
-  border: Border.fromBorderSide(BorderSide(color: AppColors.electricTeal)),
-);
 
 ///////////////
 

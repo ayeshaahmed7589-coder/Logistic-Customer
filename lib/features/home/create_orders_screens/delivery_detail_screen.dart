@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logisticscustomer/export.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/service_payment_screen.dart';
 import 'add_product_manualy_screen/add_product_manualy_screen.dart';
 import 'search_screen/search_screen.dart';
 
@@ -331,63 +332,25 @@ class PackageDetailsScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // gapH12,
-                  // Padding(
-                  //   padding: const EdgeInsets.all(8.0),
-                  //   child: Row(
-                  //     children: [
-                  //       Expanded(
-                  //         child: OutlinedButton(
-                  //           style: OutlinedButton.styleFrom(
-                  //             side: const BorderSide(
-                  //               color: AppColors.electricTeal,
-                  //             ),
-                  //             padding: const EdgeInsets.symmetric(vertical: 16),
-                  //             shape: RoundedRectangleBorder(
-                  //               borderRadius: BorderRadius.circular(8),
-                  //             ),
-                  //           ),
-                  //           onPressed: () => Navigator.pop(context),
-                  //           child: const Text(
-                  //             "Back",
-                  //             style: TextStyle(
-                  //               color: AppColors.electricTeal,
-                  //               fontWeight: FontWeight.w600,
-                  //             ),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //       const SizedBox(width: 12),
-                  //       Expanded(
-                  //         child: ElevatedButton(
-                  //           style: ElevatedButton.styleFrom(
-                  //             backgroundColor: AppColors.electricTeal,
-                  //             padding: const EdgeInsets.symmetric(vertical: 16),
-                  //             shape: RoundedRectangleBorder(
-                  //               borderRadius: BorderRadius.circular(8),
-                  //             ),
-                  //           ),
-                  //           onPressed: () {
-                  //             Navigator.push(
-                  //               context,
-                  //               MaterialPageRoute(
-                  //                 builder: (_) => const ServicePaymentScreen(),
-                  //               ),
-                  //             );
-                  //           },
-                  //           child: const Text(
-                  //             "Next",
-                  //             style: TextStyle(
-                  //               color: Colors.white,
-                  //               fontWeight: FontWeight.w600,
-                  //             ),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-             
+                     // ---------- Continue Button ----------
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: CustomButton(
+                      text: "Next",
+                      backgroundColor: AppColors.electricTeal,
+                      borderColor: AppColors.electricTeal,
+                      textColor: AppColors.lightGrayBackground,
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ServicePaymentScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              
                 ],
               ),
             ),

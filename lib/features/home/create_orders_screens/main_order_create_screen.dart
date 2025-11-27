@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import 'package:logisticscustomer/constants/colors.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/delivery_detail_screen.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/pickup_detail_screen.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/pickup_detail_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
 class MainOrderCreateScreen extends StatefulWidget {
@@ -125,8 +125,8 @@ class _CustomTabBarState extends State<CustomTabBar> {
     return Container(
       padding: const EdgeInsets.all(3.0),
       decoration: BoxDecoration(
-      color: AppColors.lightGrayBackground,
-        border: Border.all(color: AppColors.electricTeal),
+        color: AppColors.lightGrayBackground,
+        border: Border.all(color: AppColors.mediumGray),
         borderRadius: BorderRadius.circular(10),
       ),
       child: SizedBox(

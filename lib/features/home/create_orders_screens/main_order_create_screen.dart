@@ -18,8 +18,8 @@ class _MainOrderCreateScreenState extends State<MainOrderCreateScreen>
   late TabController _tabController;
 
   final List<Tab> _tabs = [
-    Tab(text: "PickUp Location"),
-    Tab(text: "Package Details"),
+    Tab(text: "Step 1"),
+    Tab(text: "Step 2"),
   ];
 
   final List<Widget> _tabsBody = const [
@@ -95,7 +95,7 @@ class CustomTabBar extends StatefulWidget {
     // required TabController tabController,
     required this.tabController,
     required List<Tab> tabs,
-    this.width = 250,
+    this.width = 200,
     this.color = Colors.black,
     this.disabledTabIndices,
   }) : _tabController = tabController,
@@ -103,7 +103,7 @@ class CustomTabBar extends StatefulWidget {
 
   final TabController _tabController;
   final List<Tab> _tabs;
-  double width = 250;
+  double width = 200;
 
   @override
   State<CustomTabBar> createState() => _CustomTabBarState();

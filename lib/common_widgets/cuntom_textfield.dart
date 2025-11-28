@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:logisticscustomer/export.dart';
 
 class CustomAnimatedTextField extends StatefulWidget {
   final TextEditingController controller;
@@ -16,6 +17,7 @@ class CustomAnimatedTextField extends StatefulWidget {
   final bool readOnly; // ✅ new
   final VoidCallback? onTap; // ✅ new
   final Widget? suffixIcon;
+  final List<TextInputFormatter>? inputFormatters;
 
   const CustomAnimatedTextField({
     Key? key,
@@ -24,6 +26,7 @@ class CustomAnimatedTextField extends StatefulWidget {
     required this.labelText,
     required this.hintText,
     required this.prefixIcon,
+    this.inputFormatters,
     this.iconColor = Colors.blue,
     this.borderColor = Colors.blue,
     this.textColor = Colors.black54,
@@ -112,7 +115,7 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
                 hintText: widget.hintText,
                 hintStyle: TextStyle(
                   color: widget.textColor.withOpacity(0.5),
-                  fontSize: 15,
+                  fontSize: 13,
                 ),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.25),

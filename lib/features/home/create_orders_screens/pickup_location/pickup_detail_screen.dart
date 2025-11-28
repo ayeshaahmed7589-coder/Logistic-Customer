@@ -13,22 +13,28 @@ class PickupDeliveryScreen extends ConsumerStatefulWidget {
 }
 
 class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
+  String editorMode = ""; // "", "edit", "add"
   bool showEditor = false;
+  String mode = ""; // "edit" or "add"
 
   int selectedCardIndex = 0;
   String selectedAddress = "";
 
   // String selectedAddress = "House 123, Street 5\nDHA Phase 6, Karachi";
 
-  final TextEditingController editlocationController = TextEditingController();
   final TextEditingController contactnameController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController address1Controller = TextEditingController();
+  final TextEditingController address2Controller = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
+  final TextEditingController stateController = TextEditingController();
+  final TextEditingController postalController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
 
   final editlocationFocus = FocusNode();
+  final phoneFocus = FocusNode();
   final locationFocus = FocusNode();
   final contactnameFocus = FocusNode();
-  final phoneFocus = FocusNode();
 
   final Color inactiveColor = AppColors.mediumGray;
   @override
@@ -40,18 +46,27 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     });
 
     contactnameController.addListener(_checkFormFilled);
-    editlocationController.addListener(_checkFormFilled);
-    locationController.addListener(_checkFormFilled);
     phoneController.addListener(_checkFormFilled);
+    address1Controller.addListener(_checkFormFilled);
+    address2Controller.addListener(_checkFormFilled);
+    cityController.addListener(_checkFormFilled);
+    stateController.addListener(_checkFormFilled);
+    postalController.addListener(_checkFormFilled);
+
+    locationController.addListener(_checkFormFilled);
   }
 
   bool _isFormFilled = false;
   void _checkFormFilled() {
     final isFilled =
-        editlocationController.text.isNotEmpty &&
         contactnameController.text.isNotEmpty &&
-        locationController.text.isNotEmpty &&
-        phoneController.text.isNotEmpty;
+        phoneController.text.isNotEmpty &&
+        address1Controller.text.isNotEmpty &&
+        address2Controller.text.isNotEmpty &&
+        cityController.text.isNotEmpty &&
+        stateController.text.isNotEmpty &&
+        postalController.text.isNotEmpty &&
+        locationController.text.isNotEmpty;
 
     if (isFilled != _isFormFilled) {
       setState(() => _isFormFilled = isFilled);
@@ -66,9 +81,14 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     phoneFocus.dispose();
     phoneFocus.dispose();
     contactnameController.dispose();
-    editlocationController.dispose();
-    locationController.dispose();
     phoneController.dispose();
+    address1Controller.dispose();
+    address2Controller.dispose();
+    cityController.dispose();
+    stateController.dispose();
+    postalController.dispose();
+
+    locationController.dispose();
     super.dispose();
   }
 
@@ -98,9 +118,9 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                     Icons.pin_drop_outlined,
                     onTap: () {},
                   ),
-                  const SizedBox(height: 4),
-                  _linkText("Add New Address", Icons.add, onTap: () {}),
 
+                  // const SizedBox(height: 4),
+                  // _linkText("Add New Address", Icons.add, onTap: () {}),
                   gapH20,
                   _sectionTitle("DELIVERY LOCATION"),
 
@@ -174,20 +194,88 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                           ],
                         ),
                         gapH16,
-                        CustomAnimatedTextField(
-                          controller: locationController,
-                          focusNode: locationFocus,
-                          labelText: "Location",
-                          hintText: "Location",
-                          prefixIcon: Icons.pin_drop,
-                          iconColor: AppColors.electricTeal,
-                          borderColor: AppColors.electricTeal,
-                          textColor: AppColors.mediumGray,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            return null;
-                          },
-                        ),
+                        
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: contactnameController,
+                    label: "Name",
+                    icon: Icons.person,
+                  ),
+                ),
+                gapW4,
+
+                Expanded(
+                  child: _buildTextField(
+                    controller: phoneController,
+                    label: "Phone Number",
+                    icon: Icons.phone_android,
+                    isNumber: true, //  ONLY NUMBER
+                  ),
+                ),
+              ],
+            ),
+
+            gapH8,
+
+            _buildTextField(
+              controller: address1Controller,
+              label: "Address Line 1",
+              icon: Icons.location_on,
+            ),
+            gapH8,
+
+            _buildTextField(
+              controller: address2Controller,
+              label: "Address Line 2",
+              icon: Icons.location_city,
+            ),
+            gapH8,
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: cityController,
+                    label: "City",
+                    icon: Icons.location_city_outlined,
+                  ),
+                ),
+                gapW4,
+                Expanded(
+                  child: _buildTextField(
+                    controller: stateController,
+                    label: "State/Province",
+                    icon: Icons.map_outlined,
+                  ),
+                ),
+              ],
+            ),
+
+            gapH8,
+
+            _buildTextField(
+              controller: postalController,
+              label: "Postal Code",
+              icon: Icons.numbers,
+              isNumber: true, //  ONLY NUMBER
+            ),
+          
+                        // CustomAnimatedTextField(
+                        //   controller: locationController,
+                        //   focusNode: locationFocus,
+                        //   labelText: "Location",
+                        //   hintText: "Location",
+                        //   prefixIcon: Icons.pin_drop,
+                        //   iconColor: AppColors.electricTeal,
+                        //   borderColor: AppColors.electricTeal,
+                        //   textColor: AppColors.mediumGray,
+                        //   keyboardType: TextInputType.emailAddress,
+                        //   validator: (value) {
+                        //     return null;
+                        //   },
+                        // ),
 
                         // Container(
                         //   padding: const EdgeInsets.all(16),
@@ -239,57 +327,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 
                   // delivery address end
                   gapH16,
-
-                  // ---------- Pickup Details Heading ----------
-                  Column(
-                    children: [
-                      Row(
-                        children: [
-                          // Icon(Icons.location_pin, color: Colors.red),
-                          SizedBox(width: 6),
-                          CustomText(
-                            txt: "Contact Information",
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ],
-                      ),
-                      gapH16,
-                      CustomAnimatedTextField(
-                        controller: contactnameController,
-                        focusNode: contactnameFocus,
-                        labelText: "Contact Name",
-                        hintText: "Contact Name",
-                        prefixIcon: Icons.contact_page_outlined,
-                        iconColor: AppColors.electricTeal,
-                        borderColor: AppColors.electricTeal,
-                        textColor: AppColors.mediumGray,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          return null;
-                        },
-                      ),
-
-                      gapH8,
-
-                      CustomAnimatedTextField(
-                        controller: phoneController,
-                        focusNode: phoneFocus,
-                        labelText: "Phone Number",
-                        hintText: "Phone Number",
-                        prefixIcon: Icons.contact_page_outlined,
-                        iconColor: AppColors.electricTeal,
-                        borderColor: AppColors.electricTeal,
-                        textColor: AppColors.mediumGray,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          return null;
-                        },
-                      ),
-
-                      gapH8,
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -320,127 +357,83 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ===================================================
-          // HEADER + EDIT BUTTON
-          // ===================================================
+          // ---------------- HEADER ----------------
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 "Default Address",
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
+              Spacer(),
 
+              // EDIT BUTTON
               GestureDetector(
                 onTap: () {
                   setState(() {
-                    showEditor = !showEditor;
-
-                    if (showEditor) {
-                      // all address load on toggle
+                    if (editorMode == "edit" && showEditor) {
+                      showEditor = false; // CLOSE
+                    } else {
+                      editorMode = "edit";
+                      showEditor = true;
                       ref
                           .read(allAddressControllerProvider.notifier)
                           .loadAllAddress();
                     }
                   });
                 },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.electricTeal,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        showEditor ? Icons.close : Icons.add,
-                        size: 18,
-                        color: AppColors.pureWhite,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        "Edit Location",
-                        style: TextStyle(
-                          color: AppColors.pureWhite,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                child: _smallButton("Edit", showEditor && editorMode == "edit"),
+              ),
+
+              SizedBox(width: 8),
+
+              // ADD BUTTON
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (editorMode == "add" && showEditor) {
+                      showEditor = false; // CLOSE
+                    } else {
+                      editorMode = "add";
+                      showEditor = true;
+                    }
+                  });
+                },
+                child: _smallButton("Add", showEditor && editorMode == "add"),
               ),
             ],
           ),
 
           const SizedBox(height: 16),
 
-          // ===================================================
-          // TEXT FIELD + OR (only when editing)
-          // ===================================================
-          if (showEditor) ...[
-            CustomAnimatedTextField(
-              controller: editlocationController,
-              focusNode: editlocationFocus,
-              labelText: "Add new location",
-              hintText: "Add new location",
-              prefixIcon: Icons.location_on_outlined,
-              iconColor: AppColors.electricTeal,
-              borderColor: AppColors.electricTeal,
-              textColor: AppColors.mediumGray,
-              keyboardType: TextInputType.text,
-              validator: (value) => null,
+          // -------------------------------------------------------
+          // DEFAULT ADDRESS — only when editor OFF
+          // -------------------------------------------------------
+          if (!showEditor)
+            defaultAddressState.when(
+              loading: () =>
+                  _selectableCard(index: 0, text: "Loading address..."),
+
+              error: (err, _) =>
+                  _selectableCard(index: 0, text: "Failed to load address"),
+
+              data: (addressModel) {
+                final address = addressModel.data;
+
+                final formatted =
+                    "${address.address},\n${address.city}, ${address.state}\n${address.postalCode}";
+
+                if (selectedAddress.isEmpty) {
+                  selectedAddress = formatted;
+                }
+
+                return _selectableCard(index: 0, text: selectedAddress);
+              },
             ),
 
-            Center(
-              child: Text(
-                "OR",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.darkText,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 12),
-          ],
-
-          // ===================================================
-          // API DATA — DEFAULT ADDRESS CARD
-          // ===================================================
-          defaultAddressState.when(
-            loading: () =>
-                _selectableCard(index: 0, text: "Loading address..."),
-
-            error: (err, _) =>
-                _selectableCard(index: 0, text: "Failed to load address"),
-
-            data: (addressModel) {
-              final address = addressModel.data;
-
-              final formattedAddress =
-                  "${address.address}\n${address.city}, ${address.state}";
-
-              // pehli baar default set karna
-              if (selectedAddress.isEmpty) {
-                selectedAddress = formattedAddress;
-              }
-
-              return _selectableCard(
-                index: 0,
-                text: selectedAddress, // 🔥 Always show selected card
-              );
-            },
-          ),
-
-          // ===================================================
-          // ALL ADDRESSES FROM API (when editor is open)
-          // ===================================================
-          if (showEditor) ...[
+          // -------------------------------------------------------
+          // EDIT MODE (all addresses)
+          // -------------------------------------------------------
+          if (showEditor && editorMode == "edit") ...[
             SizedBox(height: 12),
 
             Consumer(
@@ -464,7 +457,8 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                     return Column(
                       children: List.generate(list.length, (i) {
                         final a = list[i];
-                        final formatted = "${a.address}\n${a.city}, ${a.state}";
+                        final formatted =
+                            "${a.address} - ${a.addressLine2}\n${a.city}, ${a.state}\n${a.postalCode}";
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -477,14 +471,139 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
               },
             ),
           ],
+
+          // -------------------------------------------------------
+          // ADD MODE — fields
+          // -------------------------------------------------------
+          if (showEditor && editorMode == "add") ...[
+            gapH12,
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: contactnameController,
+                    label: "Name",
+                    icon: Icons.person,
+                  ),
+                ),
+                gapW4,
+
+                Expanded(
+                  child: _buildTextField(
+                    controller: phoneController,
+                    label: "Phone Number",
+                    icon: Icons.phone_android,
+                    isNumber: true, //  ONLY NUMBER
+                  ),
+                ),
+              ],
+            ),
+
+            gapH8,
+
+            _buildTextField(
+              controller: address1Controller,
+              label: "Address Line 1",
+              icon: Icons.location_on,
+            ),
+            gapH8,
+
+            _buildTextField(
+              controller: address2Controller,
+              label: "Address Line 2",
+              icon: Icons.location_city,
+            ),
+            gapH8,
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildTextField(
+                    controller: cityController,
+                    label: "City",
+                    icon: Icons.location_city_outlined,
+                  ),
+                ),
+                gapW4,
+                Expanded(
+                  child: _buildTextField(
+                    controller: stateController,
+                    label: "State/Province",
+                    icon: Icons.map_outlined,
+                  ),
+                ),
+              ],
+            ),
+
+            gapH8,
+
+            _buildTextField(
+              controller: postalController,
+              label: "Postal Code",
+              icon: Icons.numbers,
+              isNumber: true, //  ONLY NUMBER
+            ),
+          
+          ],
         ],
       ),
     );
   }
 
-  // =====================================================
+  /// SMALL BUTTON WIDGET
+  Widget _smallButton(String text, bool isOpen) {
+    IconData icon;
+
+    if (isOpen) {
+      icon = Icons.close;
+    } else {
+      icon = (text == "Add") ? Icons.add : Icons.edit;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.electricTeal,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 12, color: Colors.white),
+          SizedBox(width: 4),
+          Text(text, style: TextStyle(color: Colors.white, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  /// TEXTFIELD SHORTCUT
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isNumber = false,
+  }) {
+    return CustomAnimatedTextField(
+      controller: controller,
+      focusNode: FocusNode(),
+      labelText: label,
+      hintText: label,
+      prefixIcon: icon,
+      iconColor: AppColors.electricTeal,
+      borderColor: AppColors.electricTeal,
+      textColor: AppColors.mediumGray,
+
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+
+      //  ALWAYS provide a list (never null)
+      inputFormatters: isNumber
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : <TextInputFormatter>[],
+    );
+  }
+
   // SELECTABLE CARD (DEFAULT + EXTRA)
-  // =====================================================
   Widget _selectableCard({required int index, required String text}) {
     bool isSelected = selectedCardIndex == index;
 
@@ -556,406 +675,3 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     );
   }
 }
-
-
-
-  // Widget _defaultAddressSection() {
-  //   return Container(
-  //     width: double.infinity,
-  //     padding: const EdgeInsets.all(16),
-  //     decoration: BoxDecoration(
-  //       color: AppColors.pureWhite,
-  //       borderRadius: BorderRadius.circular(12),
-  //       boxShadow: [
-  //         BoxShadow(
-  //           color: AppColors.mediumGray.withOpacity(0.1),
-  //           blurRadius: 6,
-  //           offset: Offset(0, 3),
-  //         ),
-  //       ],
-  //     ),
-
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         // ===================================================
-  //         // HEADER + EDIT BUTTON
-  //         // ===================================================
-  //         Row(
-  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //           children: [
-  //             Text(
-  //               "Default Address",
-  //               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-  //             ),
-
-  //             GestureDetector(
-  //               onTap: () {
-  //                 setState(() {
-  //                   showEditor = !showEditor;
-  //                 });
-  //               },
-  //               child: Container(
-  //                 decoration: BoxDecoration(
-  //                   color: AppColors.electricTeal,
-  //                   borderRadius: BorderRadius.circular(8),
-  //                 ),
-  //                 padding: const EdgeInsets.symmetric(
-  //                   horizontal: 10,
-  //                   vertical: 6,
-  //                 ),
-  //                 child: Row(
-  //                   children: [
-  //                     Icon(
-  //                       showEditor ? Icons.close : Icons.add,
-  //                       size: 18,
-  //                       color: AppColors.pureWhite,
-  //                     ),
-  //                     SizedBox(width: 6),
-  //                     Text(
-  //                       "Edit Location",
-  //                       style: TextStyle(
-  //                         color: AppColors.pureWhite,
-  //                         fontSize: 15,
-  //                         fontWeight: FontWeight.bold,
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-
-  //         const SizedBox(height: 16),
-
-  //         // ===================================================
-  //         // TEXT FIELD + OR (only when editing)
-  //         // ===================================================
-  //         if (showEditor) ...[
-  //           CustomAnimatedTextField(
-  //             controller: editlocationController,
-  //             focusNode: editlocationFocus,
-  //             labelText: "Add new location",
-  //             hintText: "Add new location",
-  //             prefixIcon: Icons.location_on_outlined,
-  //             iconColor: AppColors.electricTeal,
-  //             borderColor: AppColors.electricTeal,
-  //             textColor: AppColors.mediumGray,
-  //             keyboardType: TextInputType.text,
-  //             validator: (value) => null,
-  //           ),
-
-  //           Center(
-  //             child: Text(
-  //               "OR",
-  //               style: TextStyle(
-  //                 fontSize: 16,
-  //                 color: AppColors.darkText,
-  //                 fontWeight: FontWeight.bold,
-  //               ),
-  //             ),
-  //           ),
-
-  //           SizedBox(height: 12),
-  //         ],
-
-  //         // ===================================================
-  //         // ALWAYS VISIBLE — DEFAULT (SELECTED CARD)
-  //         // ===================================================
-  //         _selectableCard(index: selectedCardIndex, text: selectedAddress),
-
-  //         // ===================================================
-  //         // EXTRA CARDS — ONLY WHEN EDIT EDITOR OPEN
-  //         // ===================================================
-  //         if (showEditor) ...[
-  //           SizedBox(height: 12),
-
-  //           _selectableCard(
-  //             index: 1,
-  //             text: "House 200, Street 8\nKarachi, Sindh",
-  //           ),
-
-  //           SizedBox(height: 12),
-
-  //           _selectableCard(
-  //             index: 2,
-  //             text: "Flat 12, Block C\nNorth Nazimabad, Karachi",
-  //           ),
-  //         ],
-  //       ],
-  //     ),
-  //   );
-  // }
-
-
-///////////////
-
-// class PickupDetailScreen extends StatefulWidget {
-//   const PickupDetailScreen({super.key});
-
-//   @override
-//   State<PickupDetailScreen> createState() => _PickupDetailScreenState();
-// }
-
-// class _PickupDetailScreenState extends State<PickupDetailScreen> {
-//   final TextEditingController contactnameController = TextEditingController();
-//   final TextEditingController phoneController = TextEditingController();
-//   final TextEditingController pickupController = TextEditingController();
-//   final TextEditingController cityController = TextEditingController();
-//   final TextEditingController postalController = TextEditingController();
-
-//   final contactnameFocus = FocusNode();
-//   final phoneFocus = FocusNode();
-//   final pickupFocus = FocusNode();
-//   final cityFocus = FocusNode();
-//   final postalFocus = FocusNode();
-//   final Color inactiveColor = AppColors.mediumGray;
-//   @override
-//   void initState() {
-//     super.initState();
-//     contactnameController.addListener(_checkFormFilled);
-//     phoneController.addListener(_checkFormFilled);
-//     pickupController.addListener(_checkFormFilled);
-//     postalController.addListener(_checkFormFilled);
-//   }
-
-//   bool _isFormFilled = false;
-//   void _checkFormFilled() {
-//     final isFilled =
-//         contactnameController.text.isNotEmpty &&
-//         phoneController.text.isNotEmpty &&
-//         pickupController.text.isNotEmpty &&
-//         postalController.text.isNotEmpty;
-
-//     if (isFilled != _isFormFilled) {
-//       setState(() => _isFormFilled = isFilled);
-//     }
-//   }
-
-//   @override
-//   void dispose() {
-//     contactnameFocus.dispose();
-//     phoneFocus.dispose();
-//     cityFocus.dispose();
-//     phoneFocus.dispose();
-//     //
-//     contactnameController.dispose();
-//     phoneController.dispose();
-//     pickupController.dispose();
-//     postalFocus.dispose();
-
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: AppColors.lightGrayBackground,
-//       body: SingleChildScrollView(
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             //appbar
-//             Container(
-//               padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
-//               width: double.infinity,
-//               decoration: const BoxDecoration(
-//                 color: AppColors.electricTeal,
-//                 // boxShadow: [
-//                 //   BoxShadow(
-//                 //     color: Colors.black26,
-//                 //     blurRadius: 6,
-//                 //     offset: Offset(0, 3),
-//                 //   )
-//                 // ],
-//               ),
-//               child: Stack(
-//                 alignment: Alignment.center,
-//                 children: [
-//                   // --- LEFT SIDE (Close Icon) ---
-//                   Align(
-//                     alignment: Alignment.centerLeft,
-//                     child: IconButton(
-//                       onPressed: () {
-//                         Navigator.pop(context);
-//                       },
-//                       icon: Icon(Icons.close, color: AppColors.pureWhite),
-//                     ),
-//                   ),
-
-//                   // --- CENTER TITLE ---
-//                   CustomText(
-//                     txt: "New Order",
-//                     fontSize: 18,
-//                     fontWeight: FontWeight.bold,
-//                     color: AppColors.pureWhite,
-//                   ),
-
-//                   // --- RIGHT SIDE (Step indicator) ---
-//                   Align(
-//                     alignment: Alignment.centerRight,
-//                     child: CustomText(
-//                       txt: "[1/4]",
-//                       fontSize: 14,
-//                       color: AppColors.pureWhite,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             //appbar end
-
-//             // ---------- Pickup Details Heading ----------
-//             Padding(
-//               padding: const EdgeInsets.all(12),
-//               child: Column(
-//                 children: [
-//                   Row(
-//                     children: [
-//                       // Icon(Icons.location_pin, color: Colors.red),
-//                       SizedBox(width: 6),
-//                       CustomText(
-//                         txt: "Pickup Details",
-//                         fontSize: 18,
-//                         fontWeight: FontWeight.bold,
-//                       ),
-//                     ],
-//                   ),
-//                   gapH12,
-//                   CustomAnimatedTextField(
-//                     controller: contactnameController,
-//                     focusNode: contactnameFocus,
-//                     labelText: "Contact Name",
-//                     hintText: "Contact Name",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.emailAddress,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-
-//                   gapH8,
-
-//                   CustomAnimatedTextField(
-//                     controller: phoneController,
-//                     focusNode: phoneFocus,
-//                     labelText: "Phone Number",
-//                     hintText: "Phone Number",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.emailAddress,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-
-//                   gapH8,
-
-//                   CustomAnimatedTextField(
-//                     controller: pickupController,
-//                     focusNode: pickupFocus,
-//                     labelText: "Pickup Address",
-//                     hintText: "Pickup Address",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.emailAddress,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-//                   gapH16,
-
-//                   Row(
-//                     children: [
-//                       Icon(
-//                         Icons.pin_drop_outlined,
-//                         color: AppColors.electricTeal,
-//                       ),
-//                       SizedBox(width: 6),
-//                       CustomText(
-//                         txt: "Use Current Location",
-//                         color: AppColors.darkText,
-//                         fontSize: 14,
-//                         fontWeight: FontWeight.w500,
-//                       ),
-//                     ],
-//                   ),
-//                   gapH12,
-//                   // ---------- City ----------
-//                   CustomAnimatedTextField(
-//                     controller: cityController,
-//                     focusNode: cityFocus,
-//                     labelText: "City",
-//                     hintText: "City",
-//                     prefixIcon: Icons.calendar_today_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: Colors.black87,
-//                     keyboardType: TextInputType.datetime,
-//                     suffixIcon: IconButton(
-//                       icon: const Icon(Icons.keyboard_arrow_down_rounded),
-//                       color: AppColors.electricTeal,
-//                       onPressed: () {},
-//                     ),
-//                   ),
-
-//                   gapH8,
-
-//                   // ---------- Postal Code ----------
-//                   CustomAnimatedTextField(
-//                     controller: postalController,
-//                     focusNode: postalFocus,
-//                     labelText: "Postal Code (Optional)",
-//                     hintText: "Postal Code (Optional)",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.number,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-
-//                   gapH20,
-
-//                   // ---------- Continue Button ----------
-//                   Padding(
-//                     padding: const EdgeInsets.symmetric(horizontal: 20),
-//                     child: CustomButton(
-//                       isChecked: _isFormFilled,
-//                       text: "Continue",
-//                       backgroundColor: _isFormFilled
-//                           ? AppColors.electricTeal
-//                           : inactiveColor,
-//                       borderColor: AppColors.electricTeal,
-//                       textColor: AppColors.lightGrayBackground,
-//                       onPressed: _isFormFilled
-//                           ? () {
-//                               Navigator.push(
-//                                 context,
-//                                 MaterialPageRoute(
-//                                   builder: (_) => DeliveryDetailScreen(),
-//                                 ),
-//                               );
-//                             }
-//                           : null,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }

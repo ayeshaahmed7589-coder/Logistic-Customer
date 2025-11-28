@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logisticscustomer/features/bottom_navbar/bottom_navbar_screen.dart';
 import 'package:lottie/lottie.dart';
 import '../../constants/colors.dart';
 
@@ -171,7 +172,13 @@ class OrderSuccessful extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        // TRACK ORDER
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TripsBottomNavBarScreen(initialIndex: 1),
+                          ),
+                        );
                       },
                       child: const Text(
                         "Track Order",
@@ -193,7 +200,13 @@ class OrderSuccessful extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TripsBottomNavBarScreen(initialIndex: 0),
+                          ),
+                        );
                       },
                       child: Text(
                         "Back to Home",

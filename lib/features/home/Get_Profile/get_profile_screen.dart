@@ -5,8 +5,10 @@ import 'package:logisticscustomer/constants/local_storage.dart';
 import 'package:logisticscustomer/features/authentication/login/login.dart';
 import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
 import 'package:logisticscustomer/features/home/Edit_Profile/edit_profile_screen.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/pickup_modal.dart';
 
 import '../../../constants/colors.dart';
+import '../create_orders_screens/pickup_location/pickup_controller.dart';
 import 'get_profile_controller.dart';
 
 class GetProfileScreen extends ConsumerStatefulWidget {
@@ -18,6 +20,115 @@ class GetProfileScreen extends ConsumerStatefulWidget {
 
 class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
   bool _didLoadOnce = false;
+  int? selectedAddressId; // NEW
+
+  AsyncValue<DefaultAddressModel> get defaultAddressState =>
+      ref.watch(defaultAddressControllerProvider);
+
+  void _openAddressModal() {
+    // Load addresses asynchronously
+    final allAddressNotifier = ref.read(allAddressControllerProvider.notifier);
+    allAddressNotifier.loadAllAddress();
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Center(
+          child: Consumer(
+            builder: (context, ref, _) {
+              final allAddressState = ref.watch(allAddressControllerProvider);
+              final defaultAddressState = ref.watch(
+                defaultAddressControllerProvider,
+              );
+
+              return Material(
+                type: MaterialType.transparency,
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.65,
+                    maxWidth: MediaQuery.of(context).size.width * 0.9,
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.pureWhite,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: allAddressState.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) =>
+                        Center(child: Text("Error loading addresses")),
+                    data: (allAddress) {
+                      if (allAddress == null || allAddress.data.isEmpty) {
+                        return const Center(child: Text("No addresses found"));
+                      }
+
+                      final backendDefaultId =
+                          defaultAddressState.value?.data.id;
+                      final currentDefaultId =
+                          selectedAddressId ?? backendDefaultId;
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: allAddress.data.length,
+                        itemBuilder: (context, index) {
+                          final item = allAddress.data[index];
+                          final isDefault = item.id == currentDefaultId;
+
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                selectedAddressId = item.id;
+                              });
+                              Navigator.pop(context);
+
+                              // Reload default address
+                              ref
+                                  .read(
+                                    defaultAddressControllerProvider.notifier,
+                                  )
+                                  .loadDefaultAddress();
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(15),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDefault
+                                      ? AppColors.electricTeal
+                                      : AppColors.subtleGray,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "${item.address}, ${item.city}, ${item.state}, ${item.postalCode}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: AppColors.darkText,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void didChangeDependencies() {
@@ -28,6 +139,10 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(getProfileControllerProvider.notifier).loadProfile();
+        ref
+            .read(defaultAddressControllerProvider.notifier)
+            .loadDefaultAddress();
+        ref.read(allAddressControllerProvider.notifier).loadAllAddress();
       });
     }
   }
@@ -229,6 +344,89 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
     );
   }
 
+  // --- Default Address Widget (Clean Row with Edit Icon) ---
+  Widget defaultAddressUI() {
+    final defaultAddressState = ref.watch(defaultAddressControllerProvider);
+    final allAddressState = ref.watch(allAddressControllerProvider);
+
+    // Show loading if either is loading
+    if (defaultAddressState.isLoading || allAddressState.isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8.0),
+        child: Text("Loading...", style: TextStyle(fontSize: 16)),
+      );
+    }
+
+    // Show error if either has error
+    if (defaultAddressState.hasError || allAddressState.hasError) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8.0),
+        child: Text(
+          "Failed to load",
+          style: TextStyle(color: Colors.red, fontSize: 16),
+        ),
+      );
+    }
+
+    final all = allAddressState.value;
+    final defaultAddress = defaultAddressState.value?.data;
+
+    if (all == null || all.data.isEmpty || defaultAddress == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8.0),
+        child: Text("No addresses found", style: TextStyle(fontSize: 16)),
+      );
+    }
+
+    // Determine which address to show
+    final currentDefaultId = selectedAddressId ?? defaultAddress.id;
+    final selected = all.data.firstWhere(
+      (a) => a.id == currentDefaultId,
+      orElse: () => all.data.first,
+    );
+
+    return Row(
+      children: [
+        // Label + Address
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    "Default Address",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.mediumGray,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _openAddressModal,
+                    icon: const Icon(
+                      Icons.edit,
+                      size: 18,
+                      color: AppColors.electricTeal,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                "${selected.address}, ${selected.city}, ${selected.state}, ${selected.postalCode}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppColors.darkText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // --- Profile Image Widget ---
   Widget _buildProfileImage(Color primaryBlue) {
     final profileState = ref.watch(getProfileControllerProvider);
@@ -329,7 +527,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
           bottomRight: Radius.circular(30),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(25, 120, 25, 50),
+      padding: const EdgeInsets.fromLTRB(25, 120, 25, 0),
       child: ListView(
         // crossAxisAlignment: CrossAxisAlignment.start,
         shrinkWrap: true,
@@ -357,7 +555,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
           _buildInfoRow(
             label: 'Mobile Phone',
             value: user.phone,
-            showVerification: true,
+            showVerification: false,
           ),
           const SizedBox(height: 10),
 
@@ -366,7 +564,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
             label: 'Email',
             value: user.email,
             valueColor: Colors.black,
-            showVerification: false,
+            showVerification: true,
           ),
           const SizedBox(height: 10),
 
@@ -391,6 +589,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
             value: customer.country ?? "N/A",
             showVerification: false,
           ),
+          defaultAddressUI(),
           gapH32,
         ],
       ),
@@ -409,18 +608,9 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: labelColor, fontSize: 14)),
-        const SizedBox(height: 5),
         Row(
           children: [
-            Text(
-              value,
-              style: TextStyle(
-                color: valueColor,
-                fontSize: 17,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text(label, style: TextStyle(color: labelColor, fontSize: 14)),
             SizedBox(width: 10),
             if (showVerification)
               const Row(
@@ -442,6 +632,15 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
                 ],
               ),
           ],
+        ),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor,
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

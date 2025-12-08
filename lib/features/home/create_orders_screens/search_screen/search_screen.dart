@@ -1,54 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/delivery_detail_screen.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
 import '../../../../common_widgets/custom_button.dart';
 import '../../../../common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
 
-class SearchProductWidget extends StatefulWidget {
+class SearchProductWidget extends ConsumerStatefulWidget {
   const SearchProductWidget({super.key});
 
   @override
-  State<SearchProductWidget> createState() => _SearchProductWidgetState();
+  ConsumerState<SearchProductWidget> createState() =>
+      _SearchProductWidgetState();
 }
 
-class _SearchProductWidgetState extends State<SearchProductWidget> {
+class _SearchProductWidgetState extends ConsumerState<SearchProductWidget> {
   final TextEditingController searchCtrl = TextEditingController();
-  final searchfocus = FocusNode();
-  bool isLoading = false;
+  final searchFocus = FocusNode();
 
-  int? selectedIndex; // <-- SELECTED PRODUCT INDEX
-
-  List<Map<String, dynamic>> demoProducts = [
-    {
-      "name": "MacBook Pro 14-inch",
-      "sku": "MBP-14-001",
-      "price": "R15,000",
-      "weight": "1.6 kg",
-      "icon": Icons.laptop_mac,
-    },
-    {
-      "name": "Dell Inspiron 15",
-      "sku": "DELL-15-001",
-      "price": "R8,500",
-      "weight": "2.1 kg",
-      "icon": Icons.computer,
-    },
-    {
-      "name": "HP Pavilion Desktop",
-      "sku": "HP-DT-001",
-      "price": "R12,000",
-      "weight": "5.0 kg",
-      "icon": Icons.desktop_windows,
-    },
-  ];
+  int? selectedIndex;
 
   @override
   Widget build(BuildContext context) {
+    final searchState = ref.watch(shopifySearchControllerProvider);
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // SEARCH BAR + CLOSE ICON
+          // HEADER
           Row(
             children: [
               CustomText(
@@ -67,6 +48,7 @@ class _SearchProductWidgetState extends State<SearchProductWidget> {
 
           SizedBox(height: 10),
 
+          // SEARCH BAR
           Container(
             height: 52,
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -83,29 +65,20 @@ class _SearchProductWidgetState extends State<SearchProductWidget> {
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.search_rounded,
-                  color: AppColors.electricTeal,
-                  size: 24,
-                ),
+                Icon(Icons.search_rounded, color: AppColors.electricTeal),
                 SizedBox(width: 12),
 
                 Expanded(
                   child: TextField(
+                    controller: searchCtrl,
+                    onChanged: (value) {
+                      ref
+                          .read(shopifySearchControllerProvider.notifier)
+                          .search(value);
+                    },
                     decoration: InputDecoration(
                       hintText: "Search Shopify Products...",
-                      hintStyle: TextStyle(
-                        color: AppColors.mediumGray,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                      ),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    style: TextStyle(
-                      color: AppColors.darkText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -117,67 +90,72 @@ class _SearchProductWidgetState extends State<SearchProductWidget> {
 
           // PRODUCT LIST
           Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              itemCount: demoProducts.length,
-              separatorBuilder: (_, __) => SizedBox(height: 16),
-              itemBuilder: (context, index) {
-                final p = demoProducts[index];
-                bool isSelected = selectedIndex == index;
+            child: searchState.when(
+              loading: () => Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text("Error loading products")),
+              data: (data) {
+                final products = data?.products ?? [];
 
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedIndex = index;
-                    });
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.pureWhite
-                          : AppColors.pureWhite,
-                      borderRadius: BorderRadius.circular(12),
+                if (products.isEmpty) {
+                  return Center(child: Text("No products found"));
+                }
 
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.electricTeal
-                            : AppColors.mediumGray.withOpacity(0.2),
-                        width: 1.5,
-                      ),
+                return ListView.separated(
+                  itemCount: products.length,
+                  separatorBuilder: (_, __) => SizedBox(height: 16),
+                  itemBuilder: (_, index) {
+                    final p = products[index];
 
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.mediumGray.withOpacity(0.3),
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
+                    bool isSelected = selectedIndex == index;
 
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CustomText(
-                                txt: p["name"],
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              SizedBox(height: 2),
-                              CustomText(txt: "SKU: ${p["sku"]}", fontSize: 13),
-                              CustomText(txt: p["price"], fontSize: 13),
-                              CustomText(txt: p["weight"], fontSize: 13),
-                            ],
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedIndex = index;
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.pureWhite,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.electricTeal
+                                : AppColors.mediumGray.withOpacity(0.2),
+                            width: 1.5,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.mediumGray.withOpacity(0.30),
+                              blurRadius: 6,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText(
+                              txt: p.title,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            SizedBox(height: 2),
+                            CustomText(
+                              txt: "Price: R${p.variants.first.price}",
+                              fontSize: 13,
+                            ),
+                            CustomText(
+                              txt:
+                                  "Weight: ${p.variants.first.weight} ${p.variants.first.weightUnit}",
+                              fontSize: 13,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -185,31 +163,77 @@ class _SearchProductWidgetState extends State<SearchProductWidget> {
 
           SizedBox(height: 10),
 
-          // BOTTOM BUTTON OUTSIDE CARD
-          
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
-              child: CustomButton(
-                text: selectedIndex == null
-                    ? "Please select your product"
-                    : "Add to your product",
-                backgroundColor: selectedIndex == null
-                    ? AppColors.lightGrayBackground
-                    : AppColors.electricTeal,
-                borderColor: selectedIndex == null
-                    ? AppColors.electricTeal
-                    : AppColors.electricTeal,
-                textColor: selectedIndex == null
-                    ? AppColors.electricTeal
-                    : AppColors.pureWhite,
-                onPressed: selectedIndex == null
-                    ? null
-                    : () {
-                        // ADD LOGIC HERE
-                      },
-              ),
+          // DONE BUTTON
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: CustomButton(
+              text: selectedIndex == null
+                  ? "Please select your product"
+                  : "Add to your product",
+              backgroundColor: selectedIndex == null
+                  ? AppColors.lightGrayBackground
+                  : AppColors.electricTeal,
+              borderColor: AppColors.electricTeal,
+              textColor: selectedIndex == null
+                  ? AppColors.electricTeal
+                  : AppColors.pureWhite,
+
+// SearchProductWidget mein "Add to your product" button ke onPressed ko update karein
+
+onPressed: selectedIndex == null
+    ? null
+    : () {
+        final product = ref
+            .read(shopifySearchControllerProvider)
+            .value!
+            .products[selectedIndex!];
+
+        final variant = product.variants.first;
+
+        // Create PackageItem with isFromShopify = true
+        final shopifyItem = PackageItem(
+          name: product.title,
+          qty: "1", // Default quantity
+          weight: "${variant.weight}",
+          value: variant.price,
+          note: product.productType, // Product type as note
+          sku: variant.sku,
+          isFromShopify: true, // Mark as from Shopify
+        );
+
+        // Add to provider
+        ref.read(packageItemsProvider.notifier).addItem(shopifyItem);
+
+        Navigator.pop(context);
+      },
+              // onPressed: selectedIndex == null
+              //     ? null
+              //     : () {
+              //         final product = ref
+              //             .read(shopifySearchControllerProvider)
+              //             .value!
+              //             .products[selectedIndex!];
+
+              //         final variant = product.variants.first;
+
+              //         // PACKAGE ITEM ADD
+              //         ref
+              //             .read(packageItemsProvider.notifier)
+              //             .addItem(
+              //               PackageItem(
+              //                 name: product.title,
+              //                 qty: "1",
+              //                 weight: "${variant.weight}",
+              //                 value: variant.price,
+              //                 note: "",
+              //                 sku: "",
+              //               ),
+              //             );
+
+              //         Navigator.pop(context);
+              //       },
             ),
-          
+          ),
         ],
       ),
     );

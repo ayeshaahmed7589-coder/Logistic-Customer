@@ -1,8 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/export.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/service_payment_screen.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/service_payment_screen.dart';
 import 'add_product_manualy_screen/add_product_manualy_screen.dart';
 import 'search_screen/search_screen.dart';
+
+class PackageItem {
+  final String name;
+  final String qty;
+  final String weight;
+  final String value;
+  final String note;
+  final String sku;
+  final bool isFromShopify; // New field
+
+  PackageItem({
+    required this.name,
+    required this.qty,
+    required this.weight,
+    required this.value,
+    required this.note,
+    required this.sku,
+    this.isFromShopify = false, // Default false
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'qty': qty,
+      'weight': weight,
+      'value': value,
+      'note': note,
+      'sku': sku,
+      'isFromShopify': isFromShopify,
+    };
+  }
+
+  factory PackageItem.fromMap(Map<String, dynamic> map) {
+    return PackageItem(
+      name: map['name'] ?? "",
+      qty: map['qty'] ?? "",
+      weight: map['weight'] ?? "",
+      value: map['value'] ?? "",
+      note: map['note'] ?? "",
+      sku: map['sku'] ?? "",
+      isFromShopify: map['isFromShopify'] ?? false,
+    );
+  }
+}
 
 class PackageDetailsScreen extends StatelessWidget {
   const PackageDetailsScreen({super.key});
@@ -11,7 +57,7 @@ class PackageDetailsScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.7), // background dim
+      barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) {
         return Dialog(
           insetPadding: EdgeInsets.symmetric(vertical: 30),
@@ -41,7 +87,6 @@ class PackageDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-       
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -50,11 +95,11 @@ class PackageDetailsScreen extends StatelessWidget {
                   _sectionTitle("PACKAGE DETAILS"),
 
                   const SizedBox(height: 15),
+
+                  //Search
                   GestureDetector(
                     onTap: () {
-                      showSearchProductsModal(
-                        context,
-                      ); // ← yeh function modal kholta hai
+                      showSearchProductsModal(context);
                     },
                     child: Container(
                       height: 52,
@@ -79,7 +124,6 @@ class PackageDetailsScreen extends StatelessWidget {
                           ),
                           SizedBox(width: 12),
 
-                          // Yahan TextField ko readOnly kar diya — taake click sirf modal khole
                           Expanded(
                             child: TextField(
                               readOnly: true,
@@ -108,7 +152,7 @@ class PackageDetailsScreen extends StatelessWidget {
                     ),
                   ),
 
-                  //Search bar end
+                  //Search end
                   const SizedBox(height: 10),
                   Center(
                     child: CustomText(
@@ -121,7 +165,7 @@ class PackageDetailsScreen extends StatelessWidget {
 
                   const SizedBox(height: 10),
 
-                  // Defult address
+                  // Item
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -192,129 +236,92 @@ class PackageDetailsScreen extends StatelessWidget {
                           ],
                         ),
                         gapH8,
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: _boxStyle,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      CustomText(
-                                        txt: "Electronics Package",
-                                        color: AppColors.electricTeal,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Qty",
-                                        value: "2",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors
-                                            .mediumGray, // Different color for value
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Weight",
-                                        value: "5.5 kg",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors.mediumGray,
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Value",
-                                        value: "R50,00",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors.mediumGray,
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Note",
-                                        value: "Handle with care",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors.mediumGray,
-                                      ),
-                                    ],
+                        // Items
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final items = ref.watch(packageItemsProvider);
+
+                            if (items.isEmpty) {
+                              return Center(
+                                child: CustomText(txt: "No items added yet"),
+                              );
+                            }
+
+                            return Column(
+                              children: List.generate(items.length, (i) {
+                                final item = items[i];
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: _boxStyle,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            CustomText(
+                                              txt: item.name,
+                                              color: AppColors.electricTeal,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            SizedBox(height: 4),
+                                            _infoRow(
+                                              label: "Qty",
+                                              value: item.qty,
+                                            ),
+                                            SizedBox(height: 4),
+                                            _infoRow(
+                                              label: "Weight",
+                                              value: item.weight,
+                                            ),
+                                            SizedBox(height: 4),
+                                            _infoRow(
+                                              label: "Value",
+                                              value: "R${item.value}",
+                                            ),
+                                            SizedBox(height: 4),
+                                            _infoRow(
+                                              label: "Note",
+                                              value: item.note,
+                                            ),
+                                          ],
+                                        ),
+
+                                        GestureDetector(
+                                          onTap: () {
+                                            ref
+                                                .read(
+                                                  packageItemsProvider.notifier,
+                                                )
+                                                .removeItem(i);
+                                          },
+                                          child: Icon(
+                                            Icons.close,
+                                            size: 20,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  Icon(
-                                    Icons.close,
-                                    size: 20,
-                                    color: Colors.red,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            gapH12,
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: _boxStyle,
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      CustomText(
-                                        txt: "Electronics Package",
-                                        color: AppColors.electricTeal,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Qty",
-                                        value: "2",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors
-                                            .mediumGray, // Different color for value
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Weight",
-                                        value: "5.5 kg",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors.mediumGray,
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Value",
-                                        value: "R50,00",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors.mediumGray,
-                                      ),
-                                      gapH4,
-                                      _infoRow(
-                                        label: "Note",
-                                        value: "Handle with care",
-                                        labelColor: AppColors.electricTeal,
-                                        valueColor: AppColors.mediumGray,
-                                      ),
-                                    ],
-                                  ),
-                                  Icon(
-                                    Icons.close,
-                                    size: 20,
-                                    color: Colors.red,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                                );
+                              }),
+                            );
+                          },
                         ),
                       ],
                     ),
                   ),
 
+                  // Item end
                   gapH20,
 
                   Container(
@@ -325,14 +332,35 @@ class PackageDetailsScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _buildInfoRow("Total Weight:", "6.0 kg"),
-                        gapH8,
-                        _buildInfoRow("Total Items:", "3"),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final items = ref.watch(packageItemsProvider);
+
+                            double totalWeight = 0;
+                            for (var i in items) {
+                              totalWeight += double.tryParse(i.weight) ?? 0;
+                            }
+
+                            return Column(
+                              children: [
+                                _buildInfoRow(
+                                  "Total Weight:",
+                                  "${totalWeight.toStringAsFixed(1)} kg",
+                                ),
+                                SizedBox(height: 8),
+                                _buildInfoRow(
+                                  "Total Items:",
+                                  "${items.length}",
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
-
-                     // ---------- Continue Button ----------
+                  gapH12,
+                  // ---------- Continue Button ----------
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: CustomButton(
@@ -350,7 +378,6 @@ class PackageDetailsScreen extends StatelessWidget {
                       },
                     ),
                   ),
-              
                 ],
               ),
             ),
@@ -423,274 +450,3 @@ const _boxStyle = BoxDecoration(
   borderRadius: BorderRadius.all(Radius.circular(12)),
   border: Border.fromBorderSide(BorderSide(color: AppColors.electricTeal)),
 );
-
-//////////////
-
-// class DeliveryDetailScreen extends StatefulWidget {
-//   const DeliveryDetailScreen({super.key});
-
-//   @override
-//   State<DeliveryDetailScreen> createState() => _DeliveryDetailScreenState();
-// }
-
-// class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
-//   final TextEditingController contactnameController = TextEditingController();
-//   final TextEditingController phoneController = TextEditingController();
-//   final TextEditingController pickupController = TextEditingController();
-//   final TextEditingController cityController = TextEditingController();
-//   final TextEditingController postalController = TextEditingController();
-
-//   final contactnameFocus = FocusNode();
-//   final phoneFocus = FocusNode();
-//   final pickupFocus = FocusNode();
-//   final cityFocus = FocusNode();
-//   final postalFocus = FocusNode();
-//   final Color inactiveColor = AppColors.mediumGray;
-//   @override
-//   void initState() {
-//     super.initState();
-//     contactnameController.addListener(_checkFormFilled);
-//     phoneController.addListener(_checkFormFilled);
-//     pickupController.addListener(_checkFormFilled);
-//     postalController.addListener(_checkFormFilled);
-//   }
-
-//   bool _isFormFilled = false;
-//   void _checkFormFilled() {
-//     final isFilled =
-//         contactnameController.text.isNotEmpty &&
-//         phoneController.text.isNotEmpty &&
-//         pickupController.text.isNotEmpty &&
-//         postalController.text.isNotEmpty;
-
-//     if (isFilled != _isFormFilled) {
-//       setState(() => _isFormFilled = isFilled);
-//     }
-//   }
-
-//   @override
-//   void dispose() {
-//     contactnameFocus.dispose();
-//     phoneFocus.dispose();
-//     cityFocus.dispose();
-//     phoneFocus.dispose();
-//     //
-//     contactnameController.dispose();
-//     phoneController.dispose();
-//     pickupController.dispose();
-//     postalFocus.dispose();
-
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: AppColors.lightGrayBackground,
-//       body: SingleChildScrollView(
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             //appbar
-//             Container(
-//               padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
-//               width: double.infinity,
-//               decoration: const BoxDecoration(
-//                 color: AppColors.electricTeal,
-//                 // boxShadow: [
-//                 //   BoxShadow(
-//                 //     color: Colors.black26,
-//                 //     blurRadius: 6,
-//                 //     offset: Offset(0, 3),
-//                 //   )
-//                 // ],
-//               ),
-//               child: Stack(
-//                 alignment: Alignment.center,
-//                 children: [
-//                   // --- LEFT SIDE (Close Icon) ---
-//                   Align(
-//                     alignment: Alignment.centerLeft,
-//                     child: IconButton(
-//                       onPressed: () {
-//                         Navigator.pop(context);
-//                       },
-//                       icon: Icon(Icons.close, color: AppColors.pureWhite),
-//                     ),
-//                   ),
-
-//                   // --- CENTER TITLE ---
-//                   CustomText(
-//                     txt: "New Order",
-//                     fontSize: 18,
-//                     fontWeight: FontWeight.bold,
-//                     color: AppColors.pureWhite,
-//                   ),
-
-//                   // --- RIGHT SIDE (Step indicator) ---
-//                   Align(
-//                     alignment: Alignment.centerRight,
-//                     child: CustomText(
-//                       txt: "[2/4]",
-//                       fontSize: 14,
-//                       color: AppColors.pureWhite,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             //appbar end
-
-//             // ---------- Pickup Details Heading ----------
-//             Padding(
-//               padding: const EdgeInsets.all(12),
-//               child: Column(
-//                 children: [
-//                   Row(
-//                     children: [
-//                       // Icon(Icons.location_pin, color: Colors.red),
-//                       SizedBox(width: 6),
-//                       CustomText(
-//                         txt: "Delivery Details",
-//                         fontSize: 18,
-//                         fontWeight: FontWeight.bold,
-//                       ),
-//                     ],
-//                   ),
-//                   gapH12,
-//                   CustomAnimatedTextField(
-//                     controller: contactnameController,
-//                     focusNode: contactnameFocus,
-//                     labelText: "Contact Name",
-//                     hintText: "Contact Name",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.emailAddress,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-
-//                   gapH8,
-
-//                   CustomAnimatedTextField(
-//                     controller: phoneController,
-//                     focusNode: phoneFocus,
-//                     labelText: "Phone Number",
-//                     hintText: "Phone Number",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.emailAddress,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-
-//                   gapH8,
-
-//                   CustomAnimatedTextField(
-//                     controller: pickupController,
-//                     focusNode: pickupFocus,
-//                     labelText: "Pickup Address",
-//                     hintText: "Pickup Address",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.emailAddress,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-//                   gapH16,
-
-//                   Row(
-//                     children: [
-//                       Icon(
-//                         Icons.pin_drop_outlined,
-//                         color: AppColors.electricTeal,
-//                       ),
-//                       SizedBox(width: 6),
-//                       CustomText(
-//                         txt: "Use Current Location",
-//                         color: AppColors.darkText,
-//                         fontSize: 14,
-//                         fontWeight: FontWeight.w500,
-//                       ),
-//                     ],
-//                   ),
-//                   gapH12,
-//                   // ---------- City ----------
-//                   CustomAnimatedTextField(
-//                     controller: cityController,
-//                     focusNode: cityFocus,
-//                     labelText: "City",
-//                     hintText: "City",
-//                     prefixIcon: Icons.calendar_today_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: Colors.black87,
-//                     keyboardType: TextInputType.datetime,
-//                     suffixIcon: IconButton(
-//                       icon: const Icon(Icons.keyboard_arrow_down_rounded),
-//                       color: AppColors.electricTeal,
-//                       onPressed: () {},
-//                     ),
-//                   ),
-
-//                   gapH8,
-
-//                   // ---------- Postal Code ----------
-//                   CustomAnimatedTextField(
-//                     controller: postalController,
-//                     focusNode: postalFocus,
-//                     labelText: "Postal Code (Optional)",
-//                     hintText: "Postal Code (Optional)",
-//                     prefixIcon: Icons.contact_page_outlined,
-//                     iconColor: AppColors.electricTeal,
-//                     borderColor: AppColors.electricTeal,
-//                     textColor: AppColors.mediumGray,
-//                     keyboardType: TextInputType.number,
-//                     validator: (value) {
-//                       return null;
-//                     },
-//                   ),
-
-//                   gapH20,
-
-//                   // ---------- Continue Button ----------
-//                   Padding(
-//                     padding: const EdgeInsets.symmetric(horizontal: 20),
-//                     child: CustomButton(
-//                       isChecked: _isFormFilled,
-//                       text: "Continue",
-//                       backgroundColor: _isFormFilled
-//                           ? AppColors.electricTeal
-//                           : inactiveColor,
-//                       borderColor: AppColors.electricTeal,
-//                       textColor: AppColors.lightGrayBackground,
-//                       onPressed: _isFormFilled
-//                           ? () {
-//                               Navigator.push(
-//                                 context,
-//                                 MaterialPageRoute(
-//                                   builder: (_) => const PackageDetailScreen(),
-//                                 ),
-//                               );
-//                             }
-//                           : null,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }

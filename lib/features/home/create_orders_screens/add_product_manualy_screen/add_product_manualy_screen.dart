@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/delivery_detail_screen.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
 import '../../../../common_widgets/cuntom_textfield.dart';
 import '../../../../common_widgets/custom_button.dart';
 import '../../../../common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
 
-class AddManualItemModal extends StatefulWidget {
+class AddManualItemModal extends ConsumerStatefulWidget {
   const AddManualItemModal({super.key});
 
   @override
-  State<AddManualItemModal> createState() => _AddManualItemModalState();
+  ConsumerState<AddManualItemModal> createState() => _AddManualItemModalState();
 }
 
-class _AddManualItemModalState extends State<AddManualItemModal> {
+class _AddManualItemModalState extends ConsumerState<AddManualItemModal> {
   final TextEditingController packageController = TextEditingController();
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
@@ -173,7 +176,18 @@ class _AddManualItemModalState extends State<AddManualItemModal> {
                   borderColor: AppColors.electricTeal,
                   textColor: AppColors.lightGrayBackground,
                   onPressed: () {
-                    // ADD LOGIC HERE
+                    final item = PackageItem(
+                      name: packageController.text.trim(),
+                      qty: quantityController.text.trim(),
+                      weight: weightController.text.trim(),
+                      value: decvalueController.text.trim(),
+                      note: descriptionController.text.trim(),
+                      sku: skuController.text.trim(),
+                    );
+
+                    ref.read(packageItemsProvider.notifier).addItem(item);
+
+                    Navigator.pop(context);
                   },
                 ),
               ),

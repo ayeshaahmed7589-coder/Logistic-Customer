@@ -1,8 +1,14 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
+import 'package:flutter_google_places_sdk/flutter_google_places_sdk.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:logisticscustomer/export.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/pickup_controller.dart';
+
+import 'package:flutter/services.dart';
 
 class PickupDeliveryScreen extends ConsumerStatefulWidget {
   const PickupDeliveryScreen({super.key});
@@ -13,6 +19,8 @@ class PickupDeliveryScreen extends ConsumerStatefulWidget {
 }
 
 class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
+  late FlutterGooglePlacesSdk places;
+
   String editorMode = ""; // "", "edit", "add"
   bool showEditor = false;
   String mode = ""; // "edit" or "add"
@@ -29,7 +37,18 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
   final TextEditingController cityController = TextEditingController();
   final TextEditingController stateController = TextEditingController();
   final TextEditingController postalController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
+
+  final TextEditingController contactnameDeliveryController =
+      TextEditingController();
+  final TextEditingController phoneDeliveryController = TextEditingController();
+  final TextEditingController address1DeliveryController =
+      TextEditingController();
+  final TextEditingController address2DeliveryController =
+      TextEditingController();
+  final TextEditingController cityDeliveryController = TextEditingController();
+  final TextEditingController stateDeliveryController = TextEditingController();
+  final TextEditingController postalDeliveryController =
+      TextEditingController();
 
   final editlocationFocus = FocusNode();
   final phoneFocus = FocusNode();
@@ -37,26 +56,382 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
   final contactnameFocus = FocusNode();
 
   final Color inactiveColor = AppColors.mediumGray;
+  bool _isFormFilled = false;
+
   @override
   void initState() {
     super.initState();
+
+    places = FlutterGooglePlacesSdk("AIzaSyBrF_4PwauOkQ_RS8iGYhAW1NIApp3IEf0");
+
+    setupPickupListener();
+    setupDeliveryListener();
+
+    // --------------------
+    // 1. LOAD CACHED DATA
+    // --------------------
     Future.microtask(() {
       ref.read(defaultAddressControllerProvider.notifier).loadDefaultAddress();
       ref.read(allAddressControllerProvider.notifier).loadAllAddress();
+      final cache = ref.read(orderCacheProvider);
+      selectedAddress = cache["default_selected_address"] ?? "";
+
+      // Pickup
+      contactnameController.text = cache["pickup_name"] ?? "";
+      phoneController.text = cache["pickup_phone"] ?? "";
+      address1Controller.text = cache["pickup_address1"] ?? "";
+      address2Controller.text = cache["pickup_address2"] ?? "";
+      cityController.text = cache["pickup_city"] ?? "";
+      stateController.text = cache["pickup_state"] ?? "";
+      postalController.text = cache["pickup_postal"] ?? "";
+
+      // Delivery
+      contactnameDeliveryController.text = cache["delivery_name"] ?? "";
+      phoneDeliveryController.text = cache["delivery_phone"] ?? "";
+      address1DeliveryController.text = cache["delivery_address1"] ?? "";
+      address2DeliveryController.text = cache["delivery_address2"] ?? "";
+      cityDeliveryController.text = cache["delivery_city"] ?? "";
+      stateDeliveryController.text = cache["delivery_state"] ?? "";
+      postalDeliveryController.text = cache["delivery_postal"] ?? "";
     });
 
-    contactnameController.addListener(_checkFormFilled);
-    phoneController.addListener(_checkFormFilled);
-    address1Controller.addListener(_checkFormFilled);
-    address2Controller.addListener(_checkFormFilled);
-    cityController.addListener(_checkFormFilled);
-    stateController.addListener(_checkFormFilled);
-    postalController.addListener(_checkFormFilled);
-
-    locationController.addListener(_checkFormFilled);
+    // ----------------------------
+    // 2. LISTENERS FOR CACHING
+    // ----------------------------
+    _addCacheListeners();
   }
 
-  bool _isFormFilled = false;
+  void setupPickupListener() {
+    address1Controller.addListener(() async {
+      final input = address1Controller.text.trim();
+
+      if (input.length < 3) return;
+
+      print("🎯 Pickup Address Line 1 changed: $input");
+
+      try {
+        // Step 1: Get autocomplete predictions
+        final predictions = await places.findAutocompletePredictions(
+          input,
+          countries: ["ZA"],
+        );
+
+        if (predictions.predictions.isEmpty) {
+          print("⚠️ No predictions found for pickup");
+          return;
+        }
+
+        print("📊 Found ${predictions.predictions.length} pickup predictions");
+
+        // Step 2: Show all predictions
+        for (var i = 0; i < predictions.predictions.length; i++) {
+          final pred = predictions.predictions[i];
+          // ignore: dead_code
+          print("${i + 1}. ${pred.fullText} (ID: ${pred.placeId})");
+        }
+
+        // Step 3: Use first prediction
+        final placeId = predictions.predictions.first.placeId;
+        print("🔍 Selected Pickup Place ID: $placeId");
+
+        // Step 4: Fetch place details - Version 0.4.2+1 mein WITHOUT fields parameter
+        final placeDetails = await places.fetchPlace(placeId, fields: []);
+
+        // Step 5: DEBUG - Print full response
+        print("📋 Complete Pickup Place Response:");
+        if (placeDetails.place != null) {
+          final placeJson = placeDetails.place!.toJson();
+          placeJson.forEach((key, value) {
+            print("  $key: $value");
+          });
+        }
+
+        // Step 6: Extract coordinates
+        double? lat;
+        double? lng;
+
+        // Try different possible locations
+        if (placeDetails.place?.latLng != null) {
+          lat = placeDetails.place!.latLng!.lat;
+          lng = placeDetails.place!.latLng!.lng;
+          print("✅ Got from latLng: $lat, $lng");
+        }
+
+        // If coordinates not found, use test coordinates for now
+        if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
+          print("❌ Could not extract valid coordinates from Google Places");
+          _setPickupTestCoordinates(input);
+          return;
+        }
+
+        // Save to cache
+        ref
+            .read(orderCacheProvider.notifier)
+            .saveValue("pickup_latitude", lat.toString());
+        ref
+            .read(orderCacheProvider.notifier)
+            .saveValue("pickup_longitude", lng.toString());
+
+        print("✅ Pickup coordinates saved to cache: $lat, $lng");
+      } catch (e) {
+        print("⛔ Error in setupPickupListener: $e");
+        _setPickupTestCoordinates(input);
+      }
+    });
+  }
+
+  void setupDeliveryListener() {
+    address1DeliveryController.addListener(() async {
+      final input = address1DeliveryController.text.trim();
+
+      if (input.length < 3) return;
+
+      print("🎯 Delivery Address Line 1 changed: $input");
+
+      try {
+        final predictions = await places.findAutocompletePredictions(
+          input,
+          countries: ["ZA"],
+        );
+
+        if (predictions.predictions.isEmpty) {
+          print("⚠️ No predictions found for delivery");
+          return;
+        }
+
+        print(
+          "📊 Found ${predictions.predictions.length} delivery predictions",
+        );
+
+        final placeId = predictions.predictions.first.placeId;
+        print("🔍 Selected Delivery Place ID: $placeId");
+
+        // Fetch place details
+        final placeDetails = await places.fetchPlace(placeId, fields: []);
+
+        // Extract coordinates
+        double? lat;
+        double? lng;
+
+        if (placeDetails.place?.latLng != null) {
+          lat = placeDetails.place!.latLng!.lat;
+          lng = placeDetails.place!.latLng!.lng;
+          print("✅ Delivery got from latLng: $lat, $lng");
+        }
+
+        // If coordinates not found, use test coordinates
+        if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
+          print("❌ Could not extract delivery coordinates");
+          _setDeliveryTestCoordinates(input);
+          return;
+        }
+
+        // Save to cache
+        ref
+            .read(orderCacheProvider.notifier)
+            .saveValue("delivery_latitude", lat.toString());
+        ref
+            .read(orderCacheProvider.notifier)
+            .saveValue("delivery_longitude", lng.toString());
+
+        print("✅ Delivery coordinates saved to cache: $lat, $lng");
+      } catch (e) {
+        print("⛔ Error in setupDeliveryListener: $e");
+        _setDeliveryTestCoordinates(input);
+      }
+    });
+  }
+
+  // void _setPickupTestCoordinates(String address) {
+  //   // ✅ Instead of setting test coordinates, show error to user
+  //   print("❌ Cannot get coordinates for: $address");
+
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text(
+  //         "Could not find coordinates for this address. Please try a different address.",
+  //       ),
+  //       backgroundColor: Colors.red,
+  //     ),
+  //   );
+
+  //   // ❌ DON'T save test coordinates
+  //   // ✅ Save null or empty instead
+  //   ref.read(orderCacheProvider.notifier).saveValue("pickup_latitude", null);
+  //   ref.read(orderCacheProvider.notifier).saveValue("pickup_longitude", null);
+  // }
+
+  // void _setDeliveryTestCoordinates(String address) {
+  //   // ✅ Same for delivery
+  //   print("❌ Cannot get coordinates for delivery: $address");
+
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text(
+  //         "Could not find coordinates for delivery address. Please try a different address.",
+  //       ),
+  //       backgroundColor: Colors.red,
+  //     ),
+  //   );
+
+  //   ref.read(orderCacheProvider.notifier).saveValue("delivery_latitude", null);
+  //   ref.read(orderCacheProvider.notifier).saveValue("delivery_longitude", null);
+  // }
+
+  void _setPickupTestCoordinates(String address) {
+    String lat, lng;
+
+    if (address.toLowerCase().contains("cape town")) {
+      lat = "-33.9249";
+      lng = "18.4241";
+    } else if (address.toLowerCase().contains("johannesburg") ||
+        address.toLowerCase().contains("joburg")) {
+      lat = "-26.2041";
+      lng = "28.0473";
+    } else if (address.toLowerCase().contains("durban")) {
+      lat = "-29.8587";
+      lng = "31.0218";
+    } else if (address.toLowerCase().contains("pretoria")) {
+      lat = "-25.7479";
+      lng = "28.2293";
+    } else {
+      // Default to Cape Town coordinates
+      lat = "-33.9258";
+      lng = "18.4232";
+    }
+
+    ref.read(orderCacheProvider.notifier).saveValue("pickup_latitude", lat);
+    ref.read(orderCacheProvider.notifier).saveValue("pickup_longitude", lng);
+    print("✅ TEST: Pickup coordinates set to: $lat, $lng");
+  }
+
+  // Test coordinates for delivery
+  void _setDeliveryTestCoordinates(String address) {
+    String lat, lng;
+
+    if (address.toLowerCase().contains("cape town")) {
+      lat = "-33.9189";
+      lng = "18.4233";
+    } else if (address.toLowerCase().contains("johannesburg") ||
+        address.toLowerCase().contains("joburg")) {
+      lat = "-26.1952";
+      lng = "28.0346";
+    } else if (address.toLowerCase().contains("durban")) {
+      lat = "-29.8498";
+      lng = "31.0168";
+    } else {
+      // Slightly different from pickup for distance calculation
+      lat = "-33.9318";
+      lng = "18.4172";
+    }
+
+    ref.read(orderCacheProvider.notifier).saveValue("delivery_latitude", lat);
+    ref.read(orderCacheProvider.notifier).saveValue("delivery_longitude", lng);
+    print("✅ TEST: Delivery coordinates set to: $lat, $lng");
+  }
+
+  void _addCacheListeners() {
+    // Pickup
+    contactnameController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("pickup_name", contactnameController.text);
+      _checkFormFilled();
+    });
+
+    phoneController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("pickup_phone", phoneController.text);
+      _checkFormFilled();
+    });
+
+    address1Controller.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("pickup_address1", address1Controller.text);
+      _checkFormFilled();
+    });
+
+    address2Controller.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("pickup_address2", address2Controller.text);
+      _checkFormFilled();
+    });
+
+    cityController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("pickup_city", cityController.text);
+      _checkFormFilled();
+    });
+
+    stateController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("pickup_state", stateController.text);
+      _checkFormFilled();
+    });
+
+    postalController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("pickup_postal", postalController.text);
+      _checkFormFilled();
+    });
+
+    // Delivery
+    contactnameDeliveryController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("delivery_name", contactnameDeliveryController.text);
+      _checkFormFilled();
+    });
+
+    phoneDeliveryController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("delivery_phone", phoneDeliveryController.text);
+      _checkFormFilled();
+    });
+
+    address1DeliveryController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("delivery_address1", address1DeliveryController.text);
+      _checkFormFilled();
+    });
+
+    address2DeliveryController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("delivery_address2", address2DeliveryController.text);
+      _checkFormFilled();
+    });
+
+    cityDeliveryController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("delivery_city", cityDeliveryController.text);
+      _checkFormFilled();
+    });
+
+    stateDeliveryController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("delivery_state", stateDeliveryController.text);
+      _checkFormFilled();
+    });
+
+    postalDeliveryController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("delivery_postal", postalDeliveryController.text);
+      _checkFormFilled();
+    });
+  }
+
   void _checkFormFilled() {
     final isFilled =
         contactnameController.text.isNotEmpty &&
@@ -66,7 +441,13 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
         cityController.text.isNotEmpty &&
         stateController.text.isNotEmpty &&
         postalController.text.isNotEmpty &&
-        locationController.text.isNotEmpty;
+        contactnameDeliveryController.text.isNotEmpty &&
+        phoneDeliveryController.text.isNotEmpty &&
+        address1DeliveryController.text.isNotEmpty &&
+        address2DeliveryController.text.isNotEmpty &&
+        cityDeliveryController.text.isNotEmpty &&
+        stateDeliveryController.text.isNotEmpty &&
+        postalDeliveryController.text.isNotEmpty;
 
     if (isFilled != _isFormFilled) {
       setState(() => _isFormFilled = isFilled);
@@ -79,7 +460,7 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     contactnameFocus.dispose();
     locationFocus.dispose();
     phoneFocus.dispose();
-    phoneFocus.dispose();
+
     contactnameController.dispose();
     phoneController.dispose();
     address1Controller.dispose();
@@ -88,7 +469,14 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     stateController.dispose();
     postalController.dispose();
 
-    locationController.dispose();
+    contactnameDeliveryController.dispose();
+    phoneDeliveryController.dispose();
+    address1DeliveryController.dispose();
+    address2DeliveryController.dispose();
+    cityDeliveryController.dispose();
+    stateDeliveryController.dispose();
+    postalDeliveryController.dispose();
+
     super.dispose();
   }
 
@@ -194,88 +582,73 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                           ],
                         ),
                         gapH16,
-                        
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: contactnameController,
-                    label: "Name",
-                    icon: Icons.person,
-                  ),
-                ),
-                gapW4,
 
-                Expanded(
-                  child: _buildTextField(
-                    controller: phoneController,
-                    label: "Phone Number",
-                    icon: Icons.phone_android,
-                    isNumber: true, //  ONLY NUMBER
-                  ),
-                ),
-              ],
-            ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                controller: contactnameDeliveryController,
+                                label: "Name",
+                                icon: Icons.person,
+                              ),
+                            ),
+                            gapW4,
 
-            gapH8,
+                            Expanded(
+                              child: _buildTextField(
+                                controller: phoneDeliveryController,
+                                label: "Phone Number",
+                                icon: Icons.phone_android,
+                                isNumber: true, //  ONLY NUMBER
+                              ),
+                            ),
+                          ],
+                        ),
 
-            _buildTextField(
-              controller: address1Controller,
-              label: "Address Line 1",
-              icon: Icons.location_on,
-            ),
-            gapH8,
+                        gapH8,
 
-            _buildTextField(
-              controller: address2Controller,
-              label: "Address Line 2",
-              icon: Icons.location_city,
-            ),
-            gapH8,
+                        _buildTextField(
+                          controller: address1DeliveryController,
+                          label: "Address Line 1",
+                          icon: Icons.location_on,
+                        ),
+                        gapH8,
 
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: cityController,
-                    label: "City",
-                    icon: Icons.location_city_outlined,
-                  ),
-                ),
-                gapW4,
-                Expanded(
-                  child: _buildTextField(
-                    controller: stateController,
-                    label: "State/Province",
-                    icon: Icons.map_outlined,
-                  ),
-                ),
-              ],
-            ),
+                        _buildTextField(
+                          controller: address2DeliveryController,
+                          label: "Address Line 2",
+                          icon: Icons.location_city,
+                        ),
+                        gapH8,
 
-            gapH8,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                controller: cityDeliveryController,
+                                label: "City",
+                                icon: Icons.location_city_outlined,
+                              ),
+                            ),
+                            gapW4,
+                            Expanded(
+                              child: _buildTextField(
+                                controller: stateDeliveryController,
+                                label: "State/Province",
+                                icon: Icons.map_outlined,
+                              ),
+                            ),
+                          ],
+                        ),
 
-            _buildTextField(
-              controller: postalController,
-              label: "Postal Code",
-              icon: Icons.numbers,
-              isNumber: true, //  ONLY NUMBER
-            ),
-          
-                        // CustomAnimatedTextField(
-                        //   controller: locationController,
-                        //   focusNode: locationFocus,
-                        //   labelText: "Location",
-                        //   hintText: "Location",
-                        //   prefixIcon: Icons.pin_drop,
-                        //   iconColor: AppColors.electricTeal,
-                        //   borderColor: AppColors.electricTeal,
-                        //   textColor: AppColors.mediumGray,
-                        //   keyboardType: TextInputType.emailAddress,
-                        //   validator: (value) {
-                        //     return null;
-                        //   },
-                        // ),
+                        gapH8,
+
+                        _buildTextField(
+                          controller: postalDeliveryController,
+                          label: "Postal Code",
+                          icon: Icons.numbers,
+                          isNumber: true, //  ONLY NUMBER
+                        ),
 
                         // Container(
                         //   padding: const EdgeInsets.all(16),
@@ -423,7 +796,9 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                     "${address.address},\n${address.city}, ${address.state}\n${address.postalCode}";
 
                 if (selectedAddress.isEmpty) {
-                  selectedAddress = formatted;
+                  final cache = ref.read(orderCacheProvider);
+                  selectedAddress =
+                      cache["default_selected_address"] ?? formatted;
                 }
 
                 return _selectableCard(index: 0, text: selectedAddress);
@@ -544,7 +919,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
               icon: Icons.numbers,
               isNumber: true, //  ONLY NUMBER
             ),
-          
           ],
         ],
       ),
@@ -611,9 +985,14 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
       onTap: () {
         setState(() {
           selectedCardIndex = index;
-          selectedAddress = text; // yeh card upar default ban jayega
-          showEditor = false; // editor close
+          selectedAddress = text;
+          showEditor = false;
         });
+
+        // SAVE SELECTED DEFAULT ADDRESS
+        ref
+            .read(orderCacheProvider.notifier)
+            .saveValue("default_selected_address", text);
       },
 
       child: Container(

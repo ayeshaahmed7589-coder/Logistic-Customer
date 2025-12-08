@@ -36,8 +36,17 @@ abstract class ApiUrls {
 
   //Default Address
   static String getDefaultAddress = "/api/v1/customer/addresses/default";
-  
 
   //All Address
   static String getAllAddress = "/api/v1/customer/addresses";
+
+  // Shopify Search
+  static String getShopifySearch = "/api/shopify/search";
+
+  // Caluculation
+  static String postCalculation = "/api/v1/customer/orders/calculate-quote";
+
+  // Place Order
+  static String postPlaceOrder = "/api/v1/customer/orders";
+  
 }

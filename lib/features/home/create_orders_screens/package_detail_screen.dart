@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:logisticscustomer/export.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/service_payment_screen.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/service_payment_screen.dart';
 
 class PackageDetailScreen extends StatefulWidget {
   const PackageDetailScreen({super.key});

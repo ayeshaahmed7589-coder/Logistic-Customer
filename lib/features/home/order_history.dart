@@ -70,10 +70,12 @@ class _OrderHistoryState extends State<OrderHistory> {
             ),
 
             //appbar end
+            
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 children: [
+
                   CustomButtonSlider(
                     buttonData: _buttonData,
                     onIndexChanged: (index) {
@@ -86,6 +88,8 @@ class _OrderHistoryState extends State<OrderHistory> {
                       });
                     },
                   ),
+
+
                   gapH16,
                   Container(
                     width: double.infinity,

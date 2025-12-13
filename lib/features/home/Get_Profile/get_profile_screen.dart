@@ -251,12 +251,14 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
                                   // Close dialog
                                   Navigator.of(
+                                    // ignore: use_build_context_synchronously
                                     context,
                                     rootNavigator: true,
                                   ).pop();
 
                                   // Navigate to Login
                                   Navigator.of(
+                                    // ignore: use_build_context_synchronously
                                     context,
                                     rootNavigator: true,
                                   ).pushAndRemoveUntil(

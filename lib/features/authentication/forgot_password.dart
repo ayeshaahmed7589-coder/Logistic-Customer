@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:logisticscustomer/common_widgets/cuntom_textfield.dart';
-import 'package:logisticscustomer/common_widgets/custom_button.dart';
-import 'package:logisticscustomer/constants/colors.dart';
-import 'package:logisticscustomer/constants/gap.dart';
+
 import '../../export.dart';
 
 class ForgotPassword extends StatefulWidget {
@@ -16,6 +13,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
   final emailFocus = FocusNode();
   // final FocusNode _focusNode = FocusNode();
   final TextEditingController emailController = TextEditingController();
+  // ignore: non_constant_identifier_names
   final TextEditingController PasswordController = TextEditingController();
   final passwordFocus = FocusNode();
 
@@ -81,7 +79,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
               Text(
                 "Forgot Password",
                 style: TextStyle(
-                  fontSize: 24,
+                  //031509018                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppColors.electricTeal,
                 ),

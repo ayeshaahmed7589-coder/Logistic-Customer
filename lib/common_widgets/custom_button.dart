@@ -9,14 +9,14 @@ class CustomButton extends StatelessWidget {
   final String text;
 
   const CustomButton({
-    Key? key,
+    super.key,
     this.isChecked, // optional
     required this.onPressed,
     required this.backgroundColor,
     required this.borderColor,
     required this.textColor,
     this.text = "",
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,17 +28,22 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: active ? onPressed : null,
         style: ButtonStyle(
+          // ignore: deprecated_member_use
           backgroundColor: MaterialStateProperty.all(
             active ? backgroundColor : Colors.white,
           ),
+          // ignore: deprecated_member_use
           shape: MaterialStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(25),
               side: BorderSide(color: borderColor, width: 2),
             ),
           ),
+          // ignore: deprecated_member_use
           elevation: MaterialStateProperty.all(0),
+          // ignore: deprecated_member_use
           overlayColor: MaterialStateProperty.all(
+            // ignore: deprecated_member_use
             backgroundColor.withOpacity(0.1),
           ),
         ),

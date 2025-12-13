@@ -77,6 +77,7 @@ class CompletedScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
+                          // ignore: deprecated_member_use
                           color: AppColors.darkText.withOpacity(0.05),
                           blurRadius: 6,
                           offset: const Offset(0, 3),

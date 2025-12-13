@@ -7,7 +7,7 @@ import '../../../export.dart';
 
 class CreatePasswordScreen extends ConsumerStatefulWidget {
   final String token;
-  const CreatePasswordScreen({Key? key, required this.token}) : super(key: key);
+  const CreatePasswordScreen({super.key, required this.token});
 
   @override
   ConsumerState<CreatePasswordScreen> createState() =>
@@ -193,6 +193,7 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
 
                       if (state is AsyncData && state.value != null) {
                         Navigator.push(
+                          // ignore: use_build_context_synchronously
                           context,
                           MaterialPageRoute(
                             builder: (_) => SetUpProfile(

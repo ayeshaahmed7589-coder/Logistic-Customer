@@ -18,7 +18,7 @@ class CustomText extends StatelessWidget {
   FontWeight? fontWeight;
   double? height;
 
-  CustomText({
+  CustomText({super.key, 
     required this.txt,
     this.context,
     this.color,
@@ -43,7 +43,7 @@ class CustomText extends StatelessWidget {
 
   textView() {
     return Text(
-      "\u200E${txt}",
+      "\u200E$txt",
       maxLines: isTab ? 1 : maxLines,
       textAlign: align,
       style: isTab

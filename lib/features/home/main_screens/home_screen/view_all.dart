@@ -107,6 +107,7 @@ class _ActiveViewAllState extends ConsumerState<ActiveViewAll> {
                                             boxShadow: [
                                               BoxShadow(
                                                 color: AppColors.mediumGray
+                                                    // ignore: deprecated_member_use
                                                     .withOpacity(0.1),
                                                 blurRadius: 6,
                                                 offset: Offset(0, 3),

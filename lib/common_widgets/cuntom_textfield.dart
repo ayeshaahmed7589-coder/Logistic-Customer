@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:logisticscustomer/export.dart';
 
@@ -20,7 +19,7 @@ class CustomAnimatedTextField extends StatefulWidget {
   final List<TextInputFormatter>? inputFormatters;
 
   const CustomAnimatedTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.focusNode,
     required this.labelText,
@@ -36,7 +35,7 @@ class CustomAnimatedTextField extends StatefulWidget {
     this.readOnly = false, // default false
     this.onTap, // optional
     this.suffixIcon,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomAnimatedTextField> createState() =>
@@ -114,10 +113,12 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
                 suffixIcon: widget.suffixIcon,
                 hintText: widget.hintText,
                 hintStyle: TextStyle(
+                  // ignore: deprecated_member_use
                   color: widget.textColor.withOpacity(0.5),
                   fontSize: 13,
                 ),
                 filled: true,
+                // ignore: deprecated_member_use
                 fillColor: Colors.white.withOpacity(0.25),
 
                 enabledBorder: OutlineInputBorder(
@@ -125,6 +126,7 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
                   borderSide: BorderSide(
                     color: _errorText != null
                         ? Colors.red
+                        // ignore: deprecated_member_use
                         : widget.borderColor.withOpacity(0.7),
                     width: 1.4,
                   ),

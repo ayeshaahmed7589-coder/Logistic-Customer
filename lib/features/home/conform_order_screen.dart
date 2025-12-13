@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:logisticscustomer/common_widgets/custom_button.dart';
-import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import 'package:logisticscustomer/features/home/conform_order_successfull.dart';
 
-import '../../constants/colors.dart';
 import '../../export.dart';
 
 class EnterOtpFinalScreen extends StatefulWidget {
@@ -15,6 +12,7 @@ class EnterOtpFinalScreen extends StatefulWidget {
 
 class _EnterOtpFinalScreenState extends State<EnterOtpFinalScreen> {
     TextEditingController otpController = TextEditingController();
+     // ignore: unused_field
      bool _isOtpFilled = false;
   bool showConfirmDropdown = false;
 
@@ -274,6 +272,7 @@ class _EnterOtpFinalScreenState extends State<EnterOtpFinalScreen> {
                   borderRadius: BorderRadius.circular(8),
                   fieldHeight: 50,
                   fieldWidth: 45,
+                  // ignore: deprecated_member_use
                   inactiveColor: AppColors.electricTeal.withOpacity(0.3),
                   selectedColor: AppColors.electricTeal,
                   activeColor: AppColors.electricTeal,

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:logisticscustomer/constants/api_url.dart';
 import 'package:logisticscustomer/constants/dio.dart';
 import 'package:logisticscustomer/features/authentication/email_register/email_register_modal.dart';
+// ignore: depend_on_referenced_packages
 import 'package:riverpod/riverpod.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

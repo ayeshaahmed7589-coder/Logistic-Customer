@@ -58,6 +58,7 @@ class OrderSuccessful extends StatelessWidget {
                   border: Border.all(color: AppColors.electricTeal, width: 1),
                   boxShadow: [
                     BoxShadow(
+                      // ignore: deprecated_member_use
                       color: AppColors.mediumGray.withOpacity(0.25),
                       blurRadius: 10,
                       offset: const Offset(0, 4),

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/dropdown.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/pickup_controller.dart';
 
 import 'package:flutter/services.dart';
@@ -19,6 +20,20 @@ class PickupDeliveryScreen extends ConsumerStatefulWidget {
 }
 
 class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
+  String? selectedCountry;
+  String? countryError; // Error message ke liye
+
+  List<String> staticCountries = ["Pakistan", "India", "USA", "UK", "UAE"];
+
+  void _validateFields() {
+    // Country validation
+    if (selectedCountry == null || selectedCountry!.isEmpty) {
+      countryError = "Please select a country";
+    } else {
+      countryError = null;
+    }
+  }
+
   late FlutterGooglePlacesSdk places;
 
   String editorMode = ""; // "", "edit", "add"
@@ -242,42 +257,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     });
   }
 
-  // void _setPickupTestCoordinates(String address) {
-  //   // ✅ Instead of setting test coordinates, show error to user
-  //   print("❌ Cannot get coordinates for: $address");
-
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(
-  //       content: Text(
-  //         "Could not find coordinates for this address. Please try a different address.",
-  //       ),
-  //       backgroundColor: Colors.red,
-  //     ),
-  //   );
-
-  //   // ❌ DON'T save test coordinates
-  //   // ✅ Save null or empty instead
-  //   ref.read(orderCacheProvider.notifier).saveValue("pickup_latitude", null);
-  //   ref.read(orderCacheProvider.notifier).saveValue("pickup_longitude", null);
-  // }
-
-  // void _setDeliveryTestCoordinates(String address) {
-  //   // ✅ Same for delivery
-  //   print("❌ Cannot get coordinates for delivery: $address");
-
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(
-  //       content: Text(
-  //         "Could not find coordinates for delivery address. Please try a different address.",
-  //       ),
-  //       backgroundColor: Colors.red,
-  //     ),
-  //   );
-
-  //   ref.read(orderCacheProvider.notifier).saveValue("delivery_latitude", null);
-  //   ref.read(orderCacheProvider.notifier).saveValue("delivery_longitude", null);
-  // }
-
   void _setPickupTestCoordinates(String address) {
     String lat, lng;
 
@@ -494,6 +473,113 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // _sectionTitle(""),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.only(
+                      top: 16,
+                      right: 16,
+                      left: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.pureWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.mediumGray.withValues(alpha: 0.10),
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            CustomText(
+                              txt: "Product & Packaging Information",
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ],
+                        ),
+                        gapH16,
+
+                        // Dropdown widget
+                        DropDownContainer(
+                          fw: FontWeight.normal,
+                          dialogueScreen: MaterialConditionPopupLeftIcon(
+                            title: '',
+                            conditions: staticCountries,
+                            initialSelectedIndex: selectedCountry != null
+                                ? staticCountries.indexOf(selectedCountry!)
+                                : null,
+                          ),
+                          text: selectedCountry ?? "Product Type",
+                          onItemSelected: (value) {
+                            setState(() {
+                              selectedCountry = value;
+                              _validateFields();
+                            });
+                          },
+                        ),
+
+                        gapH8,
+                        DropDownContainer(
+                          fw: FontWeight.normal,
+                          dialogueScreen: MaterialConditionPopupLeftIcon(
+                            title: '',
+                            conditions: staticCountries,
+                            initialSelectedIndex: selectedCountry != null
+                                ? staticCountries.indexOf(selectedCountry!)
+                                : null,
+                          ),
+                          text: selectedCountry ?? "Package Type",
+                          onItemSelected: (value) {
+                            setState(() {
+                              selectedCountry = value;
+                              _validateFields();
+                            });
+                          },
+                        ),
+
+                        gapH8,
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildTextField(
+                                controller: address1DeliveryController,
+                                label: "Total Weight (kg)",
+                                icon: Icons.location_on,
+                              ),
+                            ),
+
+                            gapW8,
+                            Expanded(
+                              child: _buildTextField(
+                                controller: address2DeliveryController,
+                                label: "Quantity",
+                                icon: Icons.location_city,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        gapH8,
+
+                        _buildTextField(
+                          controller: cityDeliveryController,
+                          label: "Declared Value (R)",
+                          icon: Icons.location_city_outlined,
+                        ),
+                      ],
+                    ),
+                  ),
+
                   _sectionTitle("PICKUP LOCATION"),
                   const SizedBox(height: 10),
 

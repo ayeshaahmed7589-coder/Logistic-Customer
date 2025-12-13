@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:logisticscustomer/common_widgets/custom_text.dart';
-import 'package:logisticscustomer/constants/colors.dart';
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/notification_screen.dart';
 
 class BuyerAppBarWidget extends StatelessWidget {
-  BuyerAppBarWidget({
+  const BuyerAppBarWidget({
     super.key,
     required this.controller,
     required this.segmentControlValue,

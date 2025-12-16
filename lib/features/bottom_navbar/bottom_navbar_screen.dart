@@ -3,6 +3,7 @@ import 'package:logisticscustomer/constants/colors.dart';
 import 'package:logisticscustomer/features/home/Get_Profile/get_profile_screen.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/current_screen.dart';
 import 'package:logisticscustomer/features/home/map_screen.dart';
+import 'package:logisticscustomer/features/home/orders/orders.dart';
 import 'package:logisticscustomer/features/home/wallet_screen.dart';
 
 class TripsBottomNavBarScreen extends StatefulWidget {
@@ -18,7 +19,8 @@ class _TripsBottomNavBarScreenState extends State<TripsBottomNavBarScreen> {
   late int _selectedIndex;
 
   final List<Widget> _screens = const [
-    CurrentScreen(), 
+    CurrentScreen(),
+    Orders(),
     MapScreen(),
     WalletScreen(),
     GetProfileScreen(),
@@ -53,6 +55,10 @@ class _TripsBottomNavBarScreenState extends State<TripsBottomNavBarScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             label: "Home",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart_outlined),
+            label: "Orders",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.summarize_outlined),

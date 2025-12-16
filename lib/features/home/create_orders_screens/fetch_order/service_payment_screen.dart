@@ -7,6 +7,8 @@ import 'package:logisticscustomer/constants/colors.dart';
 import 'package:logisticscustomer/constants/gap.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/fetch_order_controller.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/fetch_order_modal.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/order_types/service_type/service_type_controller.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/order_types/service_type/service_type_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/place_order_controller.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
@@ -20,6 +22,8 @@ class ServicePaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
+  String? selectedServiceTypeId;
+  String? selectedServiceTypeName;
   List<String> selectedAddons = [];
   Map<String, String> addonMapping = {
     'insurance': 'insurance',
@@ -41,6 +45,8 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Load service types
+      ref.read(serviceTypeControllerProvider.notifier).loadServiceTypes();
       _loadCachedData();
     });
   }
@@ -48,7 +54,40 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   void _loadCachedData() {
     final cache = ref.read(orderCacheProvider);
 
-    serviceType = cache["service_type"] ?? "standard";
+    // Load service type from cache
+    final savedServiceTypeId = cache["service_type_id"];
+    if (savedServiceTypeId != null) {
+      selectedServiceTypeId = savedServiceTypeId;
+    } else {
+      // Set default from API
+      final defaultServiceType = ref.read(defaultServiceTypeProvider);
+      if (defaultServiceType != null) {
+        selectedServiceTypeId = defaultServiceType.id;
+        selectedServiceTypeName = defaultServiceType.name;
+      }
+    }
+
+    // Load service type name if not loaded
+    if (selectedServiceTypeId != null && selectedServiceTypeName == null) {
+      final serviceTypeState = ref.read(serviceTypeControllerProvider);
+      serviceTypeState.when(
+        data: (data) {
+          final item = data.serviceTypes.firstWhere(
+            (item) => item.id == selectedServiceTypeId,
+            orElse: () => ServiceTypeItem(
+              id: '',
+              name: 'Standard',
+              description: '',
+              multiplier: 1.0,
+            ),
+          );
+          selectedServiceTypeName = item.name;
+        },
+        loading: () {},
+        error: (error, stackTrace) {},
+      );
+    }
+
     vehicleMethod = cache["vehicle_type"] ?? "bike";
     paymentMethod = cache["payment_method"] ?? "wallet";
     priority = cache["priority"] ?? "normal";
@@ -98,7 +137,8 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     }
 
     print("📊 _calculateQuote Called:");
-    print("  Service Type: $serviceType");
+    print("  Service Type ID: $selectedServiceTypeId");
+    print("  Service Type: ${selectedServiceTypeName ?? 'Not selected'}");
     print("  Vehicle Type: $vehicleMethod");
     print("  Priority: $priority");
     print("  Total Weight: $totalWeight");
@@ -111,7 +151,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
           pickupLongitude: pickupLongitude,
           deliveryLatitude: deliveryLatitude,
           deliveryLongitude: deliveryLongitude,
-          serviceType: serviceType,
+          serviceType: selectedServiceTypeId ?? "standard",
           vehicleType: vehicleMethod,
           totalWeight: totalWeight > 0 ? totalWeight : null,
           addOns: apiAddons.isNotEmpty ? apiAddons : null,
@@ -119,9 +159,32 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
         );
   }
 
-  void _onServiceTypeChanged(String newType) {
-    setState(() => serviceType = newType);
-    ref.read(orderCacheProvider.notifier).saveValue("service_type", newType);
+  // void _onServiceTypeChanged(String newType) {
+  //   setState(() => serviceType = newType);
+  //   ref.read(orderCacheProvider.notifier).saveValue("service_type", newType);
+  //   _calculateQuote();
+  // }
+
+  void _onServiceTypeChanged(String newType, String? name, double multiplier) {
+    setState(() {
+      selectedServiceTypeId = newType;
+      selectedServiceTypeName = name;
+    });
+
+    // Save to cache
+    ref.read(orderCacheProvider.notifier).saveValue("service_type_id", newType);
+    if (name != null) {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("service_type_name", name);
+    }
+    ref
+        .read(orderCacheProvider.notifier)
+        .saveValue("service_multiplier", multiplier.toString());
+
+    // Update serviceType variable for compatibility
+    serviceType = newType;
+
     _calculateQuote();
   }
 
@@ -284,30 +347,130 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                   gapH16,
 
                   // Service Options
+                  // Service Options Section
                   Column(
                     children: [
                       _sectionTitle(Icons.local_shipping, "Service Options"),
                       const SizedBox(height: 10),
-                      _serviceOption(
-                        selected: serviceType == "standard",
-                        title: "Standard",
-                        subtitle: "(R0)",
-                        value: "standard",
-                      ),
-                      _serviceOption(
-                        selected: serviceType == "express",
-                        title: "Express",
-                        subtitle: "(+R20)",
-                        value: "express",
-                      ),
-                      _serviceOption(
-                        selected: serviceType == "sameday",
-                        title: "Same Day",
-                        subtitle: "(+R50)",
-                        value: "sameday",
+
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final serviceTypeState = ref.watch(
+                            serviceTypeControllerProvider,
+                          );
+
+                          return serviceTypeState.when(
+                            data: (data) {
+                              final serviceItems = data.serviceTypes;
+
+                              return Column(
+                                children: serviceItems.map((service) {
+                                  // Calculate price based on multiplier
+                                  final basePrice =
+                                      100.0; // Adjust based on your logic
+                                  final calculatedPrice =
+                                      basePrice * service.multiplier;
+                                  final priceText = service.multiplier > 1.0
+                                      ? "(+R${(calculatedPrice - basePrice).toStringAsFixed(0)})"
+                                      : "(R${calculatedPrice.toStringAsFixed(0)})";
+
+                                  return _serviceOption(
+                                    selected:
+                                        selectedServiceTypeId == service.id,
+                                    title: service.name,
+                                    subtitle:
+                                        "${service.description} $priceText",
+                                    value: service.id,
+                                    icon: service.getIconData(),
+                                    multiplier: service.multiplier,
+                                  );
+                                }).toList(),
+                              );
+                            },
+
+                            loading: () => Column(
+                              children: [
+                                Container(
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.mediumGray.withOpacity(
+                                        0.4,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Text(
+                                          'Loading service options...',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            error: (error, stackTrace) => Column(
+                              children: [
+                                Container(
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.red),
+                                  ),
+                                  child: Center(
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.error_outline,
+                                          color: Colors.red,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Text(
+                                          'Failed to load service options',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Center(
+                                  child: TextButton(
+                                    onPressed: () {
+                                      ref
+                                          .read(
+                                            serviceTypeControllerProvider
+                                                .notifier,
+                                          )
+                                          .loadServiceTypes();
+                                    },
+                                    child: const Text('Retry'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
+
                   gapH16,
 
                   // Vehicle Type
@@ -1321,9 +1484,11 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     required String title,
     required String subtitle,
     required String value,
+    IconData? icon,
+    double multiplier = 1.0,
   }) {
     return GestureDetector(
-      onTap: () => _onServiceTypeChanged(value),
+      onTap: () => _onServiceTypeChanged(value, title, multiplier),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -1345,16 +1510,56 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                   : AppColors.mediumGray.withOpacity(0.4),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CustomText(txt: title, fontSize: 15, color: AppColors.darkText),
-                CustomText(
-                  txt: subtitle,
-                  fontSize: 13,
-                  color: AppColors.mediumGray,
-                ),
-              ],
+            if (icon != null)
+              Icon(
+                icon,
+                color: selected ? AppColors.electricTeal : Colors.grey,
+                size: 20,
+              ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomText(
+                          txt: title,
+                          fontSize: 15,
+                          color: AppColors.darkText,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (multiplier > 1.0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.electricTeal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '×${multiplier.toStringAsFixed(1)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.electricTeal,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  CustomText(
+                    txt: subtitle,
+                    fontSize: 13,
+                    color: AppColors.mediumGray,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

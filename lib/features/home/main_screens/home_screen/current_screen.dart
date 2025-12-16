@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/main_order_create_screen.dart';
@@ -7,7 +8,644 @@ import 'package:logisticscustomer/features/home/main_screens/home_screen/home_co
 import 'package:logisticscustomer/features/home/main_screens/home_screen/home_modal.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/view_all.dart';
 import 'package:logisticscustomer/features/home/notification_screen.dart';
-import 'package:logisticscustomer/features/home/order_conplete.dart';
+
+// Active Orders
+
+// Ye code apne UI me replace karen
+// orderResponse.when(
+//   data: (data) {
+//     final orders = data.data.orders
+//         .where((order) => order.isActive)
+//         .toList();
+
+//     return orders.isEmpty
+//         ? Container(
+//             padding: EdgeInsets.all(20),
+//             decoration: BoxDecoration(
+//               color: AppColors.pureWhite,
+//               borderRadius: BorderRadius.circular(12),
+//               boxShadow: [
+//                 BoxShadow(
+//                   color: AppColors.mediumGray
+//                       .withOpacity(0.1),
+//                   blurRadius: 6,
+//                   offset: Offset(0, 3),
+//                 ),
+//               ],
+//             ),
+//             child: Column(
+//               children: [
+//                 Icon(
+//                   Icons.inbox_outlined,
+//                   size: 48,
+//                   color: AppColors.mediumGray
+//                       .withOpacity(0.5),
+//                 ),
+//                 SizedBox(height: 12),
+//                 CustomText(
+//                   txt: "No active orders",
+//                   color: AppColors.mediumGray,
+//                   fontWeight: FontWeight.w500,
+//                 ),
+//                 SizedBox(height: 8),
+//                 CustomText(
+//                   txt:
+//                       "You don't have any active shipments right now",
+//                   color: AppColors.mediumGray,
+//                   fontSize: 12,
+//                   align: TextAlign.center,
+//                 ),
+//               ],
+//             ),
+//           )
+//         : Column(
+//             children: orders.take(3).map((order) {
+//               return GestureDetector(
+//                 onTap: () {
+//                   // Order details screen pe navigate karen
+//                   // Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(order: order)));
+//                 },
+//                 child: Container(
+//                   margin: EdgeInsets.only(bottom: 16),
+//                   width: double.infinity,
+//                   padding: EdgeInsets.all(16),
+//                   decoration: BoxDecoration(
+//                     color: AppColors.pureWhite,
+//                     borderRadius:
+//                         BorderRadius.circular(16),
+//                     boxShadow: [
+//                       BoxShadow(
+//                         color: AppColors.mediumGray
+//                             .withOpacity(0.1),
+//                         blurRadius: 10,
+//                         offset: Offset(0, 4),
+//                       ),
+//                     ],
+//                   ),
+//                   child: Column(
+//                     crossAxisAlignment:
+//                         CrossAxisAlignment.start,
+//                     children: [
+//                       // Header Row
+//                       Row(
+//                         mainAxisAlignment:
+//                             MainAxisAlignment
+//                                 .spaceBetween,
+//                         children: [
+//                           Column(
+//                             crossAxisAlignment:
+//                                 CrossAxisAlignment
+//                                     .start,
+//                             children: [
+//                               CustomText(
+//                                 txt: "ORDER",
+//                                 fontSize: 10,
+//                                 fontWeight:
+//                                     FontWeight.w600,
+//                                 color: AppColors
+//                                     .mediumGray,
+
+//                                 // letterSpacing: 0.5,
+//                               ),
+//                               CustomText(
+//                                 txt:
+//                                     order.orderNumber,
+//                                 fontSize: 16,
+//                                 fontWeight:
+//                                     FontWeight.bold,
+//                                 color: AppColors
+//                                     .darkText,
+//                               ),
+//                             ],
+//                           ),
+//                           // Status Badge
+//                           Container(
+//                             padding:
+//                                 EdgeInsets.symmetric(
+//                                   horizontal: 12,
+//                                   vertical: 6,
+//                                 ),
+//                             decoration: BoxDecoration(
+//                               color: _getStatusColor(
+//                                 order.status,
+//                               ).withOpacity(0.1),
+//                               borderRadius:
+//                                   BorderRadius.circular(
+//                                     20,
+//                                   ),
+//                               border: Border.all(
+//                                 color:
+//                                     _getStatusColor(
+//                                       order.status,
+//                                     ).withOpacity(
+//                                       0.3,
+//                                     ),
+//                                 width: 1,
+//                               ),
+//                             ),
+//                             child: Row(
+//                               children: [
+//                                 Icon(
+//                                   Icons.circle,
+//                                   size: 8,
+//                                   color:
+//                                       _getStatusColor(
+//                                         order.status,
+//                                       ),
+//                                 ),
+//                                 SizedBox(width: 6),
+//                                 CustomText(
+//                                   txt: order
+//                                       .statusText
+//                                       .toUpperCase(),
+//                                   fontSize: 11,
+//                                   fontWeight:
+//                                       FontWeight.w600,
+//                                   color:
+//                                       _getStatusColor(
+//                                         order.status,
+//                                       ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+
+//                       SizedBox(height: 16),
+
+//                       // Route Information
+//                       Container(
+//                         padding: EdgeInsets.all(12),
+//                         decoration: BoxDecoration(
+//                           color:
+//                               AppColors.lightBorder,
+//                           borderRadius:
+//                               BorderRadius.circular(
+//                                 12,
+//                               ),
+//                         ),
+//                         child: Column(
+//                           children: [
+//                             Row(
+//                               children: [
+//                                 Container(
+//                                   padding:
+//                                       EdgeInsets.all(
+//                                         6,
+//                                       ),
+//                                   decoration: BoxDecoration(
+//                                     color: AppColors
+//                                         .electricTeal,
+//                                     borderRadius:
+//                                         BorderRadius.circular(
+//                                           8,
+//                                         ),
+//                                   ),
+//                                   child: Icon(
+//                                     Icons
+//                                         .location_on_outlined,
+//                                     size: 16,
+//                                     color: AppColors
+//                                         .pureWhite,
+//                                   ),
+//                                 ),
+//                                 SizedBox(width: 12),
+//                                 Expanded(
+//                                   child: Column(
+//                                     crossAxisAlignment:
+//                                         CrossAxisAlignment
+//                                             .start,
+//                                     children: [
+//                                       CustomText(
+//                                         txt: "Pickup",
+//                                         fontSize: 10,
+//                                         color: AppColors
+//                                             .mediumGray,
+//                                         fontWeight:
+//                                             FontWeight
+//                                                 .w500,
+//                                       ),
+//                                       CustomText(
+//                                         txt: order
+//                                             .pickupCity,
+//                                         fontSize: 14,
+//                                         fontWeight:
+//                                             FontWeight
+//                                                 .w600,
+//                                         color: AppColors
+//                                             .darkText,
+//                                       ),
+//                                     ],
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+
+//                             SizedBox(height: 8),
+
+//                             Padding(
+//                               padding:
+//                                   EdgeInsets.only(
+//                                     left: 24,
+//                                   ),
+//                               child: Column(
+//                                 children: [
+//                                   Container(
+//                                     height: 20,
+//                                     width: 2,
+//                                     color: AppColors
+//                                         .mediumGray
+//                                         .withOpacity(
+//                                           0.3,
+//                                         ),
+//                                   ),
+//                                   Icon(
+//                                     Icons
+//                                         .arrow_downward,
+//                                     size: 16,
+//                                     color: AppColors
+//                                         .mediumGray,
+//                                   ),
+//                                   Container(
+//                                     height: 20,
+//                                     width: 2,
+//                                     color: AppColors
+//                                         .mediumGray
+//                                         .withOpacity(
+//                                           0.3,
+//                                         ),
+//                                   ),
+//                                 ],
+//                               ),
+//                             ),
+
+//                             SizedBox(height: 8),
+
+//                             Row(
+//                               children: [
+//                                 Container(
+//                                   padding:
+//                                       EdgeInsets.all(
+//                                         6,
+//                                       ),
+//                                   decoration: BoxDecoration(
+//                                     color: AppColors
+//                                         .limeGreen,
+//                                     borderRadius:
+//                                         BorderRadius.circular(
+//                                           8,
+//                                         ),
+//                                   ),
+//                                   child: Icon(
+//                                     Icons.location_on,
+//                                     size: 16,
+//                                     color: AppColors
+//                                         .electricTeal,
+//                                   ),
+//                                 ),
+//                                 SizedBox(width: 12),
+//                                 Expanded(
+//                                   child: Column(
+//                                     crossAxisAlignment:
+//                                         CrossAxisAlignment
+//                                             .start,
+//                                     children: [
+//                                       CustomText(
+//                                         txt:
+//                                             "Delivery",
+//                                         fontSize: 10,
+//                                         color: AppColors
+//                                             .mediumGray,
+//                                         fontWeight:
+//                                             FontWeight
+//                                                 .w500,
+//                                       ),
+//                                       CustomText(
+//                                         txt: order
+//                                             .deliveryCity,
+//                                         fontSize: 14,
+//                                         fontWeight:
+//                                             FontWeight
+//                                                 .w600,
+//                                         color: AppColors
+//                                             .darkText,
+//                                       ),
+//                                     ],
+//                                   ),
+//                                 ),
+//                               ],
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+
+//                       SizedBox(height: 16),
+
+//                       // Order Details Row
+//                       Row(
+//                         mainAxisAlignment:
+//                             MainAxisAlignment
+//                                 .spaceBetween,
+//                         children: [
+//                           // Product Info
+//                           if (order.productType !=
+//                               null)
+//                             _buildDetailItem(
+//                               icon: Icons
+//                                   .inventory_2_outlined,
+//                               label: "Product",
+//                               value:
+//                                   order.productType!,
+//                             ),
+
+//                           // Weight Info
+//                           if (order.totalWeightKg !=
+//                               null)
+//                             _buildDetailItem(
+//                               icon: Icons
+//                                   .scale_outlined,
+//                               label: "Weight",
+//                               value:
+//                                   "${order.totalWeightKg} kg",
+//                             ),
+
+//                           // Cost Info
+//                           if (order.finalCost != null)
+//                             _buildDetailItem(
+//                               icon: Icons
+//                                   .attach_money_outlined,
+//                               label: "Cost",
+//                               value:
+//                                   "\$${order.finalCost}",
+//                             ),
+//                         ],
+//                       ),
+
+//                       SizedBox(height: 12),
+
+//                       // Driver & Vehicle Info
+//                       Container(
+//                         padding: EdgeInsets.all(12),
+//                         decoration: BoxDecoration(
+//                           color: AppColors.skyBlue,
+//                           borderRadius:
+//                               BorderRadius.circular(
+//                                 12,
+//                               ),
+//                           border: Border.all(
+//                             color: AppColors.skyBlue
+//                                 .withOpacity(0.3),
+//                           ),
+//                         ),
+//                         child: Row(
+//                           children: [
+//                             // Driver Info
+//                             Expanded(
+//                               child: Row(
+//                                 children: [
+//                                   Container(
+//                                     width: 40,
+//                                     height: 40,
+//                                     decoration: BoxDecoration(
+//                                       color: AppColors
+//                                           .electricTeal
+//                                           .withOpacity(
+//                                             0.1,
+//                                           ),
+//                                       borderRadius:
+//                                           BorderRadius.circular(
+//                                             20,
+//                                           ),
+//                                     ),
+//                                     child: Icon(
+//                                       Icons
+//                                           .person_outline,
+//                                       color: AppColors
+//                                           .electricTeal,
+//                                       size: 20,
+//                                     ),
+//                                   ),
+//                                   SizedBox(width: 10),
+//                                   Column(
+//                                     crossAxisAlignment:
+//                                         CrossAxisAlignment
+//                                             .start,
+//                                     children: [
+//                                       CustomText(
+//                                         txt: "Driver",
+//                                         fontSize: 10,
+//                                         color: AppColors
+//                                             .mediumGray,
+//                                       ),
+//                                       Row(
+//                                         children: [
+//                                           CustomText(
+//                                             txt: order
+//                                                 .driver
+//                                                 .name,
+//                                             fontSize:
+//                                                 13,
+//                                             fontWeight:
+//                                                 FontWeight
+//                                                     .w600,
+//                                           ),
+//                                           SizedBox(
+//                                             width: 4,
+//                                           ),
+//                                           Row(
+//                                             children: [
+//                                               Icon(
+//                                                 Icons
+//                                                     .star,
+//                                                 size:
+//                                                     12,
+//                                                 color:
+//                                                     AppColors.skyBlue,
+//                                               ),
+//                                               SizedBox(
+//                                                 width:
+//                                                     2,
+//                                               ),
+//                                               CustomText(
+//                                                 txt: order
+//                                                     .driver
+//                                                     .rating,
+//                                                 fontSize:
+//                                                     11,
+//                                                 fontWeight:
+//                                                     FontWeight.w600,
+//                                               ),
+//                                             ],
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ],
+//                                   ),
+//                                 ],
+//                               ),
+//                             ),
+
+//                             // Vehicle Info
+//                             Expanded(
+//                               child: Row(
+//                                 children: [
+//                                   Container(
+//                                     width: 40,
+//                                     height: 40,
+//                                     decoration: BoxDecoration(
+//                                       color: AppColors
+//                                           .skyBlue
+//                                           .withOpacity(
+//                                             0.1,
+//                                           ),
+//                                       borderRadius:
+//                                           BorderRadius.circular(
+//                                             20,
+//                                           ),
+//                                     ),
+//                                     child: Icon(
+//                                       Icons
+//                                           .local_shipping_outlined,
+//                                       color: AppColors
+//                                           .skyBlue,
+//                                       size: 20,
+//                                     ),
+//                                   ),
+//                                   SizedBox(width: 10),
+//                                   Column(
+//                                     crossAxisAlignment:
+//                                         CrossAxisAlignment
+//                                             .start,
+//                                     children: [
+//                                       CustomText(
+//                                         txt:
+//                                             "Vehicle",
+//                                         fontSize: 10,
+//                                         color: AppColors
+//                                             .mediumGray,
+//                                       ),
+//                                       CustomText(
+//                                         txt: order
+//                                             .vehicle
+//                                             .vehicleType,
+//                                         fontSize: 13,
+//                                         fontWeight:
+//                                             FontWeight
+//                                                 .w600,
+//                                         maxLines: 1,
+//                                         overflow:
+//                                             TextOverflow
+//                                                 .ellipsis,
+//                                       ),
+//                                       CustomText(
+//                                         txt: order
+//                                             .vehicle
+//                                             .registrationNumber,
+//                                         fontSize: 11,
+//                                         color: AppColors
+//                                             .mediumGray,
+//                                       ),
+//                                     ],
+//                                   ),
+//                                 ],
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                       ),
+
+//                       SizedBox(height: 12),
+
+//                       // Track Button
+//                       Container(
+//                         width: double.infinity,
+//                         child: ElevatedButton(
+//                           onPressed: () {
+//                             // Tracking screen pe navigate karen
+//                           },
+//                           style: ElevatedButton.styleFrom(
+//                             backgroundColor: AppColors
+//                                 .electricTeal
+//                                 .withOpacity(0.1),
+//                             foregroundColor: AppColors
+//                                 .electricTeal,
+//                             elevation: 0,
+//                             shape: RoundedRectangleBorder(
+//                               borderRadius:
+//                                   BorderRadius.circular(
+//                                     12,
+//                                   ),
+//                               side: BorderSide(
+//                                 color: AppColors
+//                                     .electricTeal
+//                                     .withOpacity(0.3),
+//                               ),
+//                             ),
+//                             padding:
+//                                 EdgeInsets.symmetric(
+//                                   vertical: 14,
+//                                 ),
+//                           ),
+//                           child: Row(
+//                             mainAxisAlignment:
+//                                 MainAxisAlignment
+//                                     .center,
+//                             children: [
+//                               Icon(
+//                                 Icons.map_outlined,
+//                                 size: 18,
+//                               ),
+//                               SizedBox(width: 8),
+//                               CustomText(
+//                                 txt: "Track Order",
+//                                 fontWeight:
+//                                     FontWeight.w600,
+//                                 fontSize: 14,
+//                               ),
+//                               SizedBox(width: 8),
+//                               Icon(
+//                                 Icons.arrow_forward,
+//                                 size: 16,
+//                               ),
+//                             ],
+//                           ),
+//                         ),
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               );
+//             }).toList(),
+//           );
+//   },
+//   loading: () =>
+//       Center(child: CircularProgressIndicator()),
+//   error: (error, stackTrace) => Container(
+//     padding: EdgeInsets.all(20),
+//     decoration: BoxDecoration(
+//       color: AppColors.pureWhite,
+//       borderRadius: BorderRadius.circular(12),
+//     ),
+//     child: Center(
+//       child: Column(
+//         children: [
+//           Icon(
+//             Icons.error_outline,
+//             size: 48,
+//             color: AppColors.skyBlue,
+//           ),
+//           SizedBox(height: 12),
+//           CustomText(
+//             txt: "Failed to load orders",
+//             color: AppColors.skyBlue,
+//             fontWeight: FontWeight.w500,
+//           ),
+//         ],
+//       ),
+//     ),
+//   ),
+// ),
 
 class CurrentScreen extends ConsumerStatefulWidget {
   const CurrentScreen({super.key});
@@ -29,7 +667,7 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(dashboardControllerProvider);
 
-    final orderResponse = ref.watch(orderControllerProvider);
+    // final orderResponse = ref.watch(orderControllerProvider);
 
     return state.when(
       loading: () =>
@@ -120,8 +758,7 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
                           gapH4,
 
-                          // Stats UI (values API se bharna)
-                          // Stats UI (values API se bharna)
+                          // Stats UI
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -139,7 +776,6 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                             ),
                             child: Column(
                               children: [
-                                // Pehli row
                                 Row(
                                   children: [
                                     Expanded(
@@ -158,7 +794,6 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                                   ],
                                 ),
                                 SizedBox(height: 16),
-                                // Doosri row
                                 Row(
                                   children: [
                                     Expanded(
@@ -223,77 +858,50 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                           ),
                           gapH4,
 
-                          // Active Orders List (API se)
-                          // Active Orders List (API se) - Only show latest 3
-
-                          // Ye code apne UI me replace karen
-                          orderResponse.when(
-                            data: (data) {
-                              final orders = data.data.orders
-                                  .where((order) => order.isActive)
-                                  .toList();
-
-                              return orders.isEmpty
-                                  ? Container(
-                                      padding: EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.pureWhite,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: AppColors.mediumGray
-                                                .withOpacity(0.1),
-                                            blurRadius: 6,
-                                            offset: Offset(0, 3),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            Icons.inbox_outlined,
-                                            size: 48,
-                                            color: AppColors.mediumGray
-                                                .withOpacity(0.5),
-                                          ),
-                                          SizedBox(height: 12),
-                                          CustomText(
-                                            txt: "No active orders",
-                                            color: AppColors.mediumGray,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          SizedBox(height: 8),
-                                          CustomText(
-                                            txt:
-                                                "You don't have any active shipments right now",
-                                            color: AppColors.mediumGray,
-                                            fontSize: 12,
-                                            align: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : Column(
-                                      children: orders.take(3).map((order) {
+                          // Active Orders ke tile me ye changes karein:
+                          dashboard.data.activeOrders.isEmpty
+                              ? Container(
+                                  padding: EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.pureWhite,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Center(
+                                    child: CustomText(
+                                      txt: "No active orders",
+                                      color: AppColors.mediumGray,
+                                    ),
+                                  ),
+                                )
+                              : Column(
+                                  children: dashboard
+                                      .data
+                                      .activeOrders // <-- List<ActiveOrder> object
+                                      .take(3)
+                                      .map((order) {
+                                        // <-- 'order' ab ActiveOrder type ka object hai
                                         return GestureDetector(
                                           onTap: () {
-                                            // Order details screen pe navigate karen
-                                            // Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(order: order)));
+                                            // Yahan order.id ya order.trackingCode use kar sakte hain
+                                            print("Order ID: ${order.id}");
+                                            print(
+                                              "Tracking Code: ${order.trackingCode}",
+                                            );
                                           },
                                           child: Container(
-                                            margin: EdgeInsets.only(bottom: 16),
+                                            margin: EdgeInsets.only(bottom: 12),
                                             width: double.infinity,
                                             padding: EdgeInsets.all(16),
                                             decoration: BoxDecoration(
                                               color: AppColors.pureWhite,
                                               borderRadius:
-                                                  BorderRadius.circular(16),
+                                                  BorderRadius.circular(12),
                                               boxShadow: [
                                                 BoxShadow(
                                                   color: AppColors.mediumGray
                                                       .withOpacity(0.1),
-                                                  blurRadius: 10,
-                                                  offset: Offset(0, 4),
+                                                  blurRadius: 6,
+                                                  offset: Offset(0, 3),
                                                 ),
                                               ],
                                             ),
@@ -301,709 +909,102 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                // Header Row
                                                 Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
                                                   children: [
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        CustomText(
-                                                          txt: "ORDER",
-                                                          fontSize: 10,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: AppColors
-                                                              .mediumGray,
-
-                                                          // letterSpacing: 0.5,
-                                                        ),
-                                                        CustomText(
-                                                          txt:
-                                                              order.orderNumber,
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: AppColors
-                                                              .darkText,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    // Status Badge
-                                                    Container(
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                            horizontal: 12,
-                                                            vertical: 6,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: _getStatusColor(
-                                                          order.status,
-                                                        ).withOpacity(0.1),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              20,
-                                                            ),
-                                                        border: Border.all(
-                                                          color:
-                                                              _getStatusColor(
-                                                                order.status,
-                                                              ).withOpacity(
-                                                                0.3,
-                                                              ),
-                                                          width: 1,
-                                                        ),
-                                                      ),
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons.circle,
-                                                            size: 8,
-                                                            color:
-                                                                _getStatusColor(
-                                                                  order.status,
-                                                                ),
-                                                          ),
-                                                          SizedBox(width: 6),
-                                                          CustomText(
-                                                            txt: order
-                                                                .statusText
-                                                                .toUpperCase(),
-                                                            fontSize: 11,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color:
-                                                                _getStatusColor(
-                                                                  order.status,
-                                                                ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-
-                                                SizedBox(height: 16),
-
-                                                // Route Information
-                                                Container(
-                                                  padding: EdgeInsets.all(12),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        AppColors.lightBorder,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: Column(
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          Container(
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                  6,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: AppColors
-                                                                  .electricTeal,
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    8,
-                                                                  ),
-                                                            ),
-                                                            child: Icon(
-                                                              Icons
-                                                                  .location_on_outlined,
-                                                              size: 16,
-                                                              color: AppColors
-                                                                  .pureWhite,
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: 12),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                CustomText(
-                                                                  txt: "Pickup",
-                                                                  fontSize: 10,
-                                                                  color: AppColors
-                                                                      .mediumGray,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                                CustomText(
-                                                                  txt: order
-                                                                      .pickupCity,
-                                                                  fontSize: 14,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w600,
-                                                                  color: AppColors
-                                                                      .darkText,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-
-                                                      SizedBox(height: 8),
-
-                                                      Padding(
-                                                        padding:
-                                                            EdgeInsets.only(
-                                                              left: 24,
-                                                            ),
-                                                        child: Column(
-                                                          children: [
-                                                            Container(
-                                                              height: 20,
-                                                              width: 2,
-                                                              color: AppColors
-                                                                  .mediumGray
-                                                                  .withOpacity(
-                                                                    0.3,
-                                                                  ),
-                                                            ),
-                                                            Icon(
-                                                              Icons
-                                                                  .arrow_downward,
-                                                              size: 16,
-                                                              color: AppColors
-                                                                  .mediumGray,
-                                                            ),
-                                                            Container(
-                                                              height: 20,
-                                                              width: 2,
-                                                              color: AppColors
-                                                                  .mediumGray
-                                                                  .withOpacity(
-                                                                    0.3,
-                                                                  ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      SizedBox(height: 8),
-
-                                                      Row(
-                                                        children: [
-                                                          Container(
-                                                            padding:
-                                                                EdgeInsets.all(
-                                                                  6,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: AppColors
-                                                                  .limeGreen,
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    8,
-                                                                  ),
-                                                            ),
-                                                            child: Icon(
-                                                              Icons.location_on,
-                                                              size: 16,
-                                                              color: AppColors
-                                                                  .electricTeal,
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: 12),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                CustomText(
-                                                                  txt:
-                                                                      "Delivery",
-                                                                  fontSize: 10,
-                                                                  color: AppColors
-                                                                      .mediumGray,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                                CustomText(
-                                                                  txt: order
-                                                                      .deliveryCity,
-                                                                  fontSize: 14,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w600,
-                                                                  color: AppColors
-                                                                      .darkText,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-
-                                                SizedBox(height: 16),
-
-                                                // Order Details Row
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    // Product Info
-                                                    if (order.productType !=
-                                                        null)
-                                                      _buildDetailItem(
-                                                        icon: Icons
-                                                            .inventory_2_outlined,
-                                                        label: "Product",
-                                                        value:
-                                                            order.productType!,
-                                                      ),
-
-                                                    // Weight Info
-                                                    if (order.totalWeightKg !=
-                                                        null)
-                                                      _buildDetailItem(
-                                                        icon: Icons
-                                                            .scale_outlined,
-                                                        label: "Weight",
-                                                        value:
-                                                            "${order.totalWeightKg} kg",
-                                                      ),
-
-                                                    // Cost Info
-                                                    if (order.finalCost != null)
-                                                      _buildDetailItem(
-                                                        icon: Icons
-                                                            .attach_money_outlined,
-                                                        label: "Cost",
-                                                        value:
-                                                            "\$${order.finalCost}",
-                                                      ),
-                                                  ],
-                                                ),
-
-                                                SizedBox(height: 12),
-
-                                                // Driver & Vehicle Info
-                                                Container(
-                                                  padding: EdgeInsets.all(12),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.skyBlue,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                    border: Border.all(
-                                                      color: AppColors.skyBlue
-                                                          .withOpacity(0.3),
-                                                    ),
-                                                  ),
-                                                  child: Row(
-                                                    children: [
-                                                      // Driver Info
-                                                      Expanded(
-                                                        child: Row(
-                                                          children: [
-                                                            Container(
-                                                              width: 40,
-                                                              height: 40,
-                                                              decoration: BoxDecoration(
-                                                                color: AppColors
-                                                                    .electricTeal
-                                                                    .withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      20,
-                                                                    ),
-                                                              ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .person_outline,
-                                                                color: AppColors
-                                                                    .electricTeal,
-                                                                size: 20,
-                                                              ),
-                                                            ),
-                                                            SizedBox(width: 10),
-                                                            Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                CustomText(
-                                                                  txt: "Driver",
-                                                                  fontSize: 10,
-                                                                  color: AppColors
-                                                                      .mediumGray,
-                                                                ),
-                                                                Row(
-                                                                  children: [
-                                                                    CustomText(
-                                                                      txt: order
-                                                                          .driver
-                                                                          .name,
-                                                                      fontSize:
-                                                                          13,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                    ),
-                                                                    SizedBox(
-                                                                      width: 4,
-                                                                    ),
-                                                                    Row(
-                                                                      children: [
-                                                                        Icon(
-                                                                          Icons
-                                                                              .star,
-                                                                          size:
-                                                                              12,
-                                                                          color:
-                                                                              AppColors.skyBlue,
-                                                                        ),
-                                                                        SizedBox(
-                                                                          width:
-                                                                              2,
-                                                                        ),
-                                                                        CustomText(
-                                                                          txt: order
-                                                                              .driver
-                                                                              .rating,
-                                                                          fontSize:
-                                                                              11,
-                                                                          fontWeight:
-                                                                              FontWeight.w600,
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      // Vehicle Info
-                                                      Expanded(
-                                                        child: Row(
-                                                          children: [
-                                                            Container(
-                                                              width: 40,
-                                                              height: 40,
-                                                              decoration: BoxDecoration(
-                                                                color: AppColors
-                                                                    .skyBlue
-                                                                    .withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      20,
-                                                                    ),
-                                                              ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .local_shipping_outlined,
-                                                                color: AppColors
-                                                                    .skyBlue,
-                                                                size: 20,
-                                                              ),
-                                                            ),
-                                                            SizedBox(width: 10),
-                                                            Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                CustomText(
-                                                                  txt:
-                                                                      "Vehicle",
-                                                                  fontSize: 10,
-                                                                  color: AppColors
-                                                                      .mediumGray,
-                                                                ),
-                                                                CustomText(
-                                                                  txt: order
-                                                                      .vehicle
-                                                                      .vehicleType,
-                                                                  fontSize: 13,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w600,
-                                                                  maxLines: 1,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                ),
-                                                                CustomText(
-                                                                  txt: order
-                                                                      .vehicle
-                                                                      .registrationNumber,
-                                                                  fontSize: 11,
-                                                                  color: AppColors
-                                                                      .mediumGray,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-
-                                                SizedBox(height: 12),
-
-                                                // Track Button
-                                                Container(
-                                                  width: double.infinity,
-                                                  child: ElevatedButton(
-                                                    onPressed: () {
-                                                      // Tracking screen pe navigate karen
-                                                    },
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: AppColors
-                                                          .electricTeal
-                                                          .withOpacity(0.1),
-                                                      foregroundColor: AppColors
+                                                    CustomText(
+                                                      txt: "Order: ",
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: AppColors
                                                           .electricTeal,
-                                                      elevation: 0,
-                                                      shape: RoundedRectangleBorder(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              12,
-                                                            ),
-                                                        side: BorderSide(
-                                                          color: AppColors
-                                                              .electricTeal
-                                                              .withOpacity(0.3),
-                                                        ),
-                                                      ),
-                                                      padding:
-                                                          EdgeInsets.symmetric(
-                                                            vertical: 14,
-                                                          ),
                                                     ),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
+                                                    CustomText(
+                                                      txt: order
+                                                          .orderNumber, // <-- DIRECT ACCESS
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: AppColors.darkText,
+                                                    ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 8),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.circle,
+                                                      size: 12,
+                                                      color: AppColors
+                                                          .electricTeal,
+                                                    ),
+                                                    SizedBox(width: 6),
+                                                    CustomText(
+                                                      txt: order.status
+                                                          .toUpperCase(), // <-- DIRECT ACCESS
+                                                      color:
+                                                          AppColors.mediumGray,
+                                                    ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 6),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons
+                                                          .location_on_outlined,
+                                                      size: 14,
+                                                      color:
+                                                          AppColors.mediumGray,
+                                                    ),
+                                                    SizedBox(width: 4),
+                                                    Expanded(
+                                                      child: CustomText(
+                                                        txt:
+                                                            "${order.pickupCity} to ${order.deliveryCity}", // <-- DIRECT ACCESS
+                                                        fontSize: 13,
+                                                        color: AppColors
+                                                            .mediumGray,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 8),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.end,
+                                                  children: [
+                                                    Row(
                                                       children: [
-                                                        Icon(
-                                                          Icons.map_outlined,
-                                                          size: 18,
-                                                        ),
-                                                        SizedBox(width: 8),
                                                         CustomText(
                                                           txt: "Track Order",
+                                                          color: AppColors
+                                                              .electricTeal,
                                                           fontWeight:
                                                               FontWeight.w600,
                                                           fontSize: 14,
                                                         ),
-                                                        SizedBox(width: 8),
+                                                        SizedBox(width: 4),
                                                         Icon(
                                                           Icons.arrow_forward,
-                                                          size: 16,
+                                                          size: 12,
+                                                          color: AppColors
+                                                              .electricTeal,
                                                         ),
                                                       ],
                                                     ),
-                                                  ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
                                           ),
                                         );
-                                      }).toList(),
-                                    );
-                            },
-                            loading: () =>
-                                Center(child: CircularProgressIndicator()),
-                            error: (error, stackTrace) => Container(
-                              padding: EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: AppColors.pureWhite,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Center(
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      size: 48,
-                                      color: AppColors.skyBlue,
-                                    ),
-                                    SizedBox(height: 12),
-                                    CustomText(
-                                      txt: "Failed to load orders",
-                                      color: AppColors.skyBlue,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ],
+                                      })
+                                      .toList(),
                                 ),
-                              ),
-                            ),
-                          ),
-
-                          // dashboard.data.activeOrders.isEmpty
-                          //     ? Container(
-                          //         padding: EdgeInsets.all(20),
-                          //         decoration: BoxDecoration(
-                          //           color: AppColors.pureWhite,
-                          //           borderRadius: BorderRadius.circular(12),
-                          //         ),
-                          //         child: Center(
-                          //           child: CustomText(
-                          //             txt: "No active orders",
-                          //             color: AppColors.mediumGray,
-                          //           ),
-                          //         ),
-                          //       )
-                          //     : Column(
-                          //         children: (dashboard.data.activeOrders)
-                          //             .take(3)
-                          //             .map((order) {
-                          //               return GestureDetector(
-                          //                 onTap: () {},
-                          //                 child: Container(
-                          //                   margin: EdgeInsets.only(bottom: 12),
-                          //                   width: double.infinity,
-                          //                   padding: EdgeInsets.all(16),
-                          //                   decoration: BoxDecoration(
-                          //                     color: AppColors.pureWhite,
-                          //                     borderRadius:
-                          //                         BorderRadius.circular(12),
-                          //                     boxShadow: [
-                          //                       BoxShadow(
-                          //                         color: AppColors.mediumGray
-                          //                             .withOpacity(0.1),
-                          //                         blurRadius: 6,
-                          //                         offset: Offset(0, 3),
-                          //                       ),
-                          //                     ],
-                          //                   ),
-                          //                   child: Column(
-                          //                     crossAxisAlignment:
-                          //                         CrossAxisAlignment.start,
-                          //                     children: [
-                          //                       Row(
-                          //                         children: [
-                          //                           CustomText(
-                          //                             txt: "Order: ",
-                          //                             fontSize: 16,
-                          //                             fontWeight:
-                          //                                 FontWeight.bold,
-                          //                             color: AppColors
-                          //                                 .electricTeal,
-                          //                           ),
-                          //                           CustomText(
-                          //                             txt:
-                          //                                 order["order_number"]
-                          //                                     ?.toString() ??
-                          //                                 "N/A",
-                          //                             fontSize: 16,
-                          //                             fontWeight:
-                          //                                 FontWeight.w500,
-                          //                             color: AppColors.darkText,
-                          //                           ),
-                          //                         ],
-                          //                       ),
-                          //                       SizedBox(height: 8),
-                          //                       Row(
-                          //                         children: [
-                          //                           Icon(
-                          //                             Icons.circle,
-                          //                             size: 12,
-                          //                             color: AppColors
-                          //                                 .electricTeal,
-                          //                           ),
-                          //                           SizedBox(width: 6),
-                          //                           CustomText(
-                          //                             txt:
-                          //                                 (order["status"]
-                          //                                     ?.toString()
-                          //                                     .toUpperCase() ??
-                          //                                 "PENDING"),
-                          //                             color:
-                          //                                 AppColors.mediumGray,
-                          //                           ),
-                          //                         ],
-                          //                       ),
-                          //                       SizedBox(height: 6),
-                          //                       Row(
-                          //                         children: [
-                          //                           Icon(
-                          //                             Icons
-                          //                                 .location_on_outlined,
-                          //                             size: 14,
-                          //                             color:
-                          //                                 AppColors.mediumGray,
-                          //                           ),
-                          //                           SizedBox(width: 4),
-                          //                           Expanded(
-                          //                             child: CustomText(
-                          //                               txt:
-                          //                                   "${order["pickup_address"]} to ${order["delivery_address"]}",
-                          //                               fontSize: 13,
-                          //                               color: AppColors
-                          //                                   .mediumGray,
-                          //                               maxLines: 1,
-                          //                               overflow: TextOverflow
-                          //                                   .ellipsis,
-                          //                             ),
-                          //                           ),
-                          //                         ],
-                          //                       ),
-                          //                       SizedBox(height: 8),
-                          //                       Row(
-                          //                         mainAxisAlignment:
-                          //                             MainAxisAlignment.end,
-                          //                         children: [
-                          //                           Row(
-                          //                             children: [
-                          //                               CustomText(
-                          //                                 txt: "Track Order",
-                          //                                 color: AppColors
-                          //                                     .electricTeal,
-                          //                                 fontWeight:
-                          //                                     FontWeight.w600,
-                          //                                 fontSize: 14,
-                          //                               ),
-                          //                               SizedBox(width: 4),
-                          //                               Icon(
-                          //                                 Icons.arrow_forward,
-                          //                                 size: 12,
-                          //                                 color: AppColors
-                          //                                     .electricTeal,
-                          //                               ),
-                          //                             ],
-                          //                           ),
-                          //                         ],
-                          //                       ),
-                          //                     ],
-                          //                   ),
-                          //                 ),
-                          //               );
-                          //             })
-                          //             .toList(),
-                          //       ),
                           gapH24,
 
                           // ---- Recent Orders ----
@@ -1047,8 +1048,8 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                           ),
                           gapH4,
 
-                          // Recent Orders List (API se)
-                          // Recent Orders List (API se) - Only show latest 3
+                          // Recent Orders
+                          // Recent Orders ke tile me ye changes karein:
                           dashboard.data.recentOrders.isEmpty
                               ? Container(
                                   padding: EdgeInsets.all(20),
@@ -1064,15 +1065,25 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                                   ),
                                 )
                               : Column(
-                                  children: (dashboard.data.recentOrders)
-                                      .take(3) // <-- Yahi line add karo
+                                  children: dashboard
+                                      .data
+                                      .recentOrders // <-- List<RecentOrder> object
+                                      .take(3)
                                       .map((order) {
+                                        // <-- 'order' ab RecentOrder type ka object hai
+                                        // Status color set karne ke liye
+                                        _getStatusColor(order.status);
+
+                                        // Time format karne ke liye
+                                        String formattedTime = DateFormat(
+                                          'dd MMM yyyy • hh:mm a',
+                                        ).format(order.createdAt);
+
                                         return buildOrderTile(
-                                          order["order_number"]?.toString() ??
-                                              "N/A",
-                                          order["status"]?.toString() ??
-                                              "pending",
-                                          order["created_at"]?.toString() ?? "",
+                                          order
+                                              .orderNumber, // <-- DIRECT ACCESS
+                                          order.status, // <-- DIRECT ACCESS
+                                          formattedTime, // <-- Formatted time
                                         );
                                       })
                                       .toList(),
@@ -1092,47 +1103,49 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
   // Helper method for status colors
   Color _getStatusColor(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'assigned':
         return AppColors.electricTeal;
       case 'in_transit':
         return AppColors.limeGreen;
       case 'pending':
-        return AppColors.limeGreen;
+        return Colors.orange;
       case 'completed':
-        return AppColors.limeGreen;
+        return Colors.green;
+      case 'cancelled':
+        return Colors.red;
       default:
         return AppColors.mediumGray;
     }
   }
 
   // Helper Widget for detail items
-  Widget _buildDetailItem({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 14, color: AppColors.mediumGray),
-            SizedBox(width: 4),
-            CustomText(txt: label, fontSize: 10, color: AppColors.mediumGray),
-          ],
-        ),
-        SizedBox(height: 4),
-        CustomText(
-          txt: value,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
+  // Widget _buildDetailItem({
+  //   required IconData icon,
+  //   required String label,
+  //   required String value,
+  // }) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Row(
+  //         children: [
+  //           Icon(icon, size: 14, color: AppColors.mediumGray),
+  //           SizedBox(width: 4),
+  //           CustomText(txt: label, fontSize: 10, color: AppColors.mediumGray),
+  //         ],
+  //       ),
+  //       SizedBox(height: 4),
+  //       CustomText(
+  //         txt: value,
+  //         fontSize: 13,
+  //         fontWeight: FontWeight.w600,
+  //         maxLines: 1,
+  //         overflow: TextOverflow.ellipsis,
+  //       ),
+  //     ],
+  //   );
+  // }
 
   // Helper widget
   Widget _buildStatItem({required String value, required String label}) {
@@ -1164,25 +1177,40 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
     );
   }
 
-  //   // Helper widget for recent orders
-  Widget buildOrderTile(String id, String status, String time) {
-    Color statusColor = AppColors.mediumGray;
+  // Helper widget for recent orders
+  Widget buildOrderTile(String orderNumber, String status, String time) {
+    Color statusColor = _getStatusColor(status);
     IconData statusIcon = Icons.pending;
+    String statusText = status;
 
-    if (status.toLowerCase() == "delivered") {
+    // Status ke hisaab se icon aur color set karein
+    if (status.toLowerCase() == "completed") {
       statusColor = Colors.green;
-      statusIcon = Icons.check;
+      statusIcon = Icons.check_circle;
+      statusText = "Delivered";
+    } else if (status.toLowerCase() == "assigned") {
+      statusColor = AppColors.electricTeal;
+      statusIcon = Icons.local_shipping;
+      statusText = "In Transit";
     } else if (status.toLowerCase() == "pending") {
       statusColor = Colors.orange;
       statusIcon = Icons.pending;
+      statusText = "Pending";
+    } else if (status.toLowerCase() == "cancelled") {
+      statusColor = Colors.red;
+      statusIcon = Icons.cancel;
+      statusText = "Cancelled";
     }
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => OrderCompleteScreen()),
-        );
+        // Yahan order details screen pe navigate karein
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (context) => OrderDetailsScreen(orderId: order.id),
+        //   ),
+        // );
       },
       child: Container(
         margin: EdgeInsets.only(bottom: 12),
@@ -1190,28 +1218,51 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
         decoration: BoxDecoration(
           color: AppColors.pureWhite,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.mediumGray.withOpacity(0.1),
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CustomText(
-                  txt: id,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkText,
+                Row(
+                  children: [
+                    CustomText(
+                      txt: "Order: ",
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.electricTeal,
+                    ),
+                    CustomText(
+                      txt: orderNumber,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkText,
+                    ),
+                  ],
                 ),
-                SizedBox(width: 8),
-                Icon(statusIcon, color: statusColor, size: 18),
-                CustomText(
-                  txt: " ${status.toUpperCase()}",
-                  color: statusColor,
-                  fontWeight: FontWeight.w500,
+                Row(
+                  children: [
+                    Icon(statusIcon, color: statusColor, size: 16),
+                    SizedBox(width: 6),
+                    CustomText(
+                      txt: statusText.toUpperCase(),
+                      color: statusColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ],
                 ),
               ],
             ),
-            SizedBox(height: 6),
+            SizedBox(height: 8),
             CustomText(txt: time, fontSize: 12, color: AppColors.mediumGray),
           ],
         ),

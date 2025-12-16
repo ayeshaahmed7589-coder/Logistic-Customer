@@ -3,8 +3,8 @@
 class GetOrderResponse {
   final bool success;
   final String message;
-  final OrderData data;
-  final Meta meta;
+  final AllOrderData data;
+  final AlMeta meta;
 
   GetOrderResponse({
     required this.success,
@@ -17,8 +17,8 @@ class GetOrderResponse {
     return GetOrderResponse(
       success: json['success'] as bool,
       message: json['message'] as String,
-      data: OrderData.fromJson(json['data'] as Map<String, dynamic>),
-      meta: Meta.fromJson(json['meta'] as Map<String, dynamic>),
+      data: AllOrderData.fromJson(json['data'] as Map<String, dynamic>),
+      meta: AlMeta.fromJson(json['meta'] as Map<String, dynamic>),
     );
   }
 
@@ -32,28 +32,24 @@ class GetOrderResponse {
   }
 }
 
-class OrderData {
-  final List<Order> orders;
+class AllOrderData {
+  final List<AlOrder> orders;
 
-  OrderData({
-    required this.orders,
-  });
+  AllOrderData({required this.orders});
 
-  factory OrderData.fromJson(Map<String, dynamic> json) {
+  factory AllOrderData.fromJson(Map<String, dynamic> json) {
     final ordersList = json['orders'] as List<dynamic>;
-    return OrderData(
-      orders: ordersList.map((order) => Order.fromJson(order)).toList(),
+    return AllOrderData(
+      orders: ordersList.map((order) => AlOrder.fromJson(order)).toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'orders': orders.map((order) => order.toJson()).toList(),
-    };
+    return {'orders': orders.map((order) => order.toJson()).toList()};
   }
 }
 
-class Order {
+class AlOrder {
   final int id;
   final String orderNumber;
   final String trackingCode;
@@ -67,11 +63,11 @@ class Order {
   final String? distanceKm;
   final String? finalCost;
   final int? matchingScore;
-  final Vehicle vehicle;
-  final Driver driver;
+  final AlVehicle vehicle;
+  final AlDriver driver;
   final String createdAt;
 
-  Order({
+  AlOrder({
     required this.id,
     required this.orderNumber,
     required this.trackingCode,
@@ -90,8 +86,8 @@ class Order {
     required this.createdAt,
   });
 
-  factory Order.fromJson(Map<String, dynamic> json) {
-    return Order(
+  factory AlOrder.fromJson(Map<String, dynamic> json) {
+    return AlOrder(
       id: json['id'] as int,
       orderNumber: json['order_number'] as String,
       trackingCode: json['tracking_code'] as String,
@@ -105,8 +101,8 @@ class Order {
       distanceKm: json['distance_km'] as String?,
       finalCost: json['final_cost'] as String?,
       matchingScore: json['matching_score'] as int?,
-      vehicle: Vehicle.fromJson(json['vehicle'] as Map<String, dynamic>),
-      driver: Driver.fromJson(json['driver'] as Map<String, dynamic>),
+      vehicle: AlVehicle.fromJson(json['vehicle'] as Map<String, dynamic>),
+      driver: AlDriver.fromJson(json['driver'] as Map<String, dynamic>),
       createdAt: json['created_at'] as String,
     );
   }
@@ -168,17 +164,14 @@ class Order {
   bool get isActive => status != 'completed';
 }
 
-class Vehicle {
+class AlVehicle {
   final String registrationNumber;
   final String vehicleType;
 
-  Vehicle({
-    required this.registrationNumber,
-    required this.vehicleType,
-  });
+  AlVehicle({required this.registrationNumber, required this.vehicleType});
 
-  factory Vehicle.fromJson(Map<String, dynamic> json) {
-    return Vehicle(
+  factory AlVehicle.fromJson(Map<String, dynamic> json) {
+    return AlVehicle(
       registrationNumber: json['registration_number'] as String,
       vehicleType: json['vehicle_type'] as String,
     );
@@ -192,19 +185,15 @@ class Vehicle {
   }
 }
 
-class Driver {
+class AlDriver {
   final String name;
   final String? phone;
   final String rating;
 
-  Driver({
-    required this.name,
-    this.phone,
-    required this.rating,
-  });
+  AlDriver({required this.name, this.phone, required this.rating});
 
-  factory Driver.fromJson(Map<String, dynamic> json) {
-    return Driver(
+  factory AlDriver.fromJson(Map<String, dynamic> json) {
+    return AlDriver(
       name: json['name'] as String,
       phone: json['phone'] as String?,
       rating: json['rating'] as String,
@@ -212,29 +201,25 @@ class Driver {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'phone': phone,
-      'rating': rating,
-    };
+    return {'name': name, 'phone': phone, 'rating': rating};
   }
 }
 
-class Meta {
+class AlMeta {
   final int currentPage;
   final int lastPage;
   final int perPage;
   final int total;
 
-  Meta({
+  const AlMeta({  // <-- 'const' keyword add karein
     required this.currentPage,
     required this.lastPage,
     required this.perPage,
     required this.total,
   });
 
-  factory Meta.fromJson(Map<String, dynamic> json) {
-    return Meta(
+  factory AlMeta.fromJson(Map<String, dynamic> json) {
+    return AlMeta(
       currentPage: json['current_page'] as int,
       lastPage: json['last_page'] as int,
       perPage: json['per_page'] as int,

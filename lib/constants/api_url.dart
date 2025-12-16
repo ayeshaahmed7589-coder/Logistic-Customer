@@ -28,8 +28,7 @@ abstract class ApiUrls {
   // Home
   static String getHome = "/api/v1/customer/dashboard";
 
-
-    // Home
+  // All Orders
   static String getOrders = "/api/v1/customer/orders";
 
   //Get Profile
@@ -52,5 +51,15 @@ abstract class ApiUrls {
 
   // Place Order
   static String postPlaceOrder = "/api/v1/customer/orders";
-  
+
+  //Create Order
+
+  // Product Type
+  static String getProductType = "/api/master-data/product-types";
+
+  // Packageing Type
+  static String getPackageingType = "/api/master-data/packaging-types";
+
+  // Service Type
+  static String getServiceType = "/api/master-data/service-types";
 }

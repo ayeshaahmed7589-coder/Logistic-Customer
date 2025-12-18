@@ -1,4 +1,3 @@
-// lib/features/orders/screens/orders_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +5,9 @@ import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import 'package:logisticscustomer/constants/colors.dart';
 import 'package:logisticscustomer/features/home/orders/get_all_orders_modal.dart';
 import 'package:logisticscustomer/features/home/orders/orders_controller.dart';
+
+import '../../../export.dart';
+import 'order details/order_details_screen.dart';
 
 class Orders extends ConsumerStatefulWidget {
   const Orders({super.key});
@@ -425,408 +427,304 @@ class _OrdersState extends ConsumerState<Orders> {
 
   // Order Card
   Widget _buildOrderCard(AlOrder order) {
-    // Format date
     final date = DateTime.parse(order.createdAt);
-    final formattedDate = DateFormat('dd MMM yyyy').format(date);
-    final formattedTime = DateFormat('hh:mm a').format(date);
+    final formattedDate = DateFormat('dd MMM yyyy • hh:mm a').format(date);
 
-    // Get status color
     final statusColor = _getStatusColor(order.status);
 
-    return GestureDetector(
-      onTap: () {
-        // Navigate to order details
-        // Navigator.push(context, MaterialPageRoute(
-        //   builder: (context) => OrderDetailsScreen(order: order),
-        // ));
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: AppColors.pureWhite,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.mediumGray.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Header with order number and status
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.05),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CustomText(
-                        txt: "ORDER",
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.mediumGray,
-                      ),
-                      const SizedBox(height: 4),
-                      CustomText(
-                        txt: order.orderNumber,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkText,
-                      ),
-                    ],
-                  ),
-
-                  // Status Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: statusColor.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _getStatusIcon(order.status),
-                          size: 14,
-                          color: statusColor,
-                        ),
-                        const SizedBox(width: 6),
-                        CustomText(
-                          txt: order.statusText.toUpperCase(),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: statusColor,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          /// ================= HEADER =================
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.electricTeal.withOpacity(0.06),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
               ),
             ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText(
+                      txt: "Order #",
+                      fontSize: 12,
+                      color: AppColors.mediumGray,
+                    ),
+                    CustomText(
+                      txt: order.orderNumber,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
 
-            // Order Details
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Route Information
-                  Row(
-                    children: [
-                      // Pickup
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.electricTeal,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CustomText(
-                                      txt: "Pickup",
-                                      fontSize: 12,
-                                      color: AppColors.mediumGray,
-                                    ),
-                                    CustomText(
-                                      txt: order.pickupCity,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.darkText,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Arrow
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 16,
-                          color: AppColors.mediumGray,
-                        ),
-                      ),
-
-                      // Delivery
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    CustomText(
-                                      txt: "Delivery",
-                                      fontSize: 12,
-                                      color: AppColors.mediumGray,
-                                    ),
-                                    CustomText(
-                                      txt: order.deliveryCity,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.darkText,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.limeGreen,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Details Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Vehicle Info
-                      if (order.vehicle.vehicleType.isNotEmpty)
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.local_shipping,
-                              size: 14,
-                              color: AppColors.mediumGray,
-                            ),
-                            const SizedBox(width: 4),
-                            CustomText(
-                              txt: order.vehicle.vehicleType,
-                              fontSize: 12,
-                              color: AppColors.mediumGray,
-                            ),
-                          ],
-                        ),
-
-                      // Driver Info
-                      if (order.driver.name.isNotEmpty)
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.person_outline,
-                              size: 14,
-                              color: AppColors.mediumGray,
-                            ),
-                            const SizedBox(width: 4),
-                            CustomText(
-                              txt: order.driver.name,
-                              fontSize: 12,
-                              color: AppColors.mediumGray,
-                            ),
-                          ],
-                        ),
-
-                      // Weight
-                      if (order.totalWeightKg != null &&
-                          order.totalWeightKg!.isNotEmpty)
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.scale_outlined,
-                              size: 14,
-                              color: AppColors.mediumGray,
-                            ),
-                            const SizedBox(width: 4),
-                            CustomText(
-                              txt: "${order.totalWeightKg} kg",
-                              fontSize: 12,
-                              color: AppColors.mediumGray,
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Bottom Row - Cost and Date
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Cost
-                      if (order.finalCost != null &&
-                          order.finalCost!.isNotEmpty)
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.currency_rupee,
-                              size: 16,
-                              color: AppColors.mediumGray,
-                            ),
-                            const SizedBox(width: 4),
-                            CustomText(
-                              txt: "₹${order.finalCost}",
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.electricTeal,
-                            ),
-                          ],
-                        ),
-
-                      // Date and Time
+                    /// TRACKING CODE
+                    if (order.trackingCode.isNotEmpty) ...[
+                      const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(
-                            Icons.calendar_today,
-                            size: 14,
+                          CustomText(
+                            txt: "Track Order : ",
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                             color: AppColors.mediumGray,
                           ),
+                          CustomText(
+                            txt: order.trackingCode,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.electricTeal,
+                          ),
                           const SizedBox(width: 6),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              CustomText(
-                                txt: formattedDate,
-                                fontSize: 12,
-                                color: AppColors.mediumGray,
-                              ),
-                              CustomText(
-                                txt: formattedTime,
-                                fontSize: 11,
-                                color: AppColors.mediumGray,
-                              ),
-                            ],
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(
+                                ClipboardData(text: order.trackingCode),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Tracking code copied"),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            },
+                            child: const Icon(
+                              Icons.copy, // 📄📄 double page icon
+                              size: 14,
+                              color: AppColors.electricTeal,
+                            ),
                           ),
                         ],
                       ),
                     ],
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                ],
-              ),
-            ),
-
-            // Footer Actions
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: AppColors.mediumGray.withOpacity(0.1),
-                    width: 1,
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getStatusIcon(order.status),
+                        size: 14,
+                        color: statusColor,
+                      ),
+                      const SizedBox(width: 6),
+                      CustomText(
+                        txt: order.statusText.toUpperCase(),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  // Tracking Button
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        // Navigate to tracking screen
-                        // Navigator.push(context, MaterialPageRoute(
-                        //   builder: (context) => TrackOrderScreen(trackingCode: order.trackingCode),
-                        // ));
-                      },
-                      icon: const Icon(
-                        Icons.map_outlined,
-                        size: 16,
-                        color: AppColors.electricTeal,
-                      ),
-                      label: CustomText(
-                        txt: "Track Order",
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.electricTeal,
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.electricTeal),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+              ],
+            ),
+          ),
+
+          /// ================= BODY =================
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                /// Route
+                Row(
+                  children: [
+                    Column(
+                      children: [
+                        _dot(AppColors.electricTeal),
+                        Container(
+                          width: 2,
+                          height: 28,
+                          color: AppColors.mediumGray.withOpacity(0.3),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        _dot(AppColors.limeGreen),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _routeText("Pickup", order.pickupCity),
+                          const SizedBox(height: 12),
+                          _routeText("Delivery", order.deliveryCity),
+                        ],
                       ),
                     ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                /// Meta info
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (order.vehicle.vehicleType.isNotEmpty)
+                      _iconText(
+                        Icons.local_shipping,
+                        order.vehicle.vehicleType,
+                      ),
+                    if (order.driver.name.isNotEmpty)
+                      _iconText(Icons.person_outline, order.driver.name),
+                    if (order.totalWeightKg != null &&
+                        order.totalWeightKg!.isNotEmpty)
+                      _iconText(
+                        Icons.scale_outlined,
+                        "${order.totalWeightKg} kg",
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                /// Cost & Time
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (order.finalCost != null && order.finalCost!.isNotEmpty)
+                      CustomText(
+                        txt: "₹${order.finalCost}",
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.electricTeal,
+                      ),
+                    CustomText(
+                      txt: formattedDate,
+                      fontSize: 12,
+                      color: AppColors.mediumGray,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          /// ================= FOOTER =================
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.map_outlined,
+                      size: 16,
+                      color: AppColors.electricTeal,
+                    ),
+                    label: const Text(
+                      "Track",
+                      style: TextStyle(
+                        color: AppColors.electricTeal,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(
+                        color: AppColors.electricTeal,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
-
-                  const SizedBox(width: 12),
-
-                  // Details Button
-                  Expanded(
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Navigate to order details
-                        // Navigator.push(context, MaterialPageRoute(
-                        //   builder: (context) => OrderDetailsScreen(order: order),
-                        // ));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => OrderDetailsScreen(
+                              orderId:
+                                  order.id, // ✅ REAL ORDER ID PASS HO RAHI HAI
+                            ),
+                          ),
+                        );
                       },
                       icon: const Icon(
                         Icons.remove_red_eye_outlined,
                         size: 16,
-                        color: Colors.white,
-                      ),
-                      label: CustomText(
-                        txt: "View Details",
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
                         color: AppColors.pureWhite,
+                      ),
+                      label: const Text(
+                        "Details",
+                        style: TextStyle(
+                          color: AppColors.pureWhite,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.electricTeal,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _dot(Color color) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+
+  Widget _routeText(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomText(txt: label, fontSize: 12, color: AppColors.mediumGray),
+        CustomText(txt: value, fontSize: 15, fontWeight: FontWeight.w600),
+      ],
+    );
+  }
+
+  Widget _iconText(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.mediumGray),
+        const SizedBox(width: 4),
+        CustomText(txt: text, fontSize: 12, color: AppColors.mediumGray),
+      ],
     );
   }
 

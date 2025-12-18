@@ -62,4 +62,7 @@ abstract class ApiUrls {
 
   // Service Type
   static String getServiceType = "/api/master-data/service-types";
+
+  //order details
+  static const String orderDetails = "/api/v1/customer/orders";
 }

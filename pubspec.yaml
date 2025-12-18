@@ -59,6 +59,7 @@ dependencies:
   phosphor_flutter: ^2.1.0
   lottie: ^3.3.2
   flutter_map: ^8.2.2
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

@@ -5,13 +5,18 @@ import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import 'package:logisticscustomer/constants/colors.dart';
 
 import 'package:logisticscustomer/constants/gap.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/fetch_order_controller.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/fetch_order_modal.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_controller.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/order_types/add_ons/add_ons_controller.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/order_types/add_ons/add_ons_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/order_types/service_type/service_type_controller.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/order_types/service_type/service_type_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/place_order_controller.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
+// Update StopRequest model to include contact info
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ServicePaymentScreen extends ConsumerStatefulWidget {
   const ServicePaymentScreen({super.key});
@@ -24,16 +29,6 @@ class ServicePaymentScreen extends ConsumerStatefulWidget {
 class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   String? selectedServiceTypeId;
   String? selectedServiceTypeName;
-  List<String> selectedAddons = [];
-  Map<String, String> addonMapping = {
-    'insurance': 'insurance',
-    'signature': 'signature_required',
-    'fragile': 'fragile_handling',
-    'photo': 'photo_proof',
-    'priority': 'priority_pickup',
-    'weekend': 'weekend_delivery',
-  };
-
   String serviceType = "standard";
   String paymentMethod = "wallet";
   String vehicleMethod = "bike";
@@ -41,25 +36,28 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   String specialInstructions = "";
   double declaredValue = 0.0;
 
+  // New variable for quotes
+  bool hasCalculatedQuotes = false;
+  bool isLoadingQuotes = false;
+  String? quoteError;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Load service types
       ref.read(serviceTypeControllerProvider.notifier).loadServiceTypes();
+      ref.read(addOnsControllerProvider.notifier).loadAddOns();
       _loadCachedData();
     });
   }
 
   void _loadCachedData() {
     final cache = ref.read(orderCacheProvider);
-
-    // Load service type from cache
     final savedServiceTypeId = cache["service_type_id"];
+
     if (savedServiceTypeId != null) {
       selectedServiceTypeId = savedServiceTypeId;
     } else {
-      // Set default from API
       final defaultServiceType = ref.read(defaultServiceTypeProvider);
       if (defaultServiceType != null) {
         selectedServiceTypeId = defaultServiceType.id;
@@ -67,34 +65,15 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
       }
     }
 
-    // Load service type name if not loaded
-    if (selectedServiceTypeId != null && selectedServiceTypeName == null) {
-      final serviceTypeState = ref.read(serviceTypeControllerProvider);
-      serviceTypeState.when(
-        data: (data) {
-          final item = data.serviceTypes.firstWhere(
-            (item) => item.id == selectedServiceTypeId,
-            orElse: () => ServiceTypeItem(
-              id: '',
-              name: 'Standard',
-              description: '',
-              multiplier: 1.0,
-            ),
-          );
-          selectedServiceTypeName = item.name;
-        },
-        loading: () {},
-        error: (error, stackTrace) {},
-      );
-    }
-
+    // Load existing data...
     vehicleMethod = cache["vehicle_type"] ?? "bike";
     paymentMethod = cache["payment_method"] ?? "wallet";
     priority = cache["priority"] ?? "normal";
     specialInstructions = cache["special_instructions"] ?? "";
 
     if (cache["selected_addons"] != null) {
-      selectedAddons = List<String>.from(cache["selected_addons"]);
+      final savedAddons = List<String>.from(cache["selected_addons"]);
+      ref.read(selectedAddonsProvider.notifier).state = savedAddons;
     }
 
     if (cache["declared_value"] != null) {
@@ -103,67 +82,184 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     }
 
     setState(() {});
-    _calculateQuote();
   }
 
-  Map<String, dynamic>? cache;
-  double pickupLatitude = 0;
-  double pickupLongitude = 0;
-  double deliveryLatitude = 0;
-  double deliveryLongitude = 0;
+  // Get Smart Quotes Function
+  Future<void> _getSmartQuotes() async {
+    if (isLoadingQuotes) return;
 
-  void _calculateQuote() {
-    final items = ref.read(packageItemsProvider);
-    double totalWeight = 0;
-    double totalDeclaredValue = 0;
+    setState(() {
+      isLoadingQuotes = true;
+      quoteError = null;
+    });
 
-    for (var item in items) {
-      totalWeight += double.tryParse(item.weight) ?? 0;
-      totalDeclaredValue += double.tryParse(item.value) ?? 0;
-    }
+    try {
+      final cache = ref.read(orderCacheProvider);
 
-    if (totalDeclaredValue > 0) {
-      declaredValue = totalDeclaredValue;
-      ref
-          .read(orderCacheProvider.notifier)
-          .saveValue("declared_value", declaredValue.toString());
-    }
+      // Check if multi-stop is enabled
+      final isMultiStop = cache["is_multi_stop_enabled"] == "true";
 
-    List<String> apiAddons = [];
-    for (var addon in selectedAddons) {
-      if (addonMapping.containsKey(addon)) {
-        apiAddons.add(addonMapping[addon]!);
+      // Get product and packaging data
+      final productTypeId = cache["selected_product_type_id"];
+      final packagingTypeId = cache["selected_packaging_type_id"];
+      final totalWeight = cache["total_weight"];
+
+      if (productTypeId == null || packagingTypeId == null) {
+        throw Exception("Please select product and packaging type");
       }
+
+      if (totalWeight == null || double.tryParse(totalWeight) == null) {
+        throw Exception("Please enter valid total weight");
+      }
+
+      // Get add-ons
+      final selectedAddons = ref.read(selectedAddonsProvider);
+
+      if (isMultiStop) {
+        // Multi-stop calculation
+        await _calculateMultiStopQuotes(
+          productTypeId: int.parse(productTypeId),
+          packagingTypeId: int.parse(packagingTypeId),
+          totalWeightKg: double.parse(totalWeight),
+          selectedAddons: selectedAddons,
+        );
+      } else {
+        // Standard calculation
+        await _calculateStandardQuotes(
+          productTypeId: int.parse(productTypeId),
+          packagingTypeId: int.parse(packagingTypeId),
+          totalWeightKg: double.parse(totalWeight),
+          selectedAddons: selectedAddons,
+        );
+      }
+
+      setState(() {
+        hasCalculatedQuotes = true;
+        isLoadingQuotes = false;
+      });
+    } catch (e) {
+      setState(() {
+        quoteError = e.toString();
+        isLoadingQuotes = false;
+      });
+      print("❌ Error getting quotes: $e");
+    }
+  }
+
+  Future<void> _calculateStandardQuotes({
+    required int productTypeId,
+    required int packagingTypeId,
+    required double totalWeightKg,
+    required List<String> selectedAddons,
+  }) async {
+    final cache = ref.read(orderCacheProvider);
+
+    final pickupCity = cache["pickup_city"] ?? "";
+    final pickupState = cache["pickup_state"] ?? "";
+    final deliveryCity = cache["delivery_city"] ?? "";
+    final deliveryState = cache["delivery_state"] ?? "";
+
+    if (pickupCity.isEmpty || deliveryCity.isEmpty) {
+      throw Exception("Please provide pickup and delivery locations");
     }
 
-    print("📊 _calculateQuote Called:");
-    print("  Service Type ID: $selectedServiceTypeId");
-    print("  Service Type: ${selectedServiceTypeName ?? 'Not selected'}");
-    print("  Vehicle Type: $vehicleMethod");
-    print("  Priority: $priority");
-    print("  Total Weight: $totalWeight");
-    print("  Add-ons: $apiAddons");
+    final dimensions = _getDimensionsFromCache(cache);
 
-    ref
-        .read(quoteCalculationControllerProvider.notifier)
-        .calculateQuote(
-          pickupLatitude: pickupLatitude,
-          pickupLongitude: pickupLongitude,
-          deliveryLatitude: deliveryLatitude,
-          deliveryLongitude: deliveryLongitude,
+    await ref
+        .read(quoteControllerProvider.notifier)
+        .calculateStandardQuote(
+          productTypeId: productTypeId,
+          packagingTypeId: packagingTypeId,
+          totalWeightKg: totalWeightKg,
+          pickupCity: pickupCity,
+          pickupState: pickupState,
+          deliveryCity: deliveryCity,
+          deliveryState: deliveryState,
           serviceType: selectedServiceTypeId ?? "standard",
-          vehicleType: vehicleMethod,
-          totalWeight: totalWeight > 0 ? totalWeight : null,
-          addOns: apiAddons.isNotEmpty ? apiAddons : null,
-          declaredValue: declaredValue > 0 ? declaredValue : null,
+          declaredValue: declaredValue,
+          addOns: selectedAddons,
+          length: dimensions['length'],
+          width: dimensions['width'],
+          height: dimensions['height'],
         );
   }
 
-  // void _onServiceTypeChanged(String newType) {
-  //   setState(() => serviceType = newType);
-  //   ref.read(orderCacheProvider.notifier).saveValue("service_type", newType);
-  //   _calculateQuote();
-  // }
+  Future<void> _calculateMultiStopQuotes({
+    required int productTypeId,
+    required int packagingTypeId,
+    required double totalWeightKg,
+    required List<String> selectedAddons,
+  }) async {
+    final cache = ref.read(orderCacheProvider);
+    final stopsCount =
+        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+
+    if (stopsCount < 2) {
+      throw Exception("Multi-stop route requires at least 2 stops");
+    }
+
+    final stops = <StopRequest>[];
+
+    for (int i = 1; i <= stopsCount; i++) {
+      final stopType = cache["stop_${i}_type"]?.toString();
+      final city = cache["stop_${i}_city"]?.toString() ?? "";
+      final state = cache["stop_${i}_state"]?.toString() ?? "";
+      final contactName = cache["stop_${i}_contact_name"]?.toString() ?? "";
+      final contactPhone = cache["stop_${i}_contact_phone"]?.toString() ?? "";
+      final address = cache["stop_${i}_address"]?.toString() ?? "";
+
+      if (city.isEmpty || state.isEmpty || address.isEmpty) {
+        throw Exception("Please complete all stop information");
+      }
+
+      if (stopType != null) {
+        // Convert stop type string to API format
+        String apiStopType;
+        if (stopType.contains("pickup")) {
+          apiStopType = "pickup";
+        } else if (stopType.contains("waypoint")) {
+          apiStopType = "waypoint";
+        } else {
+          apiStopType = "drop_off";
+        }
+
+        stops.add(
+          StopRequest(
+            stopType: apiStopType,
+            city: city,
+            state: state,
+            contactName: contactName,
+            contactPhone: contactPhone,
+            address: address,
+          ),
+        );
+      }
+    }
+
+    await ref
+        .read(quoteControllerProvider.notifier)
+        .calculateMultiStopQuote(
+          productTypeId: productTypeId,
+          packagingTypeId: packagingTypeId,
+          totalWeightKg: totalWeightKg,
+          stops: stops,
+          serviceType: selectedServiceTypeId ?? "standard",
+          declaredValue: declaredValue,
+          addOns: selectedAddons,
+        );
+  }
+
+  Map<String, double?> _getDimensionsFromCache(Map<String, dynamic> cache) {
+    final length = cache["package_length"]?.toString();
+    final width = cache["package_width"]?.toString();
+    final height = cache["package_height"]?.toString();
+
+    return {
+      'length': length != null ? double.tryParse(length) : null,
+      'width': width != null ? double.tryParse(width) : null,
+      'height': height != null ? double.tryParse(height) : null,
+    };
+  }
 
   void _onServiceTypeChanged(String newType, String? name, double multiplier) {
     setState(() {
@@ -171,7 +267,6 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
       selectedServiceTypeName = name;
     });
 
-    // Save to cache
     ref.read(orderCacheProvider.notifier).saveValue("service_type_id", newType);
     if (name != null) {
       ref
@@ -182,73 +277,119 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
         .read(orderCacheProvider.notifier)
         .saveValue("service_multiplier", multiplier.toString());
 
-    // Update serviceType variable for compatibility
     serviceType = newType;
 
-    _calculateQuote();
+    // Recalculate quotes if already calculated
+    if (hasCalculatedQuotes) {
+      _getSmartQuotes();
+    }
   }
 
-  void _onVehicleTypeChanged(String newType) {
-    setState(() => vehicleMethod = newType);
-    ref.read(orderCacheProvider.notifier).saveValue("vehicle_type", newType);
-    _calculateQuote();
-  }
+  void _toggleAddOn(String addOnId, double cost) {
+    final selectedAddons = ref.read(selectedAddonsProvider);
 
-  //  NEW: Priority change handler
-  void _onPriorityChanged(String newPriority) {
-    setState(() => priority = newPriority);
-    ref.read(orderCacheProvider.notifier).saveValue("priority", newPriority);
-    _calculateQuote();
-  }
-
-  void _onPaymentMethodChanged(String newMethod) {
-    setState(() => paymentMethod = newMethod);
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("payment_method", newMethod);
-    print("✅ Payment method saved: $newMethod");
-  }
-
-  //  NEW: Special instructions handler
-  void _onSpecialInstructionsChanged(String instructions) {
-    setState(() => specialInstructions = instructions);
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("special_instructions", instructions);
-  }
-
-  void toggleAddon(String value) {
     setState(() {
-      if (selectedAddons.contains(value)) {
-        selectedAddons.remove(value);
+      if (selectedAddons.contains(addOnId)) {
+        ref.read(selectedAddonsProvider.notifier).state = selectedAddons
+            .where((id) => id != addOnId)
+            .toList();
       } else {
-        selectedAddons.add(value);
+        ref.read(selectedAddonsProvider.notifier).state = [
+          ...selectedAddons,
+          addOnId,
+        ];
       }
-      ref
-          .read(orderCacheProvider.notifier)
-          .saveValue("selected_addons", selectedAddons);
-      _calculateQuote();
     });
+
+    ref
+        .read(orderCacheProvider.notifier)
+        .saveValue("selected_addons", ref.read(selectedAddonsProvider));
+
+    // Recalculate quotes if already calculated
+    if (hasCalculatedQuotes) {
+      _getSmartQuotes();
+    }
+  }
+
+  // Check if all required data is available for quote calculation
+  bool _isDataReadyForQuotes() {
+    final cache = ref.read(orderCacheProvider);
+
+    // Check basic requirements
+    if (cache["selected_product_type_id"] == null ||
+        cache["selected_packaging_type_id"] == null ||
+        cache["total_weight"] == null) {
+      return false;
+    }
+
+    // Check if multi-stop or single-stop data is available
+    final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+
+    if (isMultiStop) {
+      // Check multi-stop data
+      final stopsCount =
+          int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+      if (stopsCount < 2) return false;
+
+      for (int i = 1; i <= stopsCount; i++) {
+        if (cache["stop_${i}_city"] == null ||
+            cache["stop_${i}_state"] == null) {
+          return false;
+        }
+      }
+    } else {
+      // Check single-stop data
+      if (cache["pickup_city"] == null ||
+          cache["pickup_state"] == null ||
+          cache["delivery_city"] == null ||
+          cache["delivery_state"] == null) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Validate before calculating quotes
+  String? _validateBeforeQuotes() {
+    if (!_isDataReadyForQuotes()) {
+      return "Please complete all previous steps before calculating quotes";
+    }
+
+    if (selectedServiceTypeId == null) {
+      return "Please select a service type";
+    }
+
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final quoteState = ref.watch(quoteCalculationControllerProvider);
-    // ignore: unused_local_variable
-    final orderState = ref.watch(orderControllerProvider);
+    final quoteState = ref.watch(quoteControllerProvider);
+    final bestQuote = ref.watch(bestQuoteProvider);
+
+    // Debug print for console
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print("\n🔍 DEBUG ORDER STATUS:");
+      print("hasCalculatedQuotes: $hasCalculatedQuotes");
+      print("bestQuote is null: ${bestQuote == null}");
+      print("Quote count: ${quoteState.value?.quotes.length ?? 0}");
+      if (bestQuote != null) {
+        print(
+          "Best Quote: ${bestQuote.vehicleType} - R${bestQuote.pricing.total}",
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
-      // AppBar
       appBar: AppBar(
         backgroundColor: AppColors.electricTeal,
         elevation: 0,
         leading: RotatedBox(
           quarterTurns: 2,
           child: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             icon: Icon(Icons.arrow_forward_rounded, color: AppColors.pureWhite),
           ),
         ),
@@ -260,12 +401,10 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
         ),
         centerTitle: true,
       ),
-      // AppBar end
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Main Content
             gapH4,
             Padding(
               padding: const EdgeInsets.all(12),
@@ -303,77 +442,27 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                   _buildDeliverySection(),
                   gapH16,
 
-                  // Items Section
-                  Row(
-                    children: [
-                      Icon(Icons.bar_chart, color: AppColors.electricTeal),
-                      SizedBox(width: 8),
-                      CustomText(
-                        txt: "Items",
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ],
-                  ),
-                  gapH8,
-                  _buildItemsSection(),
-                  gapH20,
-
-                  //  NEW: Priority Section
-                  Column(
-                    children: [
-                      _sectionTitle(Icons.bolt, "Delivery Priority"),
-                      const SizedBox(height: 10),
-                      _priorityOption(
-                        selected: priority == "normal",
-                        title: "Normal",
-                        subtitle: "Standard delivery time",
-                        value: "normal",
-                      ),
-                      _priorityOption(
-                        selected: priority == "urgent",
-                        title: "Urgent",
-                        subtitle: "Faster delivery (+R30)",
-                        value: "urgent",
-                      ),
-                      _priorityOption(
-                        selected: priority == "express",
-                        title: "Express",
-                        subtitle: "Fastest delivery (+R60)",
-                        value: "express",
-                      ),
-                    ],
-                  ),
-                  gapH16,
-
-                  // Service Options
                   // Service Options Section
                   Column(
                     children: [
                       _sectionTitle(Icons.local_shipping, "Service Options"),
                       const SizedBox(height: 10),
-
                       Consumer(
                         builder: (context, ref, child) {
                           final serviceTypeState = ref.watch(
                             serviceTypeControllerProvider,
                           );
-
                           return serviceTypeState.when(
                             data: (data) {
                               final serviceItems = data.serviceTypes;
-
                               return Column(
                                 children: serviceItems.map((service) {
-                                  // Calculate price based on multiplier
-                                  final basePrice =
-                                      100.0; // Adjust based on your logic
+                                  final basePrice = 100.0;
                                   final calculatedPrice =
                                       basePrice * service.multiplier;
                                   final priceText = service.multiplier > 1.0
                                       ? "(+R${(calculatedPrice - basePrice).toStringAsFixed(0)})"
                                       : "(R${calculatedPrice.toStringAsFixed(0)})";
-
                                   return _serviceOption(
                                     selected:
                                         selectedServiceTypeId == service.id,
@@ -387,83 +476,11 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                                 }).toList(),
                               );
                             },
-
-                            loading: () => Column(
-                              children: [
-                                Container(
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: AppColors.mediumGray.withOpacity(
-                                        0.4,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        const Text(
-                                          'Loading service options...',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            loading: () => _buildLoadingContainer(
+                              "Loading service options...",
                             ),
-
-                            error: (error, stackTrace) => Column(
-                              children: [
-                                Container(
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.red),
-                                  ),
-                                  child: Center(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.error_outline,
-                                          color: Colors.red,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        const Text(
-                                          'Failed to load service options',
-                                          style: TextStyle(color: Colors.red),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Center(
-                                  child: TextButton(
-                                    onPressed: () {
-                                      ref
-                                          .read(
-                                            serviceTypeControllerProvider
-                                                .notifier,
-                                          )
-                                          .loadServiceTypes();
-                                    },
-                                    child: const Text('Retry'),
-                                  ),
-                                ),
-                              ],
+                            error: (error, stackTrace) => _buildErrorContainer(
+                              "Failed to load service options",
                             ),
                           );
                         },
@@ -473,602 +490,104 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
 
                   gapH16,
 
-                  // Vehicle Type
-                  Column(
-                    children: [
-                      _sectionTitle(Icons.local_shipping, "Vehicle Type"),
-                      const SizedBox(height: 10),
-                      _serviceOption2(
-                        selected: vehicleMethod == "bike",
-                        title: "Bike (Small Packages)",
-                        value: "bike",
-                      ),
-                      _serviceOption2(
-                        selected: vehicleMethod == "van",
-                        title: "Van (Medium Load)",
-                        value: "van",
-                      ),
-                      _serviceOption2(
-                        selected: vehicleMethod == "truck",
-                        title: "Truck (Heavy/Bulk)",
-                        value: "truck",
-                      ),
-                    ],
+                  // Add-ons Section
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final addOnsState = ref.watch(addOnsControllerProvider);
+                      return addOnsState.when(
+                        data: (data) => _buildAddOnsSection(data.addOns),
+                        loading: () => _buildAddOnsLoading(),
+                        error: (error, stackTrace) => _buildAddOnsError(),
+                      );
+                    },
                   ),
+
                   gapH16,
 
-                  //  NEW: Special Instructions
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionTitle(
-                        Icons.note,
-                        "Special Instructions (Optional)",
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.pureWhite,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.electricTeal.withOpacity(0.3),
-                          ),
-                        ),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintStyle: TextStyle(
-                              color: AppColors.electricTeal,
-                              fontSize: 14,
-                            ),
-                            hintText:
-                                "E.g., Fragile items, gate code, call before arrival...",
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          maxLines: 3,
-                          onChanged: _onSpecialInstructionsChanged,
-                        ),
-                      ),
-                    ],
-                  ),
+                  // GET SMART QUOTES BUTTON
+                  _buildGetQuotesButton(),
+
+                  // Quote Error Display
+                  if (quoteError != null) _buildQuoteError(),
+
                   gapH16,
 
-                  // Add-ons
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionTitle(Icons.local_shipping, "Add-Ons (Optional)"),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _addons(
-                              selected: selectedAddons.contains("insurance"),
-                              title: "Insurance Cover",
-                              subtitle: "2% of declared Value",
-                              value: "insurance",
-                              onTap: () => toggleAddon("insurance"),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _addons(
-                              selected: selectedAddons.contains("signature"),
-                              title: "Signature Required",
-                              subtitle: "Recipient must sign",
-                              value: "signature",
-                              onTap: () => toggleAddon("signature"),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _addons(
-                              selected: selectedAddons.contains("fragile"),
-                              title: "Fragile Handling",
-                              subtitle: "Extra care for Items",
-                              value: "fragile",
-                              onTap: () => toggleAddon("fragile"),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _addons(
-                              selected: selectedAddons.contains("photo"),
-                              title: "Photo Proof",
-                              subtitle: "Delivery documentation",
-                              value: "photo",
-                              onTap: () => toggleAddon("photo"),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                  // PAYMENT SUMMARY SECTION
+                  if (hasCalculatedQuotes) _buildPaymentSummary(quoteState),
+
+                  // DEBUG INFORMATION SECTION
+                  _buildDebugInfoSection(),
+
                   gapH16,
 
-                  // Payment Summary
-                  // Payment Summary Section - UPDATED WITH BETTER UI
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 1),
-                    child: Column(
-                      children: [
-                        // Header with Icon
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.electricTeal.withOpacity(0.1),
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(12),
-                            ),
-                            border: Border.all(
-                              color: AppColors.electricTeal.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.receipt_long,
-                                color: AppColors.electricTeal,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                "Payment Summary",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.darkText,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Summary Content
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.pureWhite,
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(12),
-                            ),
-                            border: Border.all(
-                              color: AppColors.mediumGray.withOpacity(0.2),
-                              width: 1,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: quoteState.when(
-                            data: (quote) {
-                              final pricing = quote?.data?.pricing;
-                              final breakdown = quote?.data?.breakdown;
-
-                              if (pricing == null) {
-                                return _buildNoDataState();
-                              }
-
-                              return Column(
-                                children: [
-                                  // Summary Items
-                                  Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      children: [
-                                        // Base Fare
-                                        _buildSummaryItem(
-                                          icon: Icons.price_check,
-                                          title: "Base Fare",
-                                          amount:
-                                              "${pricing.currencySymbol}${pricing.baseFare.toStringAsFixed(2)}",
-                                          color: AppColors.mediumGray,
-                                        ),
-
-                                        // Distance
-                                        if (breakdown?.distance != null)
-                                          _buildSummaryItem(
-                                            icon: Icons.directions_car,
-                                            title: "Distance",
-                                            amount: breakdown!.distance,
-                                            color: Colors.blue[700],
-                                          )
-                                        else if (pricing.distanceCost > 0)
-                                          _buildSummaryItem(
-                                            icon: Icons.directions_car,
-                                            title: "Distance",
-                                            amount:
-                                                "${pricing.currencySymbol}${pricing.distanceCost.toStringAsFixed(2)}",
-                                            color: Colors.blue[700],
-                                          ),
-
-                                        // Weight Charge
-                                        if (pricing.weightCharge > 0)
-                                          _buildSummaryItem(
-                                            icon: Icons.scale,
-                                            title: "Weight Charge",
-                                            amount:
-                                                "${pricing.currencySymbol}${pricing.weightCharge.toStringAsFixed(2)}",
-                                            color: Colors.orange[700],
-                                          ),
-
-                                        // Add-ons Breakdown
-                                        if (breakdown?.addOns != null &&
-                                            breakdown!.addOns!.isNotEmpty)
-                                          ..._buildAddonsBreakdownUI(
-                                            breakdown.addOns!,
-                                            pricing,
-                                          ),
-
-                                        // Add-ons Total
-                                        if (pricing.addOnsTotal > 0)
-                                          _buildSummaryItem(
-                                            icon: Icons.add_circle_outline,
-                                            title: "Add-ons Total",
-                                            amount:
-                                                "${pricing.currencySymbol}${pricing.addOnsTotal.toStringAsFixed(2)}",
-                                            color: Colors.purple[700],
-                                          ),
-
-                                        // Subtotal
-                                        if (pricing.subtotalBeforeService > 0)
-                                          _buildSummaryItem(
-                                            icon: Icons.calculate,
-                                            title: "Subtotal",
-                                            amount:
-                                                "${pricing.currencySymbol}${pricing.subtotalBeforeService.toStringAsFixed(2)}",
-                                            color: AppColors.darkText,
-                                            showDivider: true,
-                                          ),
-
-                                        // Service Fee
-                                        if (breakdown?.service != null &&
-                                            breakdown!.service!.isNotEmpty)
-                                          _buildSummaryItem(
-                                            icon: Icons.miscellaneous_services,
-                                            title: "Service Fee",
-                                            amount: breakdown.service!,
-                                            color: Colors.teal[700],
-                                          )
-                                        else if (pricing.serviceFee > 0)
-                                          _buildSummaryItem(
-                                            icon: Icons.miscellaneous_services,
-                                            title:
-                                                "Service Fee (${pricing.serviceFeePercentage}%)",
-                                            amount:
-                                                "${pricing.currencySymbol}${pricing.serviceFee.toStringAsFixed(2)}",
-                                            color: Colors.teal[700],
-                                          ),
-
-                                        // Tax
-                                        if (breakdown?.tax != null &&
-                                            breakdown!.tax!.isNotEmpty)
-                                          _buildSummaryItem(
-                                            icon: Icons.request_quote,
-                                            title: "Tax",
-                                            amount: breakdown.tax!,
-                                            color: Colors.red[700],
-                                          )
-                                        else if (pricing.tax > 0)
-                                          _buildSummaryItem(
-                                            icon: Icons.request_quote,
-                                            title:
-                                                "Tax (${pricing.taxPercentage}%)",
-                                            amount:
-                                                "${pricing.currencySymbol}${pricing.tax.toStringAsFixed(2)}",
-                                            color: Colors.red[700],
-                                          ),
-
-                                        const SizedBox(height: 8),
-
-                                        // Divider
-                                        Container(
-                                          height: 1,
-                                          margin: const EdgeInsets.symmetric(
-                                            vertical: 12,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                AppColors.electricTeal
-                                                    .withOpacity(0.1),
-                                                AppColors.electricTeal,
-                                                AppColors.electricTeal
-                                                    .withOpacity(0.1),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-
-                                        // Total - HIGHLIGHTED
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.electricTeal
-                                                .withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            border: Border.all(
-                                              color: AppColors.electricTeal
-                                                  .withOpacity(0.3),
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.payments,
-                                                    color:
-                                                        AppColors.electricTeal,
-                                                    size: 20,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Text(
-                                                    "Total Amount",
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      color: AppColors.darkText,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Text(
-                                                "${pricing.currencySymbol}${pricing.total.toStringAsFixed(2)}",
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: AppColors.electricTeal,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-
-                                        // Distance Info (if available)
-                                        if (quote?.data?.distanceKm != null &&
-                                            quote!.data!.distanceKm! > 0)
-                                          Container(
-                                            margin: EdgeInsets.only(top: 12),
-                                            padding: EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: Colors.blue[50],
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              border: Border.all(
-                                                color: Colors.blue[100]!,
-                                              ),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.map,
-                                                  size: 16,
-                                                  color: Colors.blue[700],
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    "Total Distance: ${quote.data!.distanceKm!.toStringAsFixed(2)} km",
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Colors.blue[800],
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                                Container(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.blue[100],
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    "EST.",
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      color: Colors.blue[800],
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                            loading: () => _buildLoadingState(),
-                            error: (e, st) => _buildErrorState(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Padding(
-                  //   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  //   child: Column(
-                  //     children: [
-                  //       _sectionTitle(Icons.payments, "Payment Summary"),
-                  //       const SizedBox(height: 10),
-                  //       quoteState.when(
-                  //         data: (quote) {
-                  //           final pricing = quote?.data?.pricing;
-                  //           final breakdown = quote?.data?.breakdown;
-
-                  //           if (pricing == null) {
-                  //             return Text("No pricing data available");
-                  //           }
-
-                  //           return Column(
-                  //             children: [
-                  //               _summaryRow(
-                  //                 "Base Fare",
-                  //                 "${pricing.currencySymbol}${pricing.baseFare.toStringAsFixed(2)}",
-                  //               ),
-                  //               if (breakdown?.distance != null)
-                  //                 _summaryRow("Distance", breakdown!.distance)
-                  //               else if (pricing.distanceCost > 0)
-                  //                 _summaryRow(
-                  //                   "Distance",
-                  //                   "${pricing.currencySymbol}${pricing.distanceCost.toStringAsFixed(2)}",
-                  //                 )
-                  //               else
-                  //                 _summaryRow(
-                  //                   "Distance",
-                  //                   "${pricing.currencySymbol}0.00",
-                  //                 ),
-
-                  //               if (pricing.weightCharge > 0)
-                  //                 _summaryRow(
-                  //                   "Weight",
-                  //                   "${pricing.currencySymbol}${pricing.weightCharge.toStringAsFixed(2)}",
-                  //                 ),
-
-                  //               if (breakdown?.addOns != null &&
-                  //                   breakdown!.addOns!.isNotEmpty)
-                  //                 ..._buildAddonsBreakdown(
-                  //                   breakdown.addOns!,
-                  //                   pricing,
-                  //                 ),
-
-                  //               if (pricing.addOnsTotal > 0)
-                  //                 _summaryRow(
-                  //                   "Add-ons Total",
-                  //                   "${pricing.currencySymbol}${pricing.addOnsTotal.toStringAsFixed(2)}",
-                  //                 ),
-
-                  //               if (pricing.subtotalBeforeService > 0)
-                  //                 _summaryRow(
-                  //                   "Subtotal",
-                  //                   "${pricing.currencySymbol}${pricing.subtotalBeforeService.toStringAsFixed(2)}",
-                  //                 ),
-
-                  //               if (breakdown?.service != null &&
-                  //                   breakdown!.service!.isNotEmpty)
-                  //                 _summaryRow("Service Fee", breakdown.service!)
-                  //               else if (pricing.serviceFee > 0)
-                  //                 _summaryRow(
-                  //                   "Service Fee (${pricing.serviceFeePercentage}%)",
-                  //                   "${pricing.currencySymbol}${pricing.serviceFee.toStringAsFixed(2)}",
-                  //                 ),
-
-                  //               if (breakdown?.tax != null &&
-                  //                   breakdown!.tax!.isNotEmpty)
-                  //                 _summaryRow("Tax", breakdown.tax!)
-                  //               else if (pricing.tax > 0)
-                  //                 _summaryRow(
-                  //                   "Tax (${pricing.taxPercentage}%)",
-                  //                   "${pricing.currencySymbol}${pricing.tax.toStringAsFixed(2)}",
-                  //                 ),
-
-                  //               const Divider(thickness: 1),
-                  //               _summaryRow(
-                  //                 "Total",
-                  //                 "${pricing.currencySymbol}${pricing.total.toStringAsFixed(2)}",
-                  //                 bold: true,
-                  //               ),
-                  //             ],
-                  //           );
-                  //         },
-                  //         loading: () => Center(
-                  //           child: Padding(
-                  //             padding: EdgeInsets.all(20),
-                  //             child: CircularProgressIndicator(),
-                  //           ),
-                  //         ),
-                  //         error: (e, st) => Container(
-                  //           padding: EdgeInsets.all(16),
-                  //           child: Text(
-                  //             "Unable to calculate quote. Please check your internet connection.",
-                  //             style: TextStyle(color: Colors.red),
-                  //             textAlign: TextAlign.center,
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-                  const SizedBox(height: 25),
-
-                  // Payment Method
-                  Column(
-                    children: [
-                      _sectionTitle(
-                        Icons.account_balance_wallet,
-                        "Payment Method",
-                      ),
-                      const SizedBox(height: 10),
-                      _paymentOption(
-                        selected: paymentMethod == "wallet",
-                        title: "Wallet (Balance R500.0)",
-                        value: "wallet",
-                      ),
-                      _paymentOption(
-                        selected: paymentMethod == "cod",
-                        title: "Cash on Delivery",
-                        value: "cod",
-                      ),
-                      _paymentOption(
-                        selected: paymentMethod == "card",
-                        title: "Card Payment",
-                        value: "card",
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-
-                  //  FIXED: Place Order Button
+                  // Place Order Button
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Consumer(
                       builder: (context, ref, child) {
                         final orderState = ref.watch(orderControllerProvider);
                         final isOrderLoading = orderState.isLoading;
+                        final bestQuote = ref.watch(bestQuoteProvider);
+
+                        // Check if we have all required data
+                        bool canPlaceOrder =
+                            hasCalculatedQuotes &&
+                            bestQuote != null &&
+                            !isOrderLoading;
+
+                        print(
+                          "🔄 Button Status - canPlaceOrder: $canPlaceOrder",
+                        );
 
                         return CustomButton(
                           text: isOrderLoading
                               ? "Placing Order..."
                               : "Place Order",
-                          backgroundColor: AppColors.pureWhite,
-                          borderColor: AppColors.electricTeal,
-                          textColor: AppColors.darkText,
+                          backgroundColor: canPlaceOrder
+                              ? AppColors.electricTeal
+                              : AppColors.mediumGray.withOpacity(0.3),
+                          borderColor: canPlaceOrder
+                              ? AppColors.electricTeal
+                              : AppColors.mediumGray.withOpacity(0.5),
+                          textColor: canPlaceOrder
+                              ? AppColors.pureWhite
+                              : AppColors.darkText.withOpacity(0.5),
                           onPressed: () async {
-                            if (isOrderLoading) return;
+                            print("🎯 Place Order Button Pressed");
+                            print("canPlaceOrder: $canPlaceOrder");
+                            print("hasCalculatedQuotes: $hasCalculatedQuotes");
+                            print("bestQuote: ${bestQuote != null}");
+
+                            if (!canPlaceOrder) {
+                              print(
+                                "❌ Cannot place order - conditions not met",
+                              );
+                              if (!hasCalculatedQuotes) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Please calculate quotes first",
+                                    ),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                              } else if (bestQuote == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Please select a quote first",
+                                    ),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                              }
+                              return;
+                            }
 
                             try {
-                              // ✅ Check if all required data is present
                               final cache = ref.read(orderCacheProvider);
+
+                              // Validate required data
                               if (cache["pickup_address1"] == null ||
                                   cache["delivery_address1"] == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1095,11 +614,28 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                                 return;
                               }
 
-                              // ✅ Place order call
+                              // Validate product and packaging types
+                              if (cache["selected_product_type_id"] == null ||
+                                  cache["selected_packaging_type_id"] == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Please select product and packaging type",
+                                    ),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              print(
+                                "✅ All validations passed, placing order...",
+                              );
                               await ref
                                   .read(orderControllerProvider.notifier)
                                   .placeOrder(context);
                             } catch (e) {
+                              print("❌ Error placing order: $e");
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text("Error: $e"),
@@ -1122,181 +658,898 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     );
   }
 
-  // Helper Methods
-  // List<Widget> _buildAddonsBreakdown(
-  //   Map<String, dynamic> addonsMap,
-  //   Pricing pricing,
-  // ) {
-  //   List<Widget> widgets = [];
-  //   addonsMap.forEach((key, value) {
-  //     if (value is Map) {
-  //       final name = value['name']?.toString() ?? key;
-  //       final cost = value['cost']?.toString() ?? '0';
-  //       widgets.add(_summaryRow(name, "${pricing.currencySymbol}$cost"));
-  //     }
-  //   });
-  //   return widgets;
-  // }
+  // DEBUG INFORMATION WIDGET
+  Widget _buildDebugInfoSection() {
+    final bestQuote = ref.watch(bestQuoteProvider);
+    final quoteState = ref.watch(quoteControllerProvider);
 
-  Widget _addons({
-    required bool selected,
-    required String title,
-    required String subtitle,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 100,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? AppColors.electricTeal : Colors.grey.shade300,
-            width: 2,
-          ),
-          color: selected
-              ? AppColors.electricTeal.withOpacity(0.08)
-              : Colors.white,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              height: 16,
-              width: 16,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                color: selected ? AppColors.electricTeal : Colors.white,
-                border: Border.all(
-                  color: selected
-                      ? AppColors.electricTeal
-                      : Colors.grey.shade400,
-                  width: 2,
+    return Container(
+      margin: EdgeInsets.all(12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.bug_report, size: 18, color: Colors.orange[800]),
+              SizedBox(width: 8),
+              Text(
+                "Debug Information",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange[800],
                 ),
               ),
-              child: selected
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
-                  : null,
-            ),
-            gapW8,
-            Expanded(
+            ],
+          ),
+          SizedBox(height: 12),
+          _buildDebugRow("Quotes Calculated", hasCalculatedQuotes),
+          _buildDebugRow("Best Quote Selected", bestQuote != null),
+          _buildDebugRow(
+            "Quotes Available",
+            quoteState.value?.quotes.length ?? 0,
+          ),
+          SizedBox(height: 8),
+          if (bestQuote != null)
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    "Selected Quote Details:",
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: selected
-                          ? AppColors.darkText
-                          : AppColors.electricTeal,
+                      color: Colors.green[800],
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 4),
                   Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    "Vehicle: ${bestQuote.vehicleType}",
+                    style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                  ),
+                  Text(
+                    "Price: R${bestQuote.pricing.total.toStringAsFixed(2)}",
+                    style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                  ),
+                  Text(
+                    "Driver: ${bestQuote.driver.name}",
+                    style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                  ),
+                ],
+              ),
+            )
+          else if (hasCalculatedQuotes)
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red[200]!),
+              ),
+              child: Text(
+                "⚠️ Quotes calculated but no best quote selected",
+                style: TextStyle(fontSize: 12, color: Colors.red[800]),
+              ),
+            )
+          else
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Text(
+                "ℹ️ Click 'Get Smart Quotes' to calculate",
+                style: TextStyle(fontSize: 12, color: Colors.blue[800]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebugRow(String label, dynamic value) {
+    bool isBoolTrue = (value is bool && value);
+    bool isNumPositive = (value is num && value > 0);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isBoolTrue || isNumPositive
+                  ? Colors.green[100]
+                  : Colors.red[100],
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              value.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isBoolTrue || isNumPositive
+                    ? Colors.green[800]
+                    : Colors.red[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Get Smart Quotes Button
+  Widget _buildGetQuotesButton() {
+    final validationError = _validateBeforeQuotes();
+    final isDisabled = validationError != null || isLoadingQuotes;
+
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.symmetric(horizontal: 12),
+      child: Column(
+        children: [
+          ElevatedButton.icon(
+            onPressed: isDisabled ? null : _getSmartQuotes,
+            icon: isLoadingQuotes
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Icon(Icons.calculate, size: 24),
+            label: Text(
+              isLoadingQuotes
+                  ? "Calculating Quotes..."
+                  : hasCalculatedQuotes
+                  ? "Recalculate Quotes"
+                  : "Get Smart Quotes",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isDisabled
+                  ? Colors.grey[400]
+                  : AppColors.electricTeal,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 3,
+            ),
+          ),
+
+          if (validationError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                validationError,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.orange[700],
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Quote Error Display
+  Widget _buildQuoteError() {
+    return Container(
+      margin: EdgeInsets.all(12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red[700]),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Quote Calculation Failed",
+                  style: TextStyle(
+                    color: Colors.red[700],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  quoteError ?? "Unknown error",
+                  style: TextStyle(color: Colors.red[600], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Payment Summary Widget
+  Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      child: Column(
+        children: [
+          // Header with Icon
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: AppColors.electricTeal.withOpacity(0.1),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              border: Border.all(
+                color: AppColors.electricTeal.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.receipt_long,
+                  color: AppColors.electricTeal,
+                  size: 22,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "Payment Summary",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.darkText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Summary Content
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.pureWhite,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+              border: Border.all(
+                color: AppColors.mediumGray.withOpacity(0.2),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: quoteState.when(
+              data: (quoteData) {
+                if (quoteData == null || quoteData.quotes.isEmpty) {
+                  return _buildNoQuotesState();
+                }
+
+                // Get best quote
+                final bestQuote = ref.read(bestQuoteProvider);
+                if (bestQuote == null) {
+                  return _buildNoQuotesState();
+                }
+
+                return _buildQuoteDetails(bestQuote, quoteData);
+              },
+              loading: () => _buildLoadingState(),
+              error: (e, st) => _buildErrorState(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Quote Details Widget
+  Widget _buildQuoteDetails(Quote quote, QuoteData quoteData) {
+    final pricing = quote.pricing;
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Quote Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Best Quote Selected",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkText,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    "${quote.company.name} • ${quote.vehicleType}",
+                    style: TextStyle(fontSize: 12, color: AppColors.mediumGray),
+                  ),
+                ],
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.electricTeal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.star, size: 14, color: Colors.amber),
+                    SizedBox(width: 4),
+                    Text(
+                      "${quote.totalScore.toStringAsFixed(1)}% Match",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.electricTeal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 16),
+
+          // Vehicle Details
+          _buildQuoteDetailCard(
+            icon: Icons.directions_car,
+            title: "Vehicle Details",
+            children: [
+              _buildDetailRow("Type", quote.vehicleType),
+              _buildDetailRow("Capacity", "${quote.capacityWeightKg}kg"),
+              _buildDetailRow("Registration", quote.registrationNumber),
+              _buildDetailRow(
+                "Driver",
+                "${quote.driver.name} (⭐ ${quote.driver.rating})",
+              ),
+            ],
+          ),
+
+          SizedBox(height: 12),
+
+          // Pricing Breakdown
+          _buildQuoteDetailCard(
+            icon: Icons.attach_money,
+            title: "Pricing Breakdown",
+            children: [
+              _buildPriceRow("Base Fare", pricing.baseFare),
+              _buildPriceRow("Distance Cost", pricing.distanceCost),
+              if (pricing.weightCharge > 0)
+                _buildPriceRow("Weight Charge", pricing.weightCharge),
+              if (pricing.addOnsTotal > 0)
+                _buildPriceRow("Add-ons Total", pricing.addOnsTotal),
+              Divider(height: 20),
+              _buildPriceRow("Service Fee", pricing.serviceFee, isBold: true),
+              _buildPriceRow("Tax", pricing.tax, isBold: true),
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.electricTeal.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.electricTeal.withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Total Amount",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+                    Text(
+                      "R${pricing.total.toStringAsFixed(2)}",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.electricTeal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Distance Info
+          if (quoteData.distanceKm != null && quoteData.distanceKm! > 0)
+            Container(
+              margin: EdgeInsets.only(top: 12),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue[100]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.map, size: 20, color: Colors.blue[700]),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Estimated Distance",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue[800],
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "${quoteData.distanceKm!.toStringAsFixed(1)} km",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[900],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
+
+          // Product & Packaging Info
+          if (quoteData.productType != null || quoteData.packagingType != null)
+            Container(
+              margin: EdgeInsets.only(top: 12),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[100]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.inventory, size: 20, color: Colors.green[700]),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (quoteData.productType != null)
+                          Text(
+                            "Product: ${quoteData.productType!.name}",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.green[800],
+                            ),
+                          ),
+                        if (quoteData.packagingType != null)
+                          Text(
+                            "Packaging: ${quoteData.packagingType!.name}",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.green[800],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // View All Quotes Button
+          Container(
+            margin: EdgeInsets.only(top: 16),
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                _showAllQuotes(quoteData);
+              },
+              icon: Icon(Icons.list_alt, size: 18),
+              label: Text("View All Quotes (${quoteData.quotes.length})"),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.electricTeal),
+                padding: EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAllQuotes(QuoteData quoteData) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.electricTeal,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "All Available Quotes",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Quotes List
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.all(16),
+                  itemCount: quoteData.quotes.length,
+                  itemBuilder: (context, index) {
+                    final quote = quoteData.quotes[index];
+                    final isBest =
+                        ref.read(bestQuoteProvider)?.vehicleId ==
+                        quote.vehicleId;
+
+                    return Container(
+                      margin: EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isBest
+                              ? AppColors.electricTeal
+                              : Colors.grey[300]!,
+                          width: isBest ? 2 : 1,
+                        ),
+                      ),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.all(16),
+                        leading: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: AppColors.electricTeal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.local_shipping,
+                            size: 30,
+                            color: AppColors.electricTeal,
+                          ),
+                        ),
+                        title: Text(
+                          quote.vehicleType,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.darkText,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 4),
+                            Text(
+                              "${quote.company.name} • ${quote.driver.name}",
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.star, size: 12, color: Colors.amber),
+                                SizedBox(width: 4),
+                                Text(
+                                  "${quote.totalScore.toStringAsFixed(1)}% Match",
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              "R${quote.pricing.total.toStringAsFixed(2)}",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.electricTeal,
+                              ),
+                            ),
+                            if (isBest)
+                              Container(
+                                margin: EdgeInsets.only(top: 4),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.electricTeal,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  "BEST",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuoteDetailCard({
+    required IconData icon,
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: AppColors.electricTeal),
+                SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.darkText,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            ...children,
           ],
         ),
       ),
     );
   }
 
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(fontSize: 14, color: AppColors.mediumGray),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.darkText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(String label, double amount, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.darkText,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            "R${amount.toStringAsFixed(2)}",
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.darkText,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoQuotesState() {
+    return Container(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(Icons.receipt_long, size: 48, color: AppColors.mediumGray),
+          SizedBox(height: 16),
+          Text(
+            "No Quotes Available",
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.mediumGray,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            "Click 'Get Smart Quotes' to calculate pricing",
+            style: TextStyle(fontSize: 14, color: AppColors.mediumGray),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        children: [
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              color: AppColors.electricTeal,
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            "Loading quotes...",
+            style: TextStyle(fontSize: 16, color: AppColors.mediumGray),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Container(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(Icons.error_outline, size: 48, color: Colors.red),
+          SizedBox(height: 16),
+          Text(
+            "Failed to load quotes",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.red,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: 8),
+          TextButton(onPressed: _getSmartQuotes, child: Text("Try Again")),
+        ],
+      ),
+    );
+  }
+
+  // pickup section
   Widget _buildPickupSection() {
     final cache = ref.watch(orderCacheProvider);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.electricTeal),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.mediumGray.withOpacity(0.10),
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(cache["pickup_address1"] ?? "No Address", style: _boldText),
-          SizedBox(height: 4),
-          Text(
-            "${cache["pickup_city"] ?? "City N/A"} - ${cache["pickup_state"] ?? "State N/A"}",
-            style: _subText,
-          ),
-          SizedBox(height: 4),
-          CustomText(
-            txt:
-                "${cache["pickup_name"] ?? "Name N/A"} - ${cache["pickup_phone"] ?? "Phone N/A"}",
-            fontSize: 15,
-            color: AppColors.mediumGray,
-            fontWeight: FontWeight.w600,
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildDeliverySection() {
-    final cache = ref.watch(orderCacheProvider);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.electricTeal),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.mediumGray.withOpacity(0.10),
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(cache["delivery_address1"] ?? "No Address", style: _boldText),
-          SizedBox(height: 4),
-          Text(
-            "${cache["delivery_city"] ?? "City N/A"} - ${cache["delivery_state"] ?? "State N/A"}",
-            style: _subText,
-          ),
-          SizedBox(height: 4),
-          CustomText(
-            txt:
-                "${cache["delivery_name"] ?? "Name N/A"} - ${cache["delivery_phone"] ?? "Phone N/A"}",
-            fontSize: 15,
-            color: AppColors.mediumGray,
-            fontWeight: FontWeight.w600,
-          ),
-        ],
-      ),
-    );
-  }
+    // Check if multi-stop is enabled
+    final isMultiStop = cache["is_multi_stop_enabled"] == "true";
 
-  Widget _buildItemsSection() {
-    final items = ref.watch(packageItemsProvider);
-    double totalWeight = 0;
-    int totalItems = 0;
+    // Get pickup data based on mode
+    String pickupName;
+    String pickupPhone;
+    String pickupAddress;
+    String pickupCity;
+    String pickupState;
 
-    for (var item in items) {
-      totalWeight += double.tryParse(item.weight) ?? 0;
-      totalItems += int.tryParse(item.qty) ?? 1;
+    if (isMultiStop) {
+      // For multi-stop, get from specific stop 1 (pickup)
+      pickupName =
+          cache["stop_1_contact_name"] ?? cache["pickup_name"] ?? "Name N/A";
+      pickupPhone =
+          cache["stop_1_contact_phone"] ?? cache["pickup_phone"] ?? "Phone N/A";
+      pickupAddress =
+          cache["stop_1_address"] ?? cache["pickup_address1"] ?? "No Address";
+      pickupCity = cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
+      pickupState =
+          cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
+    } else {
+      // For single-stop, get from standard cache
+      pickupName = cache["pickup_name"] ?? "Name N/A";
+      pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
+      pickupAddress = cache["pickup_address1"] ?? "No Address";
+      pickupCity = cache["pickup_city"] ?? "City N/A";
+      pickupState = cache["pickup_state"] ?? "State N/A";
     }
 
     return Container(
@@ -1317,164 +1570,97 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (items.isEmpty) Text("No Items Added", style: _boldText),
-          ...items.asMap().entries.map((entry) {
-            final index = entry.key;
-            final item = entry.value;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          "${index + 1}. ",
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.darkText,
-                          ),
-                        ),
-
-                        Text("${item.name}", style: _boldText),
-                      ],
-                    ),
-
-                    SizedBox(width: 8),
-                    if (item.isFromShopify)
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.green),
-                        ),
-                        child: Text(
-                          "Shopify",
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                SizedBox(height: 2),
-                Row(
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          "Qty: ",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.darkText,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text("${item.qty}", style: _subText),
-                      ],
-                    ),
-                    gapW8,
-                    Text("Weight: ${item.weight}kg", style: _subText),
-                    SizedBox(width: 16),
-                    Text("Value: R${item.value}", style: _subText),
-                  ],
-                ),
-                SizedBox(height: 8),
-              ],
-            );
-          }),
-          Divider(color: AppColors.electricTeal),
-          SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              CustomText(
-                txt: "Total Items:",
-                fontSize: 15,
-                color: AppColors.mediumGray,
-                fontWeight: FontWeight.w600,
-              ),
-              CustomText(
-                txt: "$totalItems items",
-                fontSize: 15,
-                color: AppColors.electricTeal,
-                fontWeight: FontWeight.bold,
-              ),
-            ],
-          ),
+          Text(pickupAddress, style: _boldText),
           SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              CustomText(
-                txt: "Total Weight:",
-                fontSize: 15,
-                color: AppColors.mediumGray,
-                fontWeight: FontWeight.w600,
-              ),
-              CustomText(
-                txt: "${totalWeight.toStringAsFixed(1)} kg",
-                fontSize: 15,
-                color: AppColors.electricTeal,
-                fontWeight: FontWeight.bold,
-              ),
-            ],
+          Text("$pickupCity - $pickupState", style: _subText),
+          SizedBox(height: 4),
+          CustomText(
+            txt: "$pickupName - $pickupPhone",
+            fontSize: 15,
+            color: AppColors.mediumGray,
+            fontWeight: FontWeight.w600,
           ),
         ],
       ),
     );
   }
 
-  //  NEW: Priority Option Widget
-  Widget _priorityOption({
-    required bool selected,
-    required String title,
-    required String subtitle,
-    required String value,
-  }) {
-    return GestureDetector(
-      onTap: () => _onPriorityChanged(value),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected
-                ? AppColors.electricTeal
-                : AppColors.mediumGray.withOpacity(0.4),
-            width: selected ? 2 : 1,
+  Widget _buildDeliverySection() {
+    final cache = ref.watch(orderCacheProvider);
+
+    // Check if multi-stop is enabled
+    final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+    final stopsCount =
+        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+
+    // Get delivery data based on mode
+    String deliveryName;
+    String deliveryPhone;
+    String deliveryAddress;
+    String deliveryCity;
+    String deliveryState;
+
+    if (isMultiStop && stopsCount > 0) {
+      // For multi-stop, get from last stop (drop-off)
+      final lastStopIndex = stopsCount;
+      deliveryName =
+          cache["stop_${lastStopIndex}_contact_name"] ??
+          cache["delivery_name"] ??
+          "Name N/A";
+      deliveryPhone =
+          cache["stop_${lastStopIndex}_contact_phone"] ??
+          cache["delivery_phone"] ??
+          "Phone N/A";
+      deliveryAddress =
+          cache["stop_${lastStopIndex}_address"] ??
+          cache["delivery_address1"] ??
+          "No Address";
+      deliveryCity =
+          cache["stop_${lastStopIndex}_city"] ??
+          cache["delivery_city"] ??
+          "City N/A";
+      deliveryState =
+          cache["stop_${lastStopIndex}_state"] ??
+          cache["delivery_state"] ??
+          "State N/A";
+    } else {
+      // For single-stop, get from standard cache
+      deliveryName = cache["delivery_name"] ?? "Name N/A";
+      deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
+      deliveryAddress = cache["delivery_address1"] ?? "No Address";
+      deliveryCity = cache["delivery_city"] ?? "City N/A";
+      deliveryState = cache["delivery_state"] ?? "State N/A";
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.electricTeal),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.mediumGray.withOpacity(0.10),
+            blurRadius: 6,
+            offset: Offset(0, 3),
           ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected
-                  ? AppColors.electricTeal
-                  : AppColors.mediumGray.withOpacity(0.4),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CustomText(txt: title, fontSize: 15, color: AppColors.darkText),
-                CustomText(
-                  txt: subtitle,
-                  fontSize: 13,
-                  color: AppColors.mediumGray,
-                ),
-              ],
-            ),
-          ],
-        ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(deliveryAddress, style: _boldText),
+          SizedBox(height: 4),
+          Text("$deliveryCity - $deliveryState", style: _subText),
+          SizedBox(height: 4),
+          CustomText(
+            txt: "$deliveryName - $deliveryPhone",
+            fontSize: 15,
+            color: AppColors.mediumGray,
+            fontWeight: FontWeight.w600,
+          ),
+        ],
       ),
     );
   }
@@ -1567,231 +1753,494 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     );
   }
 
-  Widget _serviceOption2({
-    required bool selected,
-    required String title,
-    required String value,
-  }) {
-    return GestureDetector(
-      onTap: () => _onVehicleTypeChanged(value),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected
-                ? AppColors.electricTeal
-                : AppColors.mediumGray.withOpacity(0.4),
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected
-                  ? AppColors.electricTeal
-                  : AppColors.mediumGray.withOpacity(0.4),
-            ),
-            const SizedBox(width: 12),
-            CustomText(txt: title, fontSize: 15, color: AppColors.darkText),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Payment Summary
-  // Helper method for summary items
-  Widget _buildSummaryItem({
-    required IconData icon,
-    required String title,
-    required String amount,
-    Color? color,
-    bool showDivider = false,
-  }) {
+  Widget _buildAddOnsSection(List<AddOnItem> addOnsItems) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.only(bottom: 12),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, size: 18, color: color ?? AppColors.mediumGray),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.darkText,
-                    fontWeight: FontWeight.w500,
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.electricTeal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.add_circle_outline,
+                        color: AppColors.electricTeal,
+                        size: 20,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Add-ons",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkText,
+                        ),
+                      ),
+                      Text(
+                        "Optional extras",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              Text(
-                amount,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: color ?? AppColors.mediumGray,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.electricTeal.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "${addOnsItems.length} options",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.electricTeal,
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        if (showDivider)
-          Container(
-            height: 1,
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            color: AppColors.mediumGray.withOpacity(0.1),
+
+        SizedBox(
+          height: 160,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            shrinkWrap: true,
+            itemCount: addOnsItems.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: EdgeInsets.only(
+                  left: index == 0 ? 0 : 8,
+                  right: index == addOnsItems.length - 1 ? 0 : 8,
+                ),
+                child: _horizontalAddonCard(item: addOnsItems[index]),
+              );
+            },
           ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Consumer(
+          builder: (context, ref, child) {
+            final selectedAddons = ref.read(selectedAddonsProvider);
+            final selectedWithCost = ref.read(selectedAddOnsWithCostProvider);
+
+            if (selectedAddons.isEmpty) {
+              return const SizedBox();
+            }
+
+            double totalAddonsCost = 0;
+            for (var item in selectedWithCost) {
+              totalAddonsCost += item['cost'] ?? 0.0;
+            }
+
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.electricTeal.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.electricTeal.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: AppColors.electricTeal,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            "Selected (${selectedAddons.length})",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkText,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "R${totalAddonsCost.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.electricTeal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ],
     );
   }
 
-  // Add-ons breakdown with better UI
-  List<Widget> _buildAddonsBreakdownUI(
-    Map<String, dynamic> addonsMap,
-    Pricing pricing,
-  ) {
-    List<Widget> widgets = [];
+  Widget _horizontalAddonCard({required AddOnItem item}) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final selectedAddons = ref.read(selectedAddonsProvider);
+        final declaredValue = ref.watch(declaredValueProvider);
+        final isSelected = selectedAddons.contains(item.id);
+        final dynamicCost = item.calculateCost(declaredValue);
+        final isPercentage = item.type == 'percentage';
+        final costText = isPercentage
+            ? '${(item.rate * 100).toStringAsFixed(0)}%'
+            : 'R${item.cost?.toStringAsFixed(0) ?? '0'}';
 
-    addonsMap.forEach((key, value) {
-      if (value is Map) {
-        final name = value['name']?.toString() ?? key;
-        final cost = value['cost']?.toString() ?? '0';
-
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(left: 28),
-            child: _buildSummaryItem(
-              icon: Icons.add,
-              title: name,
-              amount: "${pricing.currencySymbol}$cost",
-              color: Colors.grey[600],
+        return GestureDetector(
+          onTap: () => _toggleAddOn(item.id, dynamicCost),
+          child: Container(
+            width: 140,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: isSelected
+                  ? AppColors.electricTeal.withOpacity(0.08)
+                  : Colors.white,
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.electricTeal
+                    : Colors.grey.shade200,
+                width: isSelected ? 1.5 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.electricTeal.withOpacity(0.1)
+                                  : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                item.getIconData(),
+                                size: 16,
+                                color: isSelected
+                                    ? AppColors.electricTeal
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected
+                                  ? AppColors.electricTeal
+                                  : Colors.transparent,
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.electricTeal
+                                    : Colors.grey.shade400,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    size: 12,
+                                    color: Colors.white,
+                                  )
+                                : null,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.electricTeal.withOpacity(0.1)
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          costText,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? AppColors.electricTeal
+                                : Colors.grey.shade800,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.name,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.darkText,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item.description,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
-      }
-    });
-
-    return widgets;
-  }
-
-  // Loading State
-  Widget _buildLoadingState() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          SizedBox(height: 20),
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation(AppColors.electricTeal),
-            strokeWidth: 2,
-          ),
-          SizedBox(height: 12),
-          Text(
-            "Calculating your quote...",
-            style: TextStyle(color: AppColors.mediumGray, fontSize: 14),
-          ),
-        ],
-      ),
+      },
     );
   }
 
-  // Error State
-  Widget _buildErrorState() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Icon(Icons.error_outline, color: Colors.red, size: 40),
-          SizedBox(height: 12),
-          Text(
-            "Unable to calculate quote",
-            style: TextStyle(
-              color: Colors.red[700],
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
+  Widget _buildLoadingContainer(String text) {
+    return Column(
+      children: [
+        Container(
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.mediumGray.withOpacity(0.4)),
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Text(text),
+              ],
             ),
-            textAlign: TextAlign.center,
           ),
-          SizedBox(height: 8),
-          Text(
-            "Please check your internet connection and try again.",
-            style: TextStyle(color: AppColors.mediumGray, fontSize: 13),
-            textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorContainer(String text) {
+    return Column(
+      children: [
+        Container(
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.red),
           ),
-          SizedBox(height: 16),
-          OutlinedButton.icon(
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, color: Colors.red),
+                const SizedBox(width: 12),
+                Text(text, style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton(
             onPressed: () {
-              // Retry logic here if needed
+              ref
+                  .read(serviceTypeControllerProvider.notifier)
+                  .loadServiceTypes();
             },
-            icon: Icon(Icons.refresh, size: 16),
-            label: Text("Try Again"),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppColors.electricTeal),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // No Data State
-  Widget _buildNoDataState() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Icon(Icons.receipt_long, color: AppColors.mediumGray, size: 40),
-          SizedBox(height: 12),
-          Text(
-            "No pricing data available",
-            style: TextStyle(color: AppColors.mediumGray, fontSize: 15),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _paymentOption({
-    required bool selected,
-    required String title,
-    required String value,
-  }) {
-    return GestureDetector(
-      onTap: () => _onPaymentMethodChanged(value),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected
-                ? AppColors.electricTeal
-                : AppColors.mediumGray.withOpacity(0.4),
-            width: selected ? 2 : 1,
+            child: const Text('Retry'),
           ),
         ),
-        child: Row(
-          children: [
-            Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              color: selected ? AppColors.electricTeal : Colors.grey,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: CustomText(
-                txt: title,
-                fontSize: 15,
-                color: AppColors.darkText,
+      ],
+    );
+  }
+
+  Widget _buildAddOnsLoading() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.electricTeal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.electricTeal,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Add-ons",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.darkText,
+                        ),
+                      ),
+                      Text(
+                        "Loading options...",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-          ],
+              Container(
+                width: 60,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _buildAddOnsError() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Icon(Icons.error_outline, color: Colors.red, size: 20),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Add-ons",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkText,
+                    ),
+                  ),
+                  Text(
+                    "Failed to load",
+                    style: TextStyle(fontSize: 11, color: Colors.red.shade600),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1821,3 +2270,195 @@ const _subText = TextStyle(
   color: AppColors.mediumGray,
   fontWeight: FontWeight.w600,
 );
+
+
+
+
+
+    //  NEW: Special Instructions
+                  // Column(
+                  //   crossAxisAlignment: CrossAxisAlignment.start,
+                  //   children: [
+                  //     _sectionTitle(
+                  //       Icons.note,
+                  //       "Special Instructions (Optional)",
+                  //     ),
+                  //     const SizedBox(height: 10),
+                  //     Container(
+                  //       padding: const EdgeInsets.symmetric(horizontal: 12),
+                  //       decoration: BoxDecoration(
+                  //         color: AppColors.pureWhite,
+                  //         borderRadius: BorderRadius.circular(10),
+                  //         border: Border.all(
+                  //           color: AppColors.electricTeal.withOpacity(0.3),
+                  //         ),
+                  //       ),
+                  //       child: TextField(
+                  //         decoration: InputDecoration(
+                  //           hintStyle: TextStyle(
+                  //             color: AppColors.electricTeal,
+                  //             fontSize: 14,
+                  //           ),
+                  //           hintText:
+                  //               "E.g., Fragile items, gate code, call before arrival...",
+                  //           border: InputBorder.none,
+                  //           contentPadding: EdgeInsets.symmetric(vertical: 14),
+                  //         ),
+                  //         maxLines: 3,
+                  //         onChanged: _onSpecialInstructionsChanged,
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
+                  // gapH16,
+
+                  
+  // //  NEW: Special instructions handler
+  // void _onSpecialInstructionsChanged(String instructions) {
+  //   setState(() => specialInstructions = instructions);
+  //   ref
+  //       .read(orderCacheProvider.notifier)
+  //       .saveValue("special_instructions", instructions);
+  // }
+
+
+
+
+
+                  // // Payment Method
+                  // Column(
+                  //   children: [
+                  //     _sectionTitle(
+                  //       Icons.account_balance_wallet,
+                  //       "Payment Method",
+                  //     ),
+                  //     const SizedBox(height: 10),
+                  //     _paymentOption(
+                  //       selected: paymentMethod == "wallet",
+                  //       title: "Wallet (Balance R500.0)",
+                  //       value: "wallet",
+                  //     ),
+                  //     _paymentOption(
+                  //       selected: paymentMethod == "cod",
+                  //       title: "Cash on Delivery",
+                  //       value: "cod",
+                  //     ),
+                  //     _paymentOption(
+                  //       selected: paymentMethod == "card",
+                  //       title: "Card Payment",
+                  //       value: "card",
+                  //     ),
+                  //   ],
+                  // ),
+                  // const SizedBox(height: 30),
+
+  //                   Widget _paymentOption({
+  //   required bool selected,
+  //   required String title,
+  //   required String value,
+  // }) {
+  //   return GestureDetector(
+  //     onTap: () => _onPaymentMethodChanged(value),
+  //     child: Container(
+  //       margin: const EdgeInsets.only(bottom: 12),
+  //       padding: const EdgeInsets.all(14),
+  //       decoration: BoxDecoration(
+  //         borderRadius: BorderRadius.circular(10),
+  //         border: Border.all(
+  //           color: selected
+  //               ? AppColors.electricTeal
+  //               : AppColors.mediumGray.withOpacity(0.4),
+  //           width: selected ? 2 : 1,
+  //         ),
+  //       ),
+  //       child: Row(
+  //         children: [
+  //           Icon(
+  //             selected ? Icons.radio_button_checked : Icons.radio_button_off,
+  //             color: selected ? AppColors.electricTeal : Colors.grey,
+  //           ),
+  //           const SizedBox(width: 12),
+  //           Expanded(
+  //             child: CustomText(
+  //               txt: title,
+  //               fontSize: 15,
+  //               color: AppColors.darkText,
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+
+  
+  // void _onPaymentMethodChanged(String newMethod) {
+  //   setState(() => paymentMethod = newMethod);
+  //   ref
+  //       .read(orderCacheProvider.notifier)
+  //       .saveValue("payment_method", newMethod);
+  //   print("✅ Payment method saved: $newMethod");
+  // }
+
+
+
+
+    //  // Vehicle Type
+    //               Column(
+    //                 children: [
+    //                   _sectionTitle(Icons.local_shipping, "Vehicle Type"),
+    //                   const SizedBox(height: 10),
+    //                   _serviceOption2(
+    //                     selected: vehicleMethod == "bike",
+    //                     title: "Bike (Small Packages)",
+    //                     value: "bike",
+    //                   ),
+    //                   _serviceOption2(
+    //                     selected: vehicleMethod == "van",
+    //                     title: "Van (Medium Load)",
+    //                     value: "van",
+    //                   ),
+    //                   _serviceOption2(
+    //                     selected: vehicleMethod == "truck",
+    //                     title: "Truck (Heavy/Bulk)",
+    //                     value: "truck",
+    //                   ),
+    //                 ],
+    //               ),
+    //               gapH16,
+
+
+  //     Widget _serviceOption2({
+  //   required bool selected,
+  //   required String title,
+  //   required String value,
+  // }) {
+  //   return GestureDetector(
+  //     onTap: () => _onVehicleTypeChanged(value),
+  //     child: Container(
+  //       margin: const EdgeInsets.only(bottom: 12),
+  //       padding: const EdgeInsets.all(14),
+  //       decoration: BoxDecoration(
+  //         borderRadius: BorderRadius.circular(10),
+  //         border: Border.all(
+  //           color: selected
+  //               ? AppColors.electricTeal
+  //               : AppColors.mediumGray.withOpacity(0.4),
+  //           width: selected ? 2 : 1,
+  //         ),
+  //       ),
+  //       child: Row(
+  //         children: [
+  //           Icon(
+  //             selected ? Icons.radio_button_checked : Icons.radio_button_off,
+  //             color: selected
+  //                 ? AppColors.electricTeal
+  //                 : AppColors.mediumGray.withOpacity(0.4),
+  //           ),
+  //           const SizedBox(width: 12),
+  //           CustomText(txt: title, fontSize: 15, color: AppColors.darkText),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }

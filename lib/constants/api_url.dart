@@ -62,4 +62,15 @@ abstract class ApiUrls {
 
   // Service Type
   static String getServiceType = "/api/master-data/service-types";
+
+  // Add Ons
+  static String getAddOns = "/api/master-data/add-ons";
+
+  // Caluculation Standard
+  static String postCalculationStandard =
+      "/api/v1/customer/orders/calculate-quote";
+
+  // Caluculation Multi Stop
+  static String postCalculationMultiStop =
+      "/api/v1/customer/orders/calculate-quote";
 }

@@ -17,6 +17,7 @@ class CustomAnimatedTextField extends StatefulWidget {
   final VoidCallback? onTap; // ✅ new
   final Widget? suffixIcon;
   final List<TextInputFormatter>? inputFormatters;
+  final void Function(String)? onChanged;
 
   const CustomAnimatedTextField({
     super.key,
@@ -35,6 +36,7 @@ class CustomAnimatedTextField extends StatefulWidget {
     this.readOnly = false, // default false
     this.onTap, // optional
     this.suffixIcon,
+    this.onChanged,
   });
 
   @override
@@ -115,7 +117,7 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
                 hintStyle: TextStyle(
                   // ignore: deprecated_member_use
                   color: widget.textColor.withOpacity(0.5),
-                  fontSize: 13,
+                  fontSize: 10,
                 ),
                 filled: true,
                 // ignore: deprecated_member_use

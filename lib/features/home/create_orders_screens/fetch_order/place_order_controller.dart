@@ -8,8 +8,6 @@ import 'package:logisticscustomer/features/home/create_orders_screens/order_cach
 import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
 import 'package:logisticscustomer/features/home/order_successful.dart';
 
-// ✅ REMOVE DUPLICATE PROVIDER DECLARATION FROM HERE
-
 class OrderController extends StateNotifier<AsyncValue<OrderResponse?>> {
   final OrderRepository repo;
   final Ref ref;
@@ -51,7 +49,9 @@ class OrderController extends StateNotifier<AsyncValue<OrderResponse?>> {
           MaterialPageRoute(
             builder: (_) => OrderSuccessful(
               orderNumber: result.data.orderNumber,
-              totalAmount: result.data.finalCost,
+              totalAmount: result.data.finalCost.toStringAsFixed(
+                2,
+              ), // FIXED: Convert double to string
             ),
           ),
         );
@@ -73,6 +73,12 @@ class OrderController extends StateNotifier<AsyncValue<OrderResponse?>> {
         errorMessage = "Customer profile not found. Please login again.";
       } else if (e.toString().contains("Server error")) {
         errorMessage = "Server error. Please try again later.";
+      } else if (e.toString().contains("Please select a quote")) {
+        errorMessage = "Please calculate and select a quote first.";
+      } else if (e.toString().contains(
+        "Product or packaging type not selected",
+      )) {
+        errorMessage = "Please select product and packaging type.";
       } else {
         errorMessage = e.toString();
       }
@@ -123,82 +129,3 @@ final orderControllerProvider =
       final repo = ref.watch(orderRepositoryProvider);
       return OrderController(repo, ref);
     });
-
-// class OrderController extends StateNotifier<AsyncValue<OrderResponse?>> {
-//   final OrderRepository repo;
-//   final Ref ref;
-
-//   OrderController(this.repo, this.ref) : super(const AsyncValue.data(null));
-
-//   Future<void> placeOrder(BuildContext context) async {
-//     state = const AsyncValue.loading();
-
-//     try {
-//       print("🔄 Starting order placement process...");
-
-//       // Prepare order data
-//       final orderData = await repo.prepareOrderData();
-
-//       // Call API
-//       print("📤 Sending order to API...");
-//       final result = await repo.placeOrder(orderData: orderData);
-
-//       state = AsyncValue.data(result);
-
-//       // ✅ CLEAR CACHE AFTER SUCCESS
-//       _clearOrderCache();
-
-//       print("✅ Order placed successfully! Order #: ${result.data.orderNumber}");
-//     } catch (e, st) {
-//       state = AsyncValue.error(e, st);
-//       print("⛔ Order Controller Error: $e");
-//       print("Stack trace: $st");
-
-//       // Show error to user
-//       if (context.mounted) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//             content: Text("Order failed: ${e.toString()}"),
-//             backgroundColor: Colors.red,
-//             duration: Duration(seconds: 3),
-//           ),
-//         );
-//       }
-//     }
-//   }
-
-//   // ✅ HELPER METHOD TO CLEAR CACHE
-//   void _clearOrderCache() {
-//     try {
-//       // Clear order cache
-//       ref.read(orderCacheProvider.notifier).clearAll();
-
-//       // Clear package items
-//       ref.read(packageItemsProvider.notifier).state = [];
-
-//       print("✅ Order cache and items cleared successfully");
-//     } catch (cacheError) {
-//       print("⚠️ Cache clearing error: $cacheError");
-//     }
-//   }
-
-//   void reset() {
-//     state = const AsyncValue.data(null);
-//   }
-// }
-
-// // ✅ SINGLE PROVIDER DECLARATION
-// final orderRepositoryProvider = Provider<OrderRepository>((ref) {
-//   return OrderRepository(dio: ref.watch(dioProvider), ref: ref);
-// });
-
-// final orderControllerProvider =
-//     StateNotifierProvider.autoDispose<
-//       OrderController,
-//       AsyncValue<OrderResponse?>
-//     >((ref) {
-//       final repo = ref.watch(
-//         orderRepositoryProvider,
-//       ); // ✅ Use existing provider
-//       return OrderController(repo, ref); // ✅ BOTH parameters passed
-//     });

@@ -5,6 +5,50 @@ import 'package:logisticscustomer/features/home/create_orders_screens/search_scr
 import '../../../../common_widgets/custom_button.dart';
 import '../../../../common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
+class PackageItem {
+  final String name;
+  final String qty;
+  final String weight;
+  final String value;
+  final String note;
+  final String sku;
+  final bool isFromShopify; // New field
+
+  PackageItem({
+    required this.name,
+    required this.qty,
+    required this.weight,
+    required this.value,
+    required this.note,
+    required this.sku,
+    this.isFromShopify = false, // Default false
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'qty': qty,
+      'weight': weight,
+      'value': value,
+      'note': note,
+      'sku': sku,
+      'isFromShopify': isFromShopify,
+    };
+  }
+
+  factory PackageItem.fromMap(Map<String, dynamic> map) {
+    return PackageItem(
+      name: map['name'] ?? "",
+      qty: map['qty'] ?? "",
+      weight: map['weight'] ?? "",
+      value: map['value'] ?? "",
+      note: map['note'] ?? "",
+      sku: map['sku'] ?? "",
+      isFromShopify: map['isFromShopify'] ?? false,
+    );
+  }
+}
+
 
 class SearchProductWidget extends ConsumerStatefulWidget {
   const SearchProductWidget({super.key});

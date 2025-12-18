@@ -11,15 +11,14 @@ import 'package:logisticscustomer/features/home/create_orders_screens/pickup_loc
 import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/dropdown/product_type_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/pickup_controller.dart';
 
-class PickupDeliveryScreen extends ConsumerStatefulWidget {
-  const PickupDeliveryScreen({super.key});
+class Step1Screen extends ConsumerStatefulWidget {
+  const Step1Screen({super.key});
 
   @override
-  ConsumerState<PickupDeliveryScreen> createState() =>
-      _PickupDeliveryScreenState();
+  ConsumerState<Step1Screen> createState() => _Step1ScreenState();
 }
 
-class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
+class _Step1ScreenState extends ConsumerState<Step1Screen> {
   String? selectedCountry;
   String? countryError;
 
@@ -52,6 +51,10 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
   final TextEditingController weightController = TextEditingController();
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController declaredValueController = TextEditingController();
+  // Dimensions variables
+  final TextEditingController lengthController = TextEditingController();
+  final TextEditingController widthController = TextEditingController();
+  final TextEditingController heightController = TextEditingController();
 
   void _validateFields() {
     // Product Type validation
@@ -109,6 +112,7 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
   final FocusNode contactnameFocus = FocusNode();
 
   bool _isFormFilled = false;
+  bool showDimensionsFields = false; // Added this
 
   @override
   void initState() {
@@ -121,12 +125,23 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 
     // LOAD CACHED DATA
     Future.microtask(() {
+      final cache = ref.read(
+        orderCacheProvider,
+      ); // Moved this to top - FIXED ISSUE 1
+      selectedAddress = cache["default_selected_address"] ?? "";
+
+      // Load dimensions from cache
+      final savedLength = cache["package_length"];
+      final savedWidth = cache["package_width"];
+      final savedHeight = cache["package_height"];
+      if (savedLength != null) lengthController.text = savedLength;
+      if (savedWidth != null) widthController.text = savedWidth;
+      if (savedHeight != null) heightController.text = savedHeight;
+
       ref.read(defaultAddressControllerProvider.notifier).loadDefaultAddress();
       ref.read(allAddressControllerProvider.notifier).loadAllAddress();
       ref.read(productTypeControllerProvider.notifier).loadProductTypes();
       ref.read(packagingTypeControllerProvider.notifier).loadPackagingTypes();
-      final cache = ref.read(orderCacheProvider);
-      selectedAddress = cache["default_selected_address"] ?? "";
 
       // Load product type from cache
       final savedProductTypeId = cache["selected_product_type_id"];
@@ -150,11 +165,18 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
       // Load packaging type from cache
       final savedPackagingTypeId = cache["selected_packaging_type_id"];
       final savedPackagingTypeName = cache["selected_packaging_type_name"];
+      final savedRequiresDimensions =
+          cache["selected_packaging_requires_dimensions"];
 
       if (savedPackagingTypeId != null) {
         setState(() {
           selectedPackagingTypeId = int.tryParse(savedPackagingTypeId);
           selectedPackagingTypeName = savedPackagingTypeName;
+
+          // Check if dimensions should be shown - FIXED ISSUE 2
+          if (savedRequiresDimensions != null) {
+            showDimensionsFields = savedRequiresDimensions == "true";
+          }
         });
       }
 
@@ -188,8 +210,9 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
       postalDeliveryController.text = cache["delivery_postal"] ?? "";
     });
 
+    _addDimensionCacheListeners();
     // LISTENERS FOR CACHING
-    _addCacheListeners();
+    _addCacheListeners(); // Added this
   }
 
   void setupPickupListener() {
@@ -452,7 +475,7 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     final quantity = cache["quantity"] ?? "";
     final declaredValue = cache["declared_value"] ?? "";
 
-    final isFilled =
+    bool isFilled =
         selectedProductTypeId != null &&
         selectedPackagingTypeId != null &&
         selectedPackageType != null &&
@@ -473,6 +496,15 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
         cityDeliveryController.text.isNotEmpty &&
         stateDeliveryController.text.isNotEmpty &&
         postalDeliveryController.text.isNotEmpty;
+
+    // Check dimensions if required
+    if (showDimensionsFields) {
+      isFilled =
+          isFilled &&
+          lengthController.text.isNotEmpty &&
+          widthController.text.isNotEmpty &&
+          heightController.text.isNotEmpty;
+    }
 
     if (isFilled != _isFormFilled) {
       setState(() => _isFormFilled = isFilled);
@@ -515,6 +547,10 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
     contactnameFocus.dispose();
     locationFocus.dispose();
     phoneFocus.dispose();
+
+    lengthController.dispose();
+    widthController.dispose();
+    heightController.dispose();
 
     contactnameController.dispose();
     phoneController.dispose();
@@ -778,7 +814,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                         gapH8,
 
                         // PACKAGE TYPE DROPDOWN
-                        // PACKAGING TYPE DROPDOWN (API Based)
                         Consumer(
                           builder: (context, ref, child) {
                             final packagingTypeState = ref.watch(
@@ -842,6 +877,8 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                                           selectedPackagingTypeName =
                                               selectedItem.name;
                                           packagingTypeError = null;
+                                          showDimensionsFields = selectedItem
+                                              .requiresDimensions; // FIXED ISSUE 3
                                         });
 
                                         // Save to cache
@@ -871,6 +908,13 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                                               selectedItem.requiresDimensions
                                                   .toString(),
                                             );
+
+                                        // Clear dimensions if not required
+                                        if (!selectedItem.requiresDimensions) {
+                                          lengthController.clear();
+                                          widthController.clear();
+                                          heightController.clear();
+                                        }
 
                                         _validateFields();
                                       },
@@ -962,32 +1006,61 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                                                   ],
                                                 ),
                                                 SizedBox(height: 2),
-                                                if (selectedItem
-                                                    .requiresDimensions)
-                                                  Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.warning_amber,
-                                                        size: 12,
-                                                        color: Colors.orange,
-                                                      ),
-                                                      SizedBox(width: 4),
-                                                      Text(
-                                                        "Dimensions required",
-                                                        style: TextStyle(
-                                                          fontSize: 10,
-                                                          color: Colors.orange,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
                                               ],
                                             );
                                           },
                                         ),
                                       ),
+
+                                    // DIMENSIONS FIELDS - Only show if requiresDimensions is true
+                                    if (showDimensionsFields) ...[
+                                      SizedBox(height: 16),
+                                      Text(
+                                        "Package Dimensions (cm)",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Column(
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _buildTextField(
+                                                  controller: lengthController,
+                                                  label: "Length (cm)",
+                                                  icon: Icons.straighten,
+                                                ),
+                                              ),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildTextField(
+                                                  controller: widthController,
+                                                  label: "Width (cm)",
+                                                  icon: Icons.width_normal,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: _buildTextField(
+                                                  controller: heightController,
+                                                  label: "Height (cm)",
+                                                  icon: Icons.height,
+                                                ),
+                                              ),
+                                              // Expanded(child: Container()), // Empty space for alignment
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
                                 );
                               },
@@ -1074,24 +1147,25 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                             );
                           },
                         ),
+
+                        // END PACKAGING TYPE DROPDOWN
                         gapH8,
 
                         Row(
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                controller: address1DeliveryController,
+                                controller: weightController, // FIXED ISSUE 4
                                 label: "Total Weight (kg)",
-                                icon: Icons.location_on,
+                                icon: Icons.scale, // Correct icon
                               ),
                             ),
-
                             gapW8,
                             Expanded(
                               child: _buildTextField(
-                                controller: address2DeliveryController,
+                                controller: quantityController, // FIXED ISSUE 4
                                 label: "Quantity",
-                                icon: Icons.location_city,
+                                icon: Icons.numbers, // Correct icon
                               ),
                             ),
                           ],
@@ -1100,139 +1174,19 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                         gapH8,
 
                         _buildTextField(
-                          controller: cityDeliveryController,
+                          controller: declaredValueController, // FIXED
                           label: "Declared Value (R)",
-                          icon: Icons.location_city_outlined,
+                          icon: Icons.attach_money, // Correct icon
                         ),
                       ],
                     ),
                   ),
-
-                  _sectionTitle("PICKUP LOCATION"),
-                  const SizedBox(height: 10),
+                  gapH20,
 
                   // Default Address
                   _defaultAddressSection(),
+
                   // Defult address end
-                  const SizedBox(height: 10),
-                  _linkText(
-                    "Use Current Location",
-                    Icons.pin_drop_outlined,
-                    onTap: () {},
-                  ),
-
-                  // _linkText("Add New Address", Icons.add, onTap: () {}),
-                  gapH20,
-                  _sectionTitle("DELIVERY LOCATION"),
-
-                  const SizedBox(height: 10),
-
-                  // delivery address
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.only(
-                      top: 16,
-                      right: 16,
-                      left: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.pureWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.mediumGray.withValues(alpha: 0.10),
-                          blurRadius: 6,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
-                    ),
-
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CustomText(
-                              txt: "Office Building",
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ],
-                        ),
-                        gapH16,
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                controller: contactnameDeliveryController,
-                                label: "Name",
-                                icon: Icons.person,
-                              ),
-                            ),
-                            gapW4,
-
-                            Expanded(
-                              child: _buildTextField(
-                                controller: phoneDeliveryController,
-                                label: "Phone Number",
-                                icon: Icons.phone_android,
-                                isNumber: true, //  ONLY NUMBER
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        gapH8,
-
-                        _buildTextField(
-                          controller: address1DeliveryController,
-                          label: "Address Line 1",
-                          icon: Icons.location_on,
-                        ),
-                        gapH8,
-
-                        _buildTextField(
-                          controller: address2DeliveryController,
-                          label: "Address Line 2",
-                          icon: Icons.location_city,
-                        ),
-                        gapH8,
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                controller: cityDeliveryController,
-                                label: "City",
-                                icon: Icons.location_city_outlined,
-                              ),
-                            ),
-                            gapW4,
-                            Expanded(
-                              child: _buildTextField(
-                                controller: stateDeliveryController,
-                                label: "State/Province",
-                                icon: Icons.map_outlined,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        gapH8,
-
-                        _buildTextField(
-                          controller: postalDeliveryController,
-                          label: "Postal Code",
-                          icon: Icons.numbers,
-                          isNumber: true, //  ONLY NUMBER
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // delivery address end
                   gapH16,
                 ],
               ),
@@ -1241,6 +1195,29 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
         ),
       ),
     );
+  }
+
+  void _addDimensionCacheListeners() {
+    lengthController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("package_length", lengthController.text);
+      _checkFormFilled();
+    });
+
+    widthController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("package_width", widthController.text);
+      _checkFormFilled();
+    });
+
+    heightController.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("package_height", heightController.text);
+      _checkFormFilled();
+    });
   }
 
   Widget _defaultAddressSection() {
@@ -1287,19 +1264,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                 child: _smallButton("Edit", showEditor && editorMode == "edit"),
               ),
               const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (editorMode == "add" && showEditor) {
-                      showEditor = false;
-                    } else {
-                      editorMode = "add";
-                      showEditor = true;
-                    }
-                  });
-                },
-                child: _smallButton("Add", showEditor && editorMode == "add"),
-              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1358,69 +1322,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
                   },
                 );
               },
-            ),
-          ],
-
-          if (showEditor && editorMode == "add") ...[
-            gapH12,
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: contactnameController,
-                    label: "Name",
-                    icon: Icons.person,
-                  ),
-                ),
-                gapW4,
-                Expanded(
-                  child: _buildTextField(
-                    controller: phoneController,
-                    label: "Phone Number",
-                    icon: Icons.phone_android,
-                    isNumber: true,
-                  ),
-                ),
-              ],
-            ),
-            gapH8,
-            _buildTextField(
-              controller: address1Controller,
-              label: "Address Line 1",
-              icon: Icons.location_on,
-            ),
-            gapH8,
-            _buildTextField(
-              controller: address2Controller,
-              label: "Address Line 2",
-              icon: Icons.location_city,
-            ),
-            gapH8,
-            Row(
-              children: [
-                Expanded(
-                  child: _buildTextField(
-                    controller: cityController,
-                    label: "City",
-                    icon: Icons.location_city_outlined,
-                  ),
-                ),
-                gapW4,
-                Expanded(
-                  child: _buildTextField(
-                    controller: stateController,
-                    label: "State/Province",
-                    icon: Icons.map_outlined,
-                  ),
-                ),
-              ],
-            ),
-            gapH8,
-            _buildTextField(
-              controller: postalController,
-              label: "Postal Code",
-              icon: Icons.numbers,
-              isNumber: true,
             ),
           ],
         ],
@@ -1519,36 +1420,7 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
       ),
     );
   }
-
-  Widget _sectionTitle(String title) {
-    return CustomText(
-      txt: title,
-      color: AppColors.darkText,
-      fontSize: 15,
-      fontWeight: FontWeight.bold,
-    );
-  }
-
-  Widget _linkText(String text, IconData icon, {required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.electricTeal),
-          const SizedBox(width: 6),
-          CustomText(
-            txt: text,
-            color: AppColors.darkText,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ],
-      ),
-    );
-  }
 }
-
-////////////////////////////
 
 // class PickupDeliveryScreen extends ConsumerStatefulWidget {
 //   const PickupDeliveryScreen({super.key});
@@ -1560,11 +1432,53 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 
 // class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //   String? selectedCountry;
-//   String? countryError; // Error message ke liye
+//   String? countryError;
+
+//   // New Product Type Variables
+//   String? selectedProductType;
+//   String? selectedProductTypeName;
+//   int? selectedProductTypeId;
+//   String? productTypeError;
+
+//   String? selectedPackageType;
+//   String? packageTypeError;
+//   // Packaging Type Variables
+//   String? selectedPackagingTypeName;
+//   int? selectedPackagingTypeId;
+//   String? packagingTypeError;
 
 //   List<String> staticCountries = ["Pakistan", "India", "USA", "UK", "UAE"];
+//   List<String> packageTypes = [
+//     "Box",
+//     "Envelope",
+//     "Tube",
+//     "Pallet",
+//     "Crate",
+//     "Bag",
+//     "Roll",
+//     "Other",
+//   ];
+
+//   // Text Controllers for product info
+//   final TextEditingController weightController = TextEditingController();
+//   final TextEditingController quantityController = TextEditingController();
+//   final TextEditingController declaredValueController = TextEditingController();
 
 //   void _validateFields() {
+//     // Product Type validation
+//     if (selectedProductTypeId == null) {
+//       productTypeError = "Please select a product type";
+//     } else {
+//       productTypeError = null;
+//     }
+
+//     // Packaging Type validation (changed from Package Type)
+//     if (selectedPackagingTypeId == null) {
+//       packagingTypeError = "Please select a packaging type";
+//     } else {
+//       packagingTypeError = null;
+//     }
+
 //     // Country validation
 //     if (selectedCountry == null || selectedCountry!.isEmpty) {
 //       countryError = "Please select a country";
@@ -1575,14 +1489,10 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 
 //   late FlutterGooglePlacesSdk places;
 
-//   String editorMode = ""; // "", "edit", "add"
+//   String editorMode = "";
 //   bool showEditor = false;
-//   String mode = ""; // "edit" or "add"
-
 //   int selectedCardIndex = 0;
 //   String selectedAddress = "";
-
-//   // String selectedAddress = "House 123, Street 5\nDHA Phase 6, Karachi";
 
 //   final TextEditingController contactnameController = TextEditingController();
 //   final TextEditingController phoneController = TextEditingController();
@@ -1604,12 +1514,11 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //   final TextEditingController postalDeliveryController =
 //       TextEditingController();
 
-//   final editlocationFocus = FocusNode();
-//   final phoneFocus = FocusNode();
-//   final locationFocus = FocusNode();
-//   final contactnameFocus = FocusNode();
+//   final FocusNode editlocationFocus = FocusNode();
+//   final FocusNode phoneFocus = FocusNode();
+//   final FocusNode locationFocus = FocusNode();
+//   final FocusNode contactnameFocus = FocusNode();
 
-//   final Color inactiveColor = AppColors.mediumGray;
 //   bool _isFormFilled = false;
 
 //   @override
@@ -1621,16 +1530,57 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //     setupPickupListener();
 //     setupDeliveryListener();
 
-//     // --------------------
-//     // 1. LOAD CACHED DATA
-//     // --------------------
+//     // LOAD CACHED DATA
 //     Future.microtask(() {
 //       ref.read(defaultAddressControllerProvider.notifier).loadDefaultAddress();
 //       ref.read(allAddressControllerProvider.notifier).loadAllAddress();
+//       ref.read(productTypeControllerProvider.notifier).loadProductTypes();
+//       ref.read(packagingTypeControllerProvider.notifier).loadPackagingTypes();
 //       final cache = ref.read(orderCacheProvider);
 //       selectedAddress = cache["default_selected_address"] ?? "";
 
-//       // Pickup
+//       // Load product type from cache
+//       final savedProductTypeId = cache["selected_product_type_id"];
+//       final savedProductTypeName = cache["selected_product_type_name"];
+
+//       if (savedProductTypeId != null) {
+//         setState(() {
+//           selectedProductTypeId = int.tryParse(savedProductTypeId);
+//           selectedProductTypeName = savedProductTypeName;
+//         });
+//       }
+
+//       // Load package type from cache
+//       final savedPackageType = cache["selected_package_type"];
+//       if (savedPackageType != null) {
+//         setState(() {
+//           selectedPackageType = savedPackageType;
+//         });
+//       }
+
+//       // Load packaging type from cache
+//       final savedPackagingTypeId = cache["selected_packaging_type_id"];
+//       final savedPackagingTypeName = cache["selected_packaging_type_name"];
+
+//       if (savedPackagingTypeId != null) {
+//         setState(() {
+//           selectedPackagingTypeId = int.tryParse(savedPackagingTypeId);
+//           selectedPackagingTypeName = savedPackagingTypeName;
+//         });
+//       }
+
+//       // Load product info from cache
+//       final savedWeight = cache["total_weight"];
+//       final savedQuantity = cache["quantity"];
+//       final savedDeclaredValue = cache["declared_value"];
+
+//       if (savedWeight != null) weightController.text = savedWeight;
+//       if (savedQuantity != null) quantityController.text = savedQuantity;
+//       if (savedDeclaredValue != null) {
+//         declaredValueController.text = savedDeclaredValue;
+//       }
+
+//       // Load pickup info from cache
 //       contactnameController.text = cache["pickup_name"] ?? "";
 //       phoneController.text = cache["pickup_phone"] ?? "";
 //       address1Controller.text = cache["pickup_address1"] ?? "";
@@ -1639,7 +1589,7 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //       stateController.text = cache["pickup_state"] ?? "";
 //       postalController.text = cache["pickup_postal"] ?? "";
 
-//       // Delivery
+//       // Load delivery info from cache
 //       contactnameDeliveryController.text = cache["delivery_name"] ?? "";
 //       phoneDeliveryController.text = cache["delivery_phone"] ?? "";
 //       address1DeliveryController.text = cache["delivery_address1"] ?? "";
@@ -1649,86 +1599,46 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //       postalDeliveryController.text = cache["delivery_postal"] ?? "";
 //     });
 
-//     // ----------------------------
-//     // 2. LISTENERS FOR CACHING
-//     // ----------------------------
+//     // LISTENERS FOR CACHING
 //     _addCacheListeners();
 //   }
 
 //   void setupPickupListener() {
 //     address1Controller.addListener(() async {
 //       final input = address1Controller.text.trim();
-
 //       if (input.length < 3) return;
 
-//       print("🎯 Pickup Address Line 1 changed: $input");
-
 //       try {
-//         // Step 1: Get autocomplete predictions
 //         final predictions = await places.findAutocompletePredictions(
 //           input,
 //           countries: ["ZA"],
 //         );
 
-//         if (predictions.predictions.isEmpty) {
-//           print("⚠️ No predictions found for pickup");
-//           return;
-//         }
+//         if (predictions.predictions.isEmpty) return;
 
-//         print("📊 Found ${predictions.predictions.length} pickup predictions");
-
-//         // Step 2: Show all predictions
-//         for (var i = 0; i < predictions.predictions.length; i++) {
-//           final pred = predictions.predictions[i];
-//           // ignore: dead_code
-//           print("${i + 1}. ${pred.fullText} (ID: ${pred.placeId})");
-//         }
-
-//         // Step 3: Use first prediction
 //         final placeId = predictions.predictions.first.placeId;
-//         print("🔍 Selected Pickup Place ID: $placeId");
-
-//         // Step 4: Fetch place details - Version 0.4.2+1 mein WITHOUT fields parameter
 //         final placeDetails = await places.fetchPlace(placeId, fields: []);
 
-//         // Step 5: DEBUG - Print full response
-//         print("📋 Complete Pickup Place Response:");
-//         if (placeDetails.place != null) {
-//           final placeJson = placeDetails.place!.toJson();
-//           placeJson.forEach((key, value) {
-//             print("  $key: $value");
-//           });
-//         }
-
-//         // Step 6: Extract coordinates
 //         double? lat;
 //         double? lng;
 
-//         // Try different possible locations
 //         if (placeDetails.place?.latLng != null) {
 //           lat = placeDetails.place!.latLng!.lat;
 //           lng = placeDetails.place!.latLng!.lng;
-//           print("✅ Got from latLng: $lat, $lng");
 //         }
 
-//         // If coordinates not found, use test coordinates for now
 //         if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
-//           print("❌ Could not extract valid coordinates from Google Places");
 //           _setPickupTestCoordinates(input);
 //           return;
 //         }
 
-//         // Save to cache
 //         ref
 //             .read(orderCacheProvider.notifier)
 //             .saveValue("pickup_latitude", lat.toString());
 //         ref
 //             .read(orderCacheProvider.notifier)
 //             .saveValue("pickup_longitude", lng.toString());
-
-//         print("✅ Pickup coordinates saved to cache: $lat, $lng");
 //       } catch (e) {
-//         print("⛔ Error in setupPickupListener: $e");
 //         _setPickupTestCoordinates(input);
 //       }
 //     });
@@ -1737,10 +1647,7 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //   void setupDeliveryListener() {
 //     address1DeliveryController.addListener(() async {
 //       final input = address1DeliveryController.text.trim();
-
 //       if (input.length < 3) return;
-
-//       print("🎯 Delivery Address Line 1 changed: $input");
 
 //       try {
 //         final predictions = await places.findAutocompletePredictions(
@@ -1748,49 +1655,31 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //           countries: ["ZA"],
 //         );
 
-//         if (predictions.predictions.isEmpty) {
-//           print("⚠️ No predictions found for delivery");
-//           return;
-//         }
-
-//         print(
-//           "📊 Found ${predictions.predictions.length} delivery predictions",
-//         );
+//         if (predictions.predictions.isEmpty) return;
 
 //         final placeId = predictions.predictions.first.placeId;
-//         print("🔍 Selected Delivery Place ID: $placeId");
-
-//         // Fetch place details
 //         final placeDetails = await places.fetchPlace(placeId, fields: []);
 
-//         // Extract coordinates
 //         double? lat;
 //         double? lng;
 
 //         if (placeDetails.place?.latLng != null) {
 //           lat = placeDetails.place!.latLng!.lat;
 //           lng = placeDetails.place!.latLng!.lng;
-//           print("✅ Delivery got from latLng: $lat, $lng");
 //         }
 
-//         // If coordinates not found, use test coordinates
 //         if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
-//           print("❌ Could not extract delivery coordinates");
 //           _setDeliveryTestCoordinates(input);
 //           return;
 //         }
 
-//         // Save to cache
 //         ref
 //             .read(orderCacheProvider.notifier)
 //             .saveValue("delivery_latitude", lat.toString());
 //         ref
 //             .read(orderCacheProvider.notifier)
 //             .saveValue("delivery_longitude", lng.toString());
-
-//         print("✅ Delivery coordinates saved to cache: $lat, $lng");
 //       } catch (e) {
-//         print("⛔ Error in setupDeliveryListener: $e");
 //         _setDeliveryTestCoordinates(input);
 //       }
 //     });
@@ -1813,17 +1702,14 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //       lat = "-25.7479";
 //       lng = "28.2293";
 //     } else {
-//       // Default to Cape Town coordinates
 //       lat = "-33.9258";
 //       lng = "18.4232";
 //     }
 
 //     ref.read(orderCacheProvider.notifier).saveValue("pickup_latitude", lat);
 //     ref.read(orderCacheProvider.notifier).saveValue("pickup_longitude", lng);
-//     print("✅ TEST: Pickup coordinates set to: $lat, $lng");
 //   }
 
-//   // Test coordinates for delivery
 //   void _setDeliveryTestCoordinates(String address) {
 //     String lat, lng;
 
@@ -1838,18 +1724,39 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //       lat = "-29.8498";
 //       lng = "31.0168";
 //     } else {
-//       // Slightly different from pickup for distance calculation
 //       lat = "-33.9318";
 //       lng = "18.4172";
 //     }
 
 //     ref.read(orderCacheProvider.notifier).saveValue("delivery_latitude", lat);
 //     ref.read(orderCacheProvider.notifier).saveValue("delivery_longitude", lng);
-//     print("✅ TEST: Delivery coordinates set to: $lat, $lng");
 //   }
 
 //   void _addCacheListeners() {
-//     // Pickup
+//     // Product info listeners
+//     weightController.addListener(() {
+//       ref
+//           .read(orderCacheProvider.notifier)
+//           .saveValue("total_weight", weightController.text);
+//       _checkFormFilled();
+//       _calculatePriceWithWeight(weightController.text);
+//     });
+
+//     quantityController.addListener(() {
+//       ref
+//           .read(orderCacheProvider.notifier)
+//           .saveValue("quantity", quantityController.text);
+//       _checkFormFilled();
+//     });
+
+//     declaredValueController.addListener(() {
+//       ref
+//           .read(orderCacheProvider.notifier)
+//           .saveValue("declared_value", declaredValueController.text);
+//       _checkFormFilled();
+//     });
+
+//     // Pickup listeners
 //     contactnameController.addListener(() {
 //       ref
 //           .read(orderCacheProvider.notifier)
@@ -1899,7 +1806,7 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //       _checkFormFilled();
 //     });
 
-//     // Delivery
+//     // Delivery listeners
 //     contactnameDeliveryController.addListener(() {
 //       ref
 //           .read(orderCacheProvider.notifier)
@@ -1951,7 +1858,18 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //   }
 
 //   void _checkFormFilled() {
+//     final cache = ref.read(orderCacheProvider);
+//     final weight = cache["total_weight"] ?? "";
+//     final quantity = cache["quantity"] ?? "";
+//     final declaredValue = cache["declared_value"] ?? "";
+
 //     final isFilled =
+//         selectedProductTypeId != null &&
+//         selectedPackagingTypeId != null &&
+//         selectedPackageType != null &&
+//         weight.isNotEmpty &&
+//         quantity.isNotEmpty &&
+//         declaredValue.isNotEmpty &&
 //         contactnameController.text.isNotEmpty &&
 //         phoneController.text.isNotEmpty &&
 //         address1Controller.text.isNotEmpty &&
@@ -1970,6 +1888,36 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //     if (isFilled != _isFormFilled) {
 //       setState(() => _isFormFilled = isFilled);
 //     }
+//   }
+
+//   void _calculatePrice(double valueMultiplier) {
+//     final cache = ref.read(orderCacheProvider);
+//     final weightStr = cache["total_weight"];
+//     final weight = double.tryParse(weightStr ?? "0") ?? 0;
+
+//     if (weight > 0) {
+//       _calculatePriceWithWeight(weight.toString(), valueMultiplier);
+//     }
+//   }
+
+//   void _calculatePriceWithWeight(String weightStr, [double? multiplier]) {
+//     final weight = double.tryParse(weightStr) ?? 0;
+//     if (weight <= 0) return;
+
+//     double valueMultiplier = multiplier ?? 1.0;
+
+//     if (multiplier == null) {
+//       final cache = ref.read(orderCacheProvider);
+//       final savedMultiplier = cache["selected_product_value_multiplier"];
+//       valueMultiplier = double.tryParse(savedMultiplier ?? "1.0") ?? 1.0;
+//     }
+
+//     double baseRatePerKg = 50.0;
+//     double calculatedPrice = weight * baseRatePerKg * valueMultiplier;
+
+//     ref
+//         .read(orderCacheProvider.notifier)
+//         .saveValue("calculated_price", calculatedPrice.toStringAsFixed(2));
 //   }
 
 //   @override
@@ -1995,6 +1943,10 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //     stateDeliveryController.dispose();
 //     postalDeliveryController.dispose();
 
+//     weightController.dispose();
+//     quantityController.dispose();
+//     declaredValueController.dispose();
+
 //     super.dispose();
 //   }
 
@@ -2002,7 +1954,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //   Widget build(BuildContext context) {
 //     return Scaffold(
 //       backgroundColor: AppColors.lightGrayBackground,
-
 //       body: SingleChildScrollView(
 //         child: Column(
 //           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2012,7 +1963,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //               child: Column(
 //                 crossAxisAlignment: CrossAxisAlignment.start,
 //                 children: [
-//                   // _sectionTitle(""),
 //                   Container(
 //                     width: double.infinity,
 //                     padding: const EdgeInsets.only(
@@ -2025,13 +1975,12 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                       borderRadius: BorderRadius.circular(12),
 //                       boxShadow: [
 //                         BoxShadow(
-//                           color: AppColors.mediumGray.withValues(alpha: 0.10),
+//                           color: AppColors.mediumGray.withOpacity(0.10),
 //                           blurRadius: 6,
-//                           offset: Offset(0, 3),
+//                           offset: const Offset(0, 3),
 //                         ),
 //                       ],
 //                     ),
-
 //                     child: Column(
 //                       crossAxisAlignment: CrossAxisAlignment.start,
 //                       children: [
@@ -2047,44 +1996,495 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                         ),
 //                         gapH16,
 
-//                         // Dropdown widget
-//                         DropDownContainer(
-//                           fw: FontWeight.normal,
-//                           dialogueScreen: MaterialConditionPopupLeftIcon(
-//                             title: '',
-//                             conditions: staticCountries,
-//                             initialSelectedIndex: selectedCountry != null
-//                                 ? staticCountries.indexOf(selectedCountry!)
-//                                 : null,
-//                           ),
-//                           text: selectedCountry ?? "Product Type",
-//                           onItemSelected: (value) {
-//                             setState(() {
-//                               selectedCountry = value;
-//                               _validateFields();
-//                             });
+//                         // PRODUCT TYPE DROPDOWN
+//                         Consumer(
+//                           builder: (context, ref, child) {
+//                             final productTypeState = ref.watch(
+//                               productTypeControllerProvider,
+//                             );
+
+//                             return productTypeState.when(
+//                               data: (data) {
+//                                 // ✅ CORRECT: Use getAllItems()
+//                                 final productItems = data.getAllItems();
+
+//                                 int? selectedIndex;
+//                                 if (selectedProductTypeId != null) {
+//                                   selectedIndex = productItems.indexWhere(
+//                                     (item) => item.id == selectedProductTypeId,
+//                                   );
+//                                   if (selectedIndex < 0) selectedIndex = 0;
+//                                 }
+
+//                                 return Column(
+//                                   crossAxisAlignment: CrossAxisAlignment.start,
+//                                   children: [
+//                                     DropDownContainer(
+//                                       fw: FontWeight.normal,
+//                                       dialogueScreen:
+//                                           MaterialConditionPopupLeftIcon(
+//                                             title: productItems.isNotEmpty
+//                                                 ? productItems[selectedIndex ??
+//                                                           0]
+//                                                       .name
+//                                                 : '',
+//                                             conditions: productItems
+//                                                 .map((e) => e.name)
+//                                                 .toList(),
+//                                             initialSelectedIndex: selectedIndex,
+//                                             enableSearch: true,
+//                                           ),
+//                                       text:
+//                                           selectedProductTypeId != null &&
+//                                               productItems.isNotEmpty
+//                                           ? productItems
+//                                                 .firstWhere(
+//                                                   (item) =>
+//                                                       item.id ==
+//                                                       selectedProductTypeId,
+//                                                   orElse: () =>
+//                                                       productItems.first,
+//                                                 )
+//                                                 .name
+//                                           : 'Select Product Type',
+//                                       onItemSelected: (value) {
+//                                         final selectedItem = productItems
+//                                             .firstWhere(
+//                                               (element) =>
+//                                                   element.name == value,
+//                                             );
+
+//                                         setState(() {
+//                                           selectedProductTypeId =
+//                                               selectedItem.id;
+//                                           selectedProductTypeName =
+//                                               selectedItem.name;
+//                                           productTypeError = null;
+//                                         });
+
+//                                         ref
+//                                             .read(orderCacheProvider.notifier)
+//                                             .saveValue(
+//                                               "selected_product_type_id",
+//                                               selectedItem.id.toString(),
+//                                             );
+//                                         ref
+//                                             .read(orderCacheProvider.notifier)
+//                                             .saveValue(
+//                                               "selected_product_type_name",
+//                                               selectedItem.name,
+//                                             );
+//                                         ref
+//                                             .read(orderCacheProvider.notifier)
+//                                             .saveValue(
+//                                               "selected_product_value_multiplier",
+//                                               selectedItem.valueMultiplier
+//                                                   .toString(),
+//                                             );
+
+//                                         _validateFields();
+//                                         _calculatePrice(
+//                                           selectedItem.valueMultiplier,
+//                                         );
+//                                       },
+//                                     ),
+//                                     if (productTypeError != null)
+//                                       Padding(
+//                                         padding: const EdgeInsets.only(
+//                                           top: 4,
+//                                           left: 4,
+//                                         ),
+//                                         child: Text(
+//                                           productTypeError!,
+//                                           style: const TextStyle(
+//                                             color: Colors.red,
+//                                             fontSize: 12,
+//                                           ),
+//                                         ),
+//                                       ),
+//                                   ],
+//                                 );
+//                               },
+//                               loading: () => Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   Container(
+//                                     height: 60,
+//                                     decoration: BoxDecoration(
+//                                       borderRadius: BorderRadius.circular(8),
+//                                       border: Border.all(
+//                                         color: AppColors.lightBorder,
+//                                       ),
+//                                       color: AppColors.pureWhite,
+//                                     ),
+//                                     child: Center(
+//                                       child: Row(
+//                                         mainAxisAlignment:
+//                                             MainAxisAlignment.center,
+//                                         children: [
+//                                           SizedBox(
+//                                             width: 20,
+//                                             height: 20,
+//                                             child: CircularProgressIndicator(
+//                                               strokeWidth: 2,
+//                                             ),
+//                                           ),
+//                                           const SizedBox(width: 8),
+//                                           const Text(
+//                                             'Loading product types...',
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ),
+//                                   ),
+//                                 ],
+//                               ),
+//                               error: (error, stackTrace) => Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   Container(
+//                                     height: 60,
+//                                     decoration: BoxDecoration(
+//                                       borderRadius: BorderRadius.circular(8),
+//                                       border: Border.all(color: Colors.red),
+//                                       color: AppColors.pureWhite,
+//                                     ),
+//                                     child: Center(
+//                                       child: Row(
+//                                         mainAxisAlignment:
+//                                             MainAxisAlignment.center,
+//                                         children: [
+//                                           const Icon(
+//                                             Icons.error_outline,
+//                                             color: Colors.red,
+//                                           ),
+//                                           const SizedBox(width: 8),
+//                                           const Text(
+//                                             'Error loading product types',
+//                                             style: TextStyle(color: Colors.red),
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ),
+//                                   ),
+//                                   const SizedBox(height: 8),
+//                                   Center(
+//                                     child: TextButton(
+//                                       onPressed: () {
+//                                         ref
+//                                             .read(
+//                                               productTypeControllerProvider
+//                                                   .notifier,
+//                                             )
+//                                             .loadProductTypes();
+//                                       },
+//                                       child: const Text('Retry'),
+//                                     ),
+//                                   ),
+//                                 ],
+//                               ),
+//                             );
 //                           },
 //                         ),
-
 //                         gapH8,
-//                         DropDownContainer(
-//                           fw: FontWeight.normal,
-//                           dialogueScreen: MaterialConditionPopupLeftIcon(
-//                             title: '',
-//                             conditions: staticCountries,
-//                             initialSelectedIndex: selectedCountry != null
-//                                 ? staticCountries.indexOf(selectedCountry!)
-//                                 : null,
-//                           ),
-//                           text: selectedCountry ?? "Package Type",
-//                           onItemSelected: (value) {
-//                             setState(() {
-//                               selectedCountry = value;
-//                               _validateFields();
-//                             });
+
+//                         // PACKAGE TYPE DROPDOWN
+//                         // PACKAGING TYPE DROPDOWN (API Based)
+//                         Consumer(
+//                           builder: (context, ref, child) {
+//                             final packagingTypeState = ref.watch(
+//                               packagingTypeControllerProvider,
+//                             );
+
+//                             return packagingTypeState.when(
+//                               data: (data) {
+//                                 final packagingItems = data.packagingTypes;
+
+//                                 int? selectedIndex;
+//                                 if (selectedPackagingTypeId != null) {
+//                                   selectedIndex = packagingItems.indexWhere(
+//                                     (item) =>
+//                                         item.id == selectedPackagingTypeId,
+//                                   );
+//                                   if (selectedIndex < 0) selectedIndex = 0;
+//                                 }
+
+//                                 return Column(
+//                                   crossAxisAlignment: CrossAxisAlignment.start,
+//                                   children: [
+//                                     DropDownContainer(
+//                                       fw: FontWeight.normal,
+//                                       dialogueScreen:
+//                                           MaterialConditionPopupLeftIcon(
+//                                             title: packagingItems.isNotEmpty
+//                                                 ? packagingItems[selectedIndex ??
+//                                                           0]
+//                                                       .name
+//                                                 : '',
+//                                             conditions: packagingItems
+//                                                 .map((e) => e.name)
+//                                                 .toList(),
+//                                             initialSelectedIndex: selectedIndex,
+//                                             enableSearch: true,
+//                                           ),
+//                                       text:
+//                                           selectedPackagingTypeId != null &&
+//                                               packagingItems.isNotEmpty
+//                                           ? packagingItems
+//                                                 .firstWhere(
+//                                                   (item) =>
+//                                                       item.id ==
+//                                                       selectedPackagingTypeId,
+//                                                   orElse: () =>
+//                                                       packagingItems.first,
+//                                                 )
+//                                                 .name
+//                                           : 'Select Packaging Type',
+//                                       onItemSelected: (value) {
+//                                         final selectedItem = packagingItems
+//                                             .firstWhere(
+//                                               (element) =>
+//                                                   element.name == value,
+//                                             );
+
+//                                         setState(() {
+//                                           selectedPackagingTypeId =
+//                                               selectedItem.id;
+//                                           selectedPackagingTypeName =
+//                                               selectedItem.name;
+//                                           packagingTypeError = null;
+//                                         });
+
+//                                         // Save to cache
+//                                         ref
+//                                             .read(orderCacheProvider.notifier)
+//                                             .saveValue(
+//                                               "selected_packaging_type_id",
+//                                               selectedItem.id.toString(),
+//                                             );
+//                                         ref
+//                                             .read(orderCacheProvider.notifier)
+//                                             .saveValue(
+//                                               "selected_packaging_type_name",
+//                                               selectedItem.name,
+//                                             );
+//                                         ref
+//                                             .read(orderCacheProvider.notifier)
+//                                             .saveValue(
+//                                               "selected_packaging_handling_multiplier",
+//                                               selectedItem.handlingMultiplier
+//                                                   .toString(),
+//                                             );
+//                                         ref
+//                                             .read(orderCacheProvider.notifier)
+//                                             .saveValue(
+//                                               "selected_packaging_requires_dimensions",
+//                                               selectedItem.requiresDimensions
+//                                                   .toString(),
+//                                             );
+
+//                                         _validateFields();
+//                                       },
+//                                     ),
+
+//                                     if (packagingTypeError != null)
+//                                       Padding(
+//                                         padding: const EdgeInsets.only(
+//                                           top: 4,
+//                                           left: 4,
+//                                         ),
+//                                         child: Text(
+//                                           packagingTypeError!,
+//                                           style: const TextStyle(
+//                                             color: Colors.red,
+//                                             fontSize: 12,
+//                                           ),
+//                                         ),
+//                                       ),
+
+//                                     // Show packaging type details if selected
+//                                     if (selectedPackagingTypeName != null)
+//                                       Padding(
+//                                         padding: const EdgeInsets.only(top: 4),
+//                                         child: Consumer(
+//                                           builder: (context, ref, child) {
+//                                             final state = ref.watch(
+//                                               packagingTypeControllerProvider,
+//                                             );
+//                                             final selectedItem = state.when(
+//                                               data: (data) => data
+//                                                   .packagingTypes
+//                                                   .firstWhere(
+//                                                     (item) =>
+//                                                         item.id ==
+//                                                         selectedPackagingTypeId,
+//                                                     orElse: () =>
+//                                                         PackagingTypeItem(
+//                                                           id: 0,
+//                                                           name: '',
+//                                                           description: '',
+//                                                           handlingMultiplier:
+//                                                               1.0,
+//                                                           requiresDimensions:
+//                                                               false,
+//                                                         ),
+//                                                   ),
+//                                               loading: () => PackagingTypeItem(
+//                                                 id: 0,
+//                                                 name: '',
+//                                                 description: '',
+//                                                 handlingMultiplier: 1.0,
+//                                                 requiresDimensions: false,
+//                                               ),
+//                                               error: (error, stackTrace) =>
+//                                                   PackagingTypeItem(
+//                                                     id: 0,
+//                                                     name: '',
+//                                                     description: '',
+//                                                     handlingMultiplier: 1.0,
+//                                                     requiresDimensions: false,
+//                                                   ),
+//                                             );
+
+//                                             return Column(
+//                                               children: [
+//                                                 Row(
+//                                                   children: [
+//                                                     Icon(
+//                                                       Icons.info_outline,
+//                                                       size: 14,
+//                                                       color: Colors.blue,
+//                                                     ),
+//                                                     SizedBox(width: 4),
+//                                                     Expanded(
+//                                                       child: Text(
+//                                                         selectedItem
+//                                                             .description,
+//                                                         style: TextStyle(
+//                                                           fontSize: 11,
+//                                                           color:
+//                                                               Colors.grey[600],
+//                                                         ),
+//                                                         maxLines: 2,
+//                                                         overflow: TextOverflow
+//                                                             .ellipsis,
+//                                                       ),
+//                                                     ),
+//                                                   ],
+//                                                 ),
+//                                                 SizedBox(height: 2),
+//                                                 if (selectedItem
+//                                                     .requiresDimensions)
+//                                                   Row(
+//                                                     children: [
+//                                                       Icon(
+//                                                         Icons.warning_amber,
+//                                                         size: 12,
+//                                                         color: Colors.orange,
+//                                                       ),
+//                                                       SizedBox(width: 4),
+//                                                       Text(
+//                                                         "Dimensions required",
+//                                                         style: TextStyle(
+//                                                           fontSize: 10,
+//                                                           color: Colors.orange,
+//                                                           fontWeight:
+//                                                               FontWeight.w500,
+//                                                         ),
+//                                                       ),
+//                                                     ],
+//                                                   ),
+//                                               ],
+//                                             );
+//                                           },
+//                                         ),
+//                                       ),
+//                                   ],
+//                                 );
+//                               },
+
+//                               loading: () => Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   Container(
+//                                     height: 60,
+//                                     decoration: BoxDecoration(
+//                                       borderRadius: BorderRadius.circular(8),
+//                                       border: Border.all(
+//                                         color: AppColors.lightBorder,
+//                                       ),
+//                                       color: AppColors.pureWhite,
+//                                     ),
+//                                     child: Center(
+//                                       child: Row(
+//                                         mainAxisAlignment:
+//                                             MainAxisAlignment.center,
+//                                         children: [
+//                                           SizedBox(
+//                                             width: 20,
+//                                             height: 20,
+//                                             child: CircularProgressIndicator(
+//                                               strokeWidth: 2,
+//                                             ),
+//                                           ),
+//                                           const SizedBox(width: 8),
+//                                           const Text(
+//                                             'Loading packaging types...',
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ),
+//                                   ),
+//                                 ],
+//                               ),
+
+//                               error: (error, stackTrace) => Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   Container(
+//                                     height: 60,
+//                                     decoration: BoxDecoration(
+//                                       borderRadius: BorderRadius.circular(8),
+//                                       border: Border.all(color: Colors.red),
+//                                       color: AppColors.pureWhite,
+//                                     ),
+//                                     child: Center(
+//                                       child: Row(
+//                                         mainAxisAlignment:
+//                                             MainAxisAlignment.center,
+//                                         children: [
+//                                           const Icon(
+//                                             Icons.error_outline,
+//                                             color: Colors.red,
+//                                           ),
+//                                           const SizedBox(width: 8),
+//                                           const Text(
+//                                             'Error loading packaging types',
+//                                             style: TextStyle(color: Colors.red),
+//                                           ),
+//                                         ],
+//                                       ),
+//                                     ),
+//                                   ),
+//                                   const SizedBox(height: 8),
+//                                   Center(
+//                                     child: TextButton(
+//                                       onPressed: () {
+//                                         ref
+//                                             .read(
+//                                               packagingTypeControllerProvider
+//                                                   .notifier,
+//                                             )
+//                                             .loadPackagingTypes();
+//                                       },
+//                                       child: const Text('Retry'),
+//                                     ),
+//                                   ),
+//                                 ],
+//                               ),
+//                             );
 //                           },
 //                         ),
-
 //                         gapH8,
 
 //                         Row(
@@ -2132,7 +2532,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                     onTap: () {},
 //                   ),
 
-//                   // const SizedBox(height: 4),
 //                   // _linkText("Add New Address", Icons.add, onTap: () {}),
 //                   gapH20,
 //                   _sectionTitle("DELIVERY LOCATION"),
@@ -2170,40 +2569,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                               fontSize: 16,
 //                               fontWeight: FontWeight.bold,
 //                             ),
-
-//                             // Container(
-//                             //   decoration: BoxDecoration(
-//                             //     color: AppColors.electricTeal,
-//                             //     borderRadius: BorderRadius.circular(8),
-//                             //     boxShadow: [
-//                             //       BoxShadow(
-//                             //         color: AppColors.mediumGray.withValues(
-//                             //           alpha: 0.10,
-//                             //         ),
-//                             //         blurRadius: 4,
-//                             //         offset: Offset(0, 2),
-//                             //       ),
-//                             //     ],
-//                             //   ),
-//                             //   padding: EdgeInsets.symmetric(
-//                             //     horizontal: 8,
-//                             //     vertical: 4,
-//                             //   ),
-//                             //   child: GestureDetector(
-//                             //     onTap: () {},
-//                             //     child: Row(
-//                             //       mainAxisSize: MainAxisSize.min,
-//                             //       children: [
-//                             //         CustomText(
-//                             //           txt: "Edit Location",
-//                             //           fontSize: 15,
-//                             //           color: AppColors.pureWhite,
-//                             //           fontWeight: FontWeight.bold,
-//                             //         ),
-//                             //       ],
-//                             //     ),
-//                             //   ),
-//                             // ),
 //                           ],
 //                         ),
 //                         gapH16,
@@ -2274,51 +2639,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                           icon: Icons.numbers,
 //                           isNumber: true, //  ONLY NUMBER
 //                         ),
-
-//                         // Container(
-//                         //   padding: const EdgeInsets.all(16),
-//                         //   decoration: _boxStyle,
-//                         //   child: Column(
-//                         //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                         //     children: [
-//                         //       Row(
-//                         //         crossAxisAlignment: CrossAxisAlignment.start,
-//                         //         children: [
-//                         //           Icon(
-//                         //             Icons.home,
-//                         //             size: 20,
-//                         //             color: AppColors.electricTeal,
-//                         //           ),
-//                         //           SizedBox(width: 12),
-//                         //           CustomText(
-//                         //             txt:
-//                         //                 "House 123, Street 5\nDHA Phase 6, Karachi",
-//                         //             color: AppColors.darkText,
-//                         //             fontSize: 14,
-//                         //             fontWeight: FontWeight.bold,
-//                         //           ),
-//                         //         ],
-//                         //       ),
-//                         //       gapH4,
-//                         //       Row(
-//                         //         mainAxisAlignment: MainAxisAlignment.end,
-//                         //         children: [
-//                         //           Icon(
-//                         //             Icons.location_on_outlined,
-//                         //             size: 16,
-//                         //             color: AppColors.electricTeal,
-//                         //           ),
-//                         //           CustomText(
-//                         //             txt: "Search on Map",
-//                         //             color: AppColors.electricTeal,
-//                         //             fontWeight: FontWeight.w500,
-//                         //             fontSize: 14,
-//                         //           ),
-//                         //         ],
-//                         //       ),
-//                         //     ],
-//                         //   ),
-//                         // ),
 //                       ],
 //                     ),
 //                   ),
@@ -2347,29 +2667,25 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //           BoxShadow(
 //             color: AppColors.mediumGray.withOpacity(0.1),
 //             blurRadius: 6,
-//             offset: Offset(0, 3),
+//             offset: const Offset(0, 3),
 //           ),
 //         ],
 //       ),
-
 //       child: Column(
 //         crossAxisAlignment: CrossAxisAlignment.start,
 //         children: [
-//           // ---------------- HEADER ----------------
 //           Row(
 //             children: [
-//               Text(
+//               const Text(
 //                 "Default Address",
 //                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
 //               ),
-//               Spacer(),
-
-//               // EDIT BUTTON
+//               const Spacer(),
 //               GestureDetector(
 //                 onTap: () {
 //                   setState(() {
 //                     if (editorMode == "edit" && showEditor) {
-//                       showEditor = false; // CLOSE
+//                       showEditor = false;
 //                     } else {
 //                       editorMode = "edit";
 //                       showEditor = true;
@@ -2381,15 +2697,12 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                 },
 //                 child: _smallButton("Edit", showEditor && editorMode == "edit"),
 //               ),
-
-//               SizedBox(width: 8),
-
-//               // ADD BUTTON
+//               const SizedBox(width: 8),
 //               GestureDetector(
 //                 onTap: () {
 //                   setState(() {
 //                     if (editorMode == "add" && showEditor) {
-//                       showEditor = false; // CLOSE
+//                       showEditor = false;
 //                     } else {
 //                       editorMode = "add";
 //                       showEditor = true;
@@ -2400,23 +2713,16 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //               ),
 //             ],
 //           ),
-
 //           const SizedBox(height: 16),
 
-//           // -------------------------------------------------------
-//           // DEFAULT ADDRESS — only when editor OFF
-//           // -------------------------------------------------------
 //           if (!showEditor)
 //             defaultAddressState.when(
 //               loading: () =>
 //                   _selectableCard(index: 0, text: "Loading address..."),
-
 //               error: (err, _) =>
 //                   _selectableCard(index: 0, text: "Failed to load address"),
-
 //               data: (addressModel) {
 //                 final address = addressModel.data;
-
 //                 final formatted =
 //                     "${address.address},\n${address.city}, ${address.state}\n${address.postalCode}";
 
@@ -2430,12 +2736,8 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //               },
 //             ),
 
-//           // -------------------------------------------------------
-//           // EDIT MODE (all addresses)
-//           // -------------------------------------------------------
 //           if (showEditor && editorMode == "edit") ...[
-//             SizedBox(height: 12),
-
+//             const SizedBox(height: 12),
 //             Consumer(
 //               builder: (context, ref, _) {
 //                 final allAddressState = ref.watch(allAddressControllerProvider);
@@ -2445,12 +2747,10 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                     index: 999,
 //                     text: "Loading saved addresses...",
 //                   ),
-
 //                   error: (err, _) => _selectableCard(
 //                     index: 999,
 //                     text: "Failed to load addresses",
 //                   ),
-
 //                   data: (model) {
 //                     final list = model?.data ?? [];
 
@@ -2472,12 +2772,8 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //             ),
 //           ],
 
-//           // -------------------------------------------------------
-//           // ADD MODE — fields
-//           // -------------------------------------------------------
 //           if (showEditor && editorMode == "add") ...[
 //             gapH12,
-
 //             Row(
 //               children: [
 //                 Expanded(
@@ -2488,34 +2784,29 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                   ),
 //                 ),
 //                 gapW4,
-
 //                 Expanded(
 //                   child: _buildTextField(
 //                     controller: phoneController,
 //                     label: "Phone Number",
 //                     icon: Icons.phone_android,
-//                     isNumber: true, //  ONLY NUMBER
+//                     isNumber: true,
 //                   ),
 //                 ),
 //               ],
 //             ),
-
 //             gapH8,
-
 //             _buildTextField(
 //               controller: address1Controller,
 //               label: "Address Line 1",
 //               icon: Icons.location_on,
 //             ),
 //             gapH8,
-
 //             _buildTextField(
 //               controller: address2Controller,
 //               label: "Address Line 2",
 //               icon: Icons.location_city,
 //             ),
 //             gapH8,
-
 //             Row(
 //               children: [
 //                 Expanded(
@@ -2535,14 +2826,12 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //                 ),
 //               ],
 //             ),
-
 //             gapH8,
-
 //             _buildTextField(
 //               controller: postalController,
 //               label: "Postal Code",
 //               icon: Icons.numbers,
-//               isNumber: true, //  ONLY NUMBER
+//               isNumber: true,
 //             ),
 //           ],
 //         ],
@@ -2550,7 +2839,6 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //     );
 //   }
 
-//   /// SMALL BUTTON WIDGET
 //   Widget _smallButton(String text, bool isOpen) {
 //     IconData icon;
 
@@ -2569,14 +2857,13 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //       child: Row(
 //         children: [
 //           Icon(icon, size: 12, color: Colors.white),
-//           SizedBox(width: 4),
-//           Text(text, style: TextStyle(color: Colors.white, fontSize: 12)),
+//           const SizedBox(width: 4),
+//           Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
 //         ],
 //       ),
 //     );
 //   }
 
-//   /// TEXTFIELD SHORTCUT
 //   Widget _buildTextField({
 //     required TextEditingController controller,
 //     required String label,
@@ -2592,17 +2879,13 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //       iconColor: AppColors.electricTeal,
 //       borderColor: AppColors.electricTeal,
 //       textColor: AppColors.mediumGray,
-
 //       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-
-//       //  ALWAYS provide a list (never null)
 //       inputFormatters: isNumber
 //           ? [FilteringTextInputFormatter.digitsOnly]
 //           : <TextInputFormatter>[],
 //     );
 //   }
 
-//   // SELECTABLE CARD (DEFAULT + EXTRA)
 //   Widget _selectableCard({required int index, required String text}) {
 //     bool isSelected = selectedCardIndex == index;
 
@@ -2613,13 +2896,10 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //           selectedAddress = text;
 //           showEditor = false;
 //         });
-
-//         // SAVE SELECTED DEFAULT ADDRESS
 //         ref
 //             .read(orderCacheProvider.notifier)
 //             .saveValue("default_selected_address", text);
 //       },
-
 //       child: Container(
 //         padding: const EdgeInsets.all(16),
 //         decoration: BoxDecoration(
@@ -2630,16 +2910,15 @@ class _PickupDeliveryScreenState extends ConsumerState<PickupDeliveryScreen> {
 //             width: isSelected ? 2 : 1,
 //           ),
 //         ),
-
 //         child: Row(
 //           crossAxisAlignment: CrossAxisAlignment.start,
 //           children: [
-//             Icon(Icons.home, size: 20, color: AppColors.electricTeal),
-//             SizedBox(width: 12),
+//             const Icon(Icons.home, size: 20, color: AppColors.electricTeal),
+//             const SizedBox(width: 12),
 //             Expanded(
 //               child: Text(
 //                 text,
-//                 style: TextStyle(
+//                 style: const TextStyle(
 //                   color: AppColors.darkText,
 //                   fontSize: 14,
 //                   fontWeight: FontWeight.bold,

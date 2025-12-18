@@ -83,7 +83,8 @@ final productTypeRepositoryProvider = Provider<ProductTypeRepository>((ref) {
   return ProductTypeRepository(dio: ref.watch(dioProvider), ref: ref);
 });
 
-// Product Type Repository 
+
+//PACKAGEINF Type Repository 
 class PackagingTypeRepository {
   final Dio dio;
   final Ref ref;

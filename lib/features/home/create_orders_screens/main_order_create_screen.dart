@@ -23,8 +23,8 @@ class _MainOrderCreateScreenState extends State<MainOrderCreateScreen>
   ];
 
   final List<Widget> _tabsBody = const [
-    PickupDeliveryScreen(),
-    PackageDetailsScreen(),
+    Step1Screen(),
+    Step2Screen(),
   ];
 
   @override

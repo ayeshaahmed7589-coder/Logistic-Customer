@@ -73,4 +73,7 @@ abstract class ApiUrls {
   // Caluculation Multi Stop
   static String postCalculationMultiStop =
       "/api/v1/customer/orders/calculate-quote";
+
+  //order details
+  static const String orderDetails = "/api/v1/customer/orders";
 }

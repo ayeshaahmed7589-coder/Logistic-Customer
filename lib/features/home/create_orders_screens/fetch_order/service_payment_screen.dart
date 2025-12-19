@@ -146,25 +146,42 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     }
   }
 
-  Future<void> _calculateStandardQuotes({
-    required int productTypeId,
-    required int packagingTypeId,
-    required double totalWeightKg,
-    required List<String> selectedAddons,
-  }) async {
-    final cache = ref.read(orderCacheProvider);
+Future<void> _calculateStandardQuotes({
+  required int productTypeId,
+  required int packagingTypeId,
+  required double totalWeightKg,
+  required List<String> selectedAddons,
+}) async {
+  final cache = ref.read(orderCacheProvider);
 
-    final pickupCity = cache["pickup_city"] ?? "";
-    final pickupState = cache["pickup_state"] ?? "";
-    final deliveryCity = cache["delivery_city"] ?? "";
-    final deliveryState = cache["delivery_state"] ?? "";
+  // ✅ IMPORTANT: Sab data ko proper way mein get karein
+  final pickupCity = cache["pickup_city"]?.toString().trim() ?? "";
+  final pickupState = cache["pickup_state"]?.toString().trim() ?? "";
+  final deliveryCity = cache["delivery_city"]?.toString().trim() ?? "";
+  final deliveryState = cache["delivery_state"]?.toString().trim() ?? "";
+  final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
+  final declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
+  final serviceType = cache["service_type_id"]?.toString() ?? "standard";
 
-    if (pickupCity.isEmpty || deliveryCity.isEmpty) {
-      throw Exception("Please provide pickup and delivery locations");
-    }
+  // ✅ DEBUG LOGS
+  print("📍📍📍 CALCULATING STANDARD QUOTES:");
+  print("Pickup: $pickupCity, $pickupState");
+  print("Delivery: $deliveryCity, $deliveryState");
+  print("Product Type ID: $productTypeId");
+  print("Packaging Type ID: $packagingTypeId");
+  print("Weight: ${totalWeightKg}kg");
+  print("Declared Value: R$declaredValue");
+  print("Service Type: $serviceType");
+  print("Add-ons: $selectedAddons");
 
-    final dimensions = _getDimensionsFromCache(cache);
+  // ✅ Validation
+  if (pickupCity.isEmpty || deliveryCity.isEmpty) {
+    throw Exception("Please provide pickup and delivery locations");
+  }
 
+  final dimensions = _getDimensionsFromCache(cache);
+
+  try {
     await ref
         .read(quoteControllerProvider.notifier)
         .calculateStandardQuote(
@@ -175,15 +192,27 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
           pickupState: pickupState,
           deliveryCity: deliveryCity,
           deliveryState: deliveryState,
-          serviceType: selectedServiceTypeId ?? "standard",
+          serviceType: serviceType, // ✅ Yeh important hai
           declaredValue: declaredValue,
           addOns: selectedAddons,
           length: dimensions['length'],
           width: dimensions['width'],
           height: dimensions['height'],
         );
+    
+    // ✅ Force state update
+    setState(() {
+      hasCalculatedQuotes = true;
+      isLoadingQuotes = false;
+    });
+    
+    print("✅✅✅ Quotes calculation completed!");
+    
+  } catch (e) {
+    print("❌❌❌ Error in calculateStandardQuotes: $e");
+    rethrow;
   }
-
+}
   Future<void> _calculateMultiStopQuotes({
     required int productTypeId,
     required int packagingTypeId,
@@ -521,133 +550,94 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                   gapH16,
 
                   // Place Order Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Consumer(
-                      builder: (context, ref, child) {
-                        final orderState = ref.watch(orderControllerProvider);
-                        final isOrderLoading = orderState.isLoading;
-                        final bestQuote = ref.watch(bestQuoteProvider);
 
-                        // Check if we have all required data
-                        bool canPlaceOrder =
-                            hasCalculatedQuotes &&
-                            bestQuote != null &&
-                            !isOrderLoading;
+              // Place Order Button ka updated validation
+Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 20),
+  child: Consumer(
+    builder: (context, ref, child) {
+      final orderState = ref.watch(orderControllerProvider);
+      final isOrderLoading = orderState.isLoading;
+      final bestQuote = ref.watch(bestQuoteProvider);
+      final quoteState = ref.watch(quoteControllerProvider);
 
-                        print(
-                          "🔄 Button Status - canPlaceOrder: $canPlaceOrder",
-                        );
+      // ✅ FIXED VALIDATION: Check if quotes exist
+      bool canPlaceOrder = hasCalculatedQuotes &&
+          quoteState.value != null &&
+          quoteState.value!.quotes.isNotEmpty &&
+          !isOrderLoading;
 
-                        return CustomButton(
-                          text: isOrderLoading
-                              ? "Placing Order..."
-                              : "Place Order",
-                          backgroundColor: canPlaceOrder
-                              ? AppColors.electricTeal
-                              : AppColors.mediumGray.withOpacity(0.3),
-                          borderColor: canPlaceOrder
-                              ? AppColors.electricTeal
-                              : AppColors.mediumGray.withOpacity(0.5),
-                          textColor: canPlaceOrder
-                              ? AppColors.pureWhite
-                              : AppColors.darkText.withOpacity(0.5),
-                          onPressed: () async {
-                            print("🎯 Place Order Button Pressed");
-                            print("canPlaceOrder: $canPlaceOrder");
-                            print("hasCalculatedQuotes: $hasCalculatedQuotes");
-                            print("bestQuote: ${bestQuote != null}");
+      print("🔄 Button Status:");
+      print("hasCalculatedQuotes: $hasCalculatedQuotes");
+      print("quoteState has data: ${quoteState.value != null}");
+      print("quotes exist: ${quoteState.value?.quotes.isNotEmpty ?? false}");
+      print("isOrderLoading: $isOrderLoading");
+      print("canPlaceOrder: $canPlaceOrder");
 
-                            if (!canPlaceOrder) {
-                              print(
-                                "❌ Cannot place order - conditions not met",
-                              );
-                              if (!hasCalculatedQuotes) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Please calculate quotes first",
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                              } else if (bestQuote == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Please select a quote first",
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                              }
-                              return;
-                            }
+      return CustomButton(
+        text: isOrderLoading
+            ? "Placing Order..."
+            : "Place Order",
+        backgroundColor: canPlaceOrder
+            ? AppColors.electricTeal
+            : AppColors.mediumGray.withOpacity(0.3),
+        borderColor: canPlaceOrder
+            ? AppColors.electricTeal
+            : AppColors.mediumGray.withOpacity(0.5),
+        textColor: canPlaceOrder
+            ? AppColors.pureWhite
+            : AppColors.darkText.withOpacity(0.5),
+        onPressed: canPlaceOrder ? () async {
+          print("🎯 Place Order Button Pressed");
+          
+          try {
+            final cache = ref.read(orderCacheProvider);
+            
+            // ✅ Final validation
+            if (cache["pickup_address1"] == null ||
+                cache["delivery_address1"] == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Please add pickup and delivery addresses"),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              return;
+            }
 
-                            try {
-                              final cache = ref.read(orderCacheProvider);
+            // final items = ref.read(packageItemsProvider);
+            // if (items.isEmpty) {
+            //   ScaffoldMessenger.of(context).showSnackBar(
+            //     SnackBar(
+            //       content: Text("Please add at least one item"),
+            //       backgroundColor: Colors.orange,
+            //     ),
+            //   );
+            //   return;
+            // }
 
-                              // Validate required data
-                              if (cache["pickup_address1"] == null ||
-                                  cache["delivery_address1"] == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Please add pickup and delivery addresses",
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              final items = ref.read(packageItemsProvider);
-                              if (items.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Please add at least one item",
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              // Validate product and packaging types
-                              if (cache["selected_product_type_id"] == null ||
-                                  cache["selected_packaging_type_id"] == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "Please select product and packaging type",
-                                    ),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              print(
-                                "✅ All validations passed, placing order...",
-                              );
-                              await ref
-                                  .read(orderControllerProvider.notifier)
-                                  .placeOrder(context);
-                            } catch (e) {
-                              print("❌ Error placing order: $e");
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Error: $e"),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                        );
-                      },
-                    ),
-                  ),
+            print("✅ All validations passed, placing order...");
+            
+            // ✅ Place order
+            await ref
+                .read(orderControllerProvider.notifier)
+                .placeOrder(context);
+                
+          } catch (e) {
+            print("❌ Error placing order: $e");
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Error: ${e.toString()}"),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } : null,
+      );
+    },
+  ),
+),
+                 
                   gapH12,
                 ],
               ),
@@ -797,7 +787,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   }
 
   // Get Smart Quotes Button
-  Widget _buildGetQuotesButton() {
+    Widget _buildGetQuotesButton() {
     final validationError = _validateBeforeQuotes();
     final isDisabled = validationError != null || isLoadingQuotes;
 
@@ -896,83 +886,89 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   }
 
   // Payment Summary Widget
-  Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: Column(
-        children: [
-          // Header with Icon
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: AppColors.electricTeal.withOpacity(0.1),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              border: Border.all(
-                color: AppColors.electricTeal.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.receipt_long,
-                  color: AppColors.electricTeal,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "Payment Summary",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.darkText,
-                  ),
-                ),
-              ],
+// Payment Summary Widget - FIXED VERSION
+Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 1),
+    child: Column(
+      children: [
+        // Header with Icon
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.electricTeal.withOpacity(0.1),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            border: Border.all(
+              color: AppColors.electricTeal.withOpacity(0.3),
+              width: 1,
             ),
           ),
-
-          // Summary Content
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.pureWhite,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-              border: Border.all(
-                color: AppColors.mediumGray.withOpacity(0.2),
-                width: 1,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.receipt_long,
+                color: AppColors.electricTeal,
+                size: 22,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
+              const SizedBox(width: 8),
+              Text(
+                "Payment Summary",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.darkText,
                 ),
-              ],
-            ),
-            child: quoteState.when(
-              data: (quoteData) {
-                if (quoteData == null || quoteData.quotes.isEmpty) {
-                  return _buildNoQuotesState();
-                }
-
-                // Get best quote
-                final bestQuote = ref.read(bestQuoteProvider);
-                if (bestQuote == null) {
-                  return _buildNoQuotesState();
-                }
-
-                return _buildQuoteDetails(bestQuote, quoteData);
-              },
-              loading: () => _buildLoadingState(),
-              error: (e, st) => _buildErrorState(),
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
 
+        // Summary Content
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.pureWhite,
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+            border: Border.all(
+              color: AppColors.mediumGray.withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: quoteState.when(
+            data: (quoteData) {
+              // ✅ FIX: Check if quoteData is null
+              if (quoteData == null) {
+                return _buildNoQuotesState();
+              }
+              
+              // ✅ FIX: Check if quotes array is empty
+              if (quoteData.quotes.isEmpty) {
+                return _buildNoQuotesState();
+              }
+
+              // Get best quote
+              final bestQuote = ref.read(bestQuoteProvider);
+              if (bestQuote == null) {
+                return _buildNoQuotesState();
+              }
+
+              return _buildQuoteDetails(bestQuote, quoteData);
+            },
+            loading: () => _buildLoadingState(),
+            error: (e, st) => _buildErrorState(),
+          ),
+        ),
+      ],
+    ),
+  );
+}
   // Quote Details Widget
   Widget _buildQuoteDetails(Quote quote, QuoteData quoteData) {
     final pricing = quote.pricing;

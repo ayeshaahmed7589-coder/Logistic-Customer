@@ -1,5 +1,3 @@
-
-
 // Order Request Models
 class OrderRequestBody {
   final int productTypeId;
@@ -287,7 +285,9 @@ class Order {
       status: json['status'] as String,
       paymentStatus: json['payment_status'] as String,
       serviceType: json['service_type'] as String,
-      distanceKm: json['distance_km'] != null ? double.parse(json['distance_km'].toString()) : null,
+      distanceKm: json['distance_km'] != null
+          ? double.parse(json['distance_km'].toString())
+          : null,
       estimatedCost: double.parse(json['estimated_cost'].toString()),
       finalCost: double.parse(json['final_cost'].toString()),
       taxAmount: double.parse(json['tax_amount'].toString()),
@@ -364,11 +364,7 @@ class Depot {
   final String name;
   final String city;
 
-  Depot({
-    required this.id,
-    required this.name,
-    required this.city,
-  });
+  Depot({required this.id, required this.name, required this.city});
 
   factory Depot.fromJson(Map<String, dynamic> json) {
     return Depot(

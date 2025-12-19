@@ -120,180 +120,184 @@ class OrderRepository {
     }
   }
 
-  Future<OrderRequestBody> prepareOrderData() async {
-    final cache = ref.read(orderCacheProvider);
-    final items = ref.read(packageItemsProvider);
+Future<OrderRequestBody> prepareOrderData() async {
+  final cache = ref.read(orderCacheProvider);
+  final items = ref.read(packageItemsProvider);
 
-    // ✅ Step 1: Get selected quote data
-    final selectedQuote = ref.read(bestQuoteProvider);
+  // ✅ Step 1: Get selected quote data
+  final selectedQuote = ref.read(bestQuoteProvider);
 
-    if (selectedQuote == null) {
-      throw Exception("Please select a quote before placing order");
-    }
+  if (selectedQuote == null) {
+    throw Exception("Please calculate and select a quote first");
+  }
 
-    // ✅ Step 2: Calculate total weight and item quantity
-    double totalWeight = 0.0;
-    int totalQuantity = 0;
+  // ✅ Step 2: Check if we have package items
+  if (items.isEmpty) {
+    throw Exception("Please add at least one item to the order");
+  }
 
-    List<OrderItemRequest> orderItems = items.map((item) {
-      final weight = double.tryParse(item.weight) ?? 0.0;
-      final quantity = int.tryParse(item.qty) ?? 1;
-      final value = double.tryParse(item.value) ?? 0.0;
+  // ✅ Step 3: Calculate total weight and item quantity
+  double totalWeight = 0.0;
+  int totalQuantity = 0;
 
-      totalWeight += weight * quantity;
-      totalQuantity += quantity;
+  List<OrderItemRequest> orderItems = items.map((item) {
+    final weight = double.tryParse(item.weight) ?? 0.0;
+    final quantity = int.tryParse(item.qty) ?? 1;
+    final value = double.tryParse(item.value) ?? 0.0;
 
-      return OrderItemRequest(
-        name: item.name,
-        quantity: quantity,
-        weight: weight,
-        value: value,
-        description: item.note.isNotEmpty ? item.note : "No description",
-        shopifyProductId: item.isFromShopify
-            ? "gid://shopify/Product/${item.sku}"
-            : null,
-        productSku: item.sku.isNotEmpty ? item.sku : "N/A",
-      );
-    }).toList();
+    totalWeight += weight * quantity;
+    totalQuantity += quantity;
 
-    // ✅ Step 3: Get product and packaging type IDs
-    final productTypeId =
-        int.tryParse(cache["selected_product_type_id"]?.toString() ?? "0") ?? 0;
-    final packagingTypeId =
-        int.tryParse(cache["selected_packaging_type_id"]?.toString() ?? "0") ??
-        0;
+    return OrderItemRequest(
+      name: item.name,
+      quantity: quantity,
+      weight: weight,
+      value: value,
+      description: item.note.isNotEmpty ? item.note : "No description",
+      shopifyProductId: item.isFromShopify
+          ? "gid://shopify/Product/${item.sku}"
+          : null,
+      productSku: item.sku.isNotEmpty ? item.sku : "N/A",
+    );
+  }).toList();
 
-    if (productTypeId == 0 || packagingTypeId == 0) {
-      throw Exception("Product or packaging type not selected");
-    }
+  // ✅ Step 4: Get product and packaging type IDs
+  final productTypeIdStr = cache["selected_product_type_id"]?.toString() ?? "0";
+  final packagingTypeIdStr = cache["selected_packaging_type_id"]?.toString() ?? "0";
+  
+  final productTypeId = int.tryParse(productTypeIdStr) ?? 0;
+  final packagingTypeId = int.tryParse(packagingTypeIdStr) ?? 0;
 
-    // ✅ Step 4: Get declared value
-    double declaredValue = 0.0;
-    for (var item in items) {
-      final itemValue = double.tryParse(item.value) ?? 0.0;
-      final itemQty = int.tryParse(item.qty) ?? 1;
-      declaredValue += itemValue * itemQty;
-    }
+  if (productTypeId == 0 || packagingTypeId == 0) {
+    throw Exception("Product or packaging type not selected. Please go back to Step 1.");
+  }
 
-    // ✅ Step 5: Get add-ons
-    List<String> addOns = [];
-    final selectedAddons = cache["selected_addons"] as List<dynamic>?;
-    if (selectedAddons != null) {
-      for (var addon in selectedAddons) {
+  // ✅ Step 5: Get declared value
+  double declaredValue = 0.0;
+  final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
+  declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
+
+  // ✅ Step 6: Get add-ons
+  List<String> addOns = [];
+  final selectedAddons = cache["selected_addons"];
+  
+  if (selectedAddons != null && selectedAddons is List) {
+    for (var addon in selectedAddons) {
+      if (addon is String) {
         if (addon == "insurance") {
           addOns.add("insurance");
-        } else if (addon == "signature") {
+        } else if (addon == "signature_required") {
           addOns.add("signature_required");
-        } else if (addon == "fragile") {
+        } else if (addon == "fragile_handling") {
           addOns.add("fragile_handling");
-        } else if (addon == "photo") {
+        } else if (addon == "photo_proof") {
           addOns.add("photo_proof");
-        } else if (addon == "priority") {
+        } else if (addon == "priority_pickup") {
           addOns.add("priority_pickup");
-        } else if (addon == "weekend") {
+        } else if (addon == "weekend_delivery") {
           addOns.add("weekend_delivery");
+        } else {
+          addOns.add(addon); // Add as-is if not mapped
         }
       }
     }
-
-    // ✅ Step 6: Get addresses
-    String pickupAddress = cache["pickup_address1"]?.toString() ?? "";
-    if (pickupAddress.isEmpty) {
-      pickupAddress = cache["pickup_city"]?.toString() ?? "Unknown Location";
-    }
-
-    String deliveryAddress = cache["delivery_address1"]?.toString() ?? "";
-    if (deliveryAddress.isEmpty) {
-      deliveryAddress =
-          cache["delivery_city"]?.toString() ?? "Unknown Location";
-    }
-
-    // ✅ Step 7: Get contact information
-    final pickupContactName = cache["pickup_name"]?.toString() ?? "Unknown";
-    final pickupContactPhone = cache["pickup_phone"]?.toString() ?? "";
-    final deliveryContactName = cache["delivery_name"]?.toString() ?? "Unknown";
-    final deliveryContactPhone = cache["delivery_phone"]?.toString() ?? "";
-
-    // ✅ Step 8: Get city/state/postal code
-    final pickupCity = cache["pickup_city"]?.toString() ?? "";
-    final pickupState = cache["pickup_state"]?.toString() ?? "";
-    final pickupPostalCode = cache["pickup_postal"]?.toString() ?? "";
-
-    final deliveryCity = cache["delivery_city"]?.toString() ?? "";
-    final deliveryState = cache["delivery_state"]?.toString() ?? "";
-    final deliveryPostalCode = cache["delivery_postal"]?.toString() ?? "";
-
-    // ✅ Step 9: Get service type
-    final serviceType = cache["service_type_id"]?.toString() ?? "standard";
-
-    // ✅ Step 10: Get special instructions
-    final specialInstructions = cache["special_instructions"]?.toString();
-
-    // ✅ Step 11: Get estimated cost from quote
-    double estimatedCost = selectedQuote.pricing.total;
-
-    // ✅ Step 12: Create SelectedQuote object
-    final quoteSelected = SelectedQuote(
-      vehicleId: selectedQuote.vehicleId,
-      driverId: selectedQuote.driver.id,
-      matchingScore: selectedQuote.totalScore,
-      depotScore: selectedQuote.depotScore ?? 100.0,
-      distanceScore: selectedQuote.distanceScore ?? 70.0,
-      priceScore: selectedQuote.priceScore ?? 100.0,
-      suitabilityScore: selectedQuote.suitabilityScore ?? 85.0,
-      driverScore:
-          double.tryParse(selectedQuote.driver.rating) ??
-          5.0, // FIXED: Convert string to double
-      depotId: selectedQuote.depotId ?? 0,
-    );
-
-    // ✅ Step 13: Create final order request body
-    final orderRequestBody = OrderRequestBody(
-      productTypeId: productTypeId,
-      packagingTypeId: packagingTypeId,
-      totalWeightKg: totalWeight,
-      itemQuantity: totalQuantity,
-      pickupContactName: pickupContactName,
-      pickupContactPhone: pickupContactPhone,
-      pickupAddress: pickupAddress,
-      pickupCity: pickupCity,
-      pickupState: pickupState,
-      pickupPostalCode: pickupPostalCode,
-      deliveryContactName: deliveryContactName,
-      deliveryContactPhone: deliveryContactPhone,
-      deliveryAddress: deliveryAddress,
-      deliveryCity: deliveryCity,
-      deliveryState: deliveryState,
-      deliveryPostalCode: deliveryPostalCode,
-      serviceType: serviceType,
-      specialInstructions: specialInstructions,
-      selectedQuote: quoteSelected,
-      estimatedCost: estimatedCost,
-      addOns: addOns,
-      declaredValue: declaredValue,
-      items: orderItems,
-    );
-
-    // ✅ Step 14: Debug print
-    print("\n📋 PREPARED ORDER REQUEST BODY:");
-    print("📦 Product Type ID: $productTypeId");
-    print("📦 Packaging Type ID: $packagingTypeId");
-    print("⚖️ Total Weight: ${totalWeight}kg");
-    print("🔢 Total Quantity: $totalQuantity");
-    print("📍 Pickup: $pickupAddress, $pickupCity, $pickupState");
-    print("👤 Pickup Contact: $pickupContactName - $pickupContactPhone");
-    print("📍 Delivery: $deliveryAddress, $deliveryCity, $deliveryState");
-    print("👤 Delivery Contact: $deliveryContactName - $deliveryContactPhone");
-    print("🚚 Service Type: $serviceType");
-    print("💰 Estimated Cost: R$estimatedCost");
-    print("➕ Add-ons: ${addOns.join(", ") ?? "None"}");
-    print("💎 Declared Value: R$declaredValue");
-    print("🚗 Selected Vehicle ID: ${selectedQuote.vehicleId}");
-    print("👨‍✈️ Selected Driver ID: ${selectedQuote.driver.id}");
-    print("📊 Matching Score: ${selectedQuote.totalScore}%");
-    print("📦 Items: ${orderItems.length} items");
-    print("📝 Special Instructions: ${specialInstructions ?? "None"}");
-
-    return orderRequestBody;
   }
+
+  // ✅ Step 7: Get addresses - Use city if address1 is empty
+  String pickupAddress = cache["pickup_address1"]?.toString() ?? "";
+  if (pickupAddress.isEmpty) {
+    pickupAddress = cache["pickup_city"]?.toString() ?? "Unknown Location";
+  }
+
+  String deliveryAddress = cache["delivery_address1"]?.toString() ?? "";
+  if (deliveryAddress.isEmpty) {
+    deliveryAddress = cache["delivery_city"]?.toString() ?? "Unknown Location";
+  }
+
+  // ✅ Step 8: Get contact information
+  final pickupContactName = cache["pickup_name"]?.toString() ?? "Unknown";
+  final pickupContactPhone = cache["pickup_phone"]?.toString() ?? "";
+  final deliveryContactName = cache["delivery_name"]?.toString() ?? "Unknown";
+  final deliveryContactPhone = cache["delivery_phone"]?.toString() ?? "";
+
+  // ✅ Step 9: Get city/state/postal code
+  final pickupCity = cache["pickup_city"]?.toString() ?? "";
+  final pickupState = cache["pickup_state"]?.toString() ?? "";
+  final pickupPostalCode = cache["pickup_postal"]?.toString() ?? "";
+
+  final deliveryCity = cache["delivery_city"]?.toString() ?? "";
+  final deliveryState = cache["delivery_state"]?.toString() ?? "";
+  final deliveryPostalCode = cache["delivery_postal"]?.toString() ?? "";
+
+  // ✅ Step 10: Get service type
+  final serviceType = cache["service_type_id"]?.toString() ?? "standard";
+
+  // ✅ Step 11: Get special instructions
+  final specialInstructions = cache["special_instructions"]?.toString();
+
+  // ✅ Step 12: Get estimated cost from quote
+  double estimatedCost = selectedQuote.pricing.total;
+
+  // ✅ Step 13: Create SelectedQuote object
+  final quoteSelected = SelectedQuote(
+    vehicleId: selectedQuote.vehicleId,
+    driverId: selectedQuote.driver.id,
+    matchingScore: selectedQuote.totalScore,
+    depotScore: selectedQuote.depotScore ?? 100.0,
+    distanceScore: selectedQuote.distanceScore ?? 70.0,
+    priceScore: selectedQuote.priceScore ?? 100.0,
+    suitabilityScore: selectedQuote.suitabilityScore ?? 85.0,
+    driverScore: double.tryParse(selectedQuote.driver.rating) ?? 5.0,
+    depotId: selectedQuote.depotId ?? 0,
+  );
+
+  // ✅ Step 14: Create final order request body
+  final orderRequestBody = OrderRequestBody(
+    productTypeId: productTypeId,
+    packagingTypeId: packagingTypeId,
+    totalWeightKg: totalWeight,
+    itemQuantity: totalQuantity,
+    pickupContactName: pickupContactName,
+    pickupContactPhone: pickupContactPhone,
+    pickupAddress: pickupAddress,
+    pickupCity: pickupCity,
+    pickupState: pickupState,
+    pickupPostalCode: pickupPostalCode,
+    deliveryContactName: deliveryContactName,
+    deliveryContactPhone: deliveryContactPhone,
+    deliveryAddress: deliveryAddress,
+    deliveryCity: deliveryCity,
+    deliveryState: deliveryState,
+    deliveryPostalCode: deliveryPostalCode,
+    serviceType: serviceType,
+    specialInstructions: specialInstructions,
+    selectedQuote: quoteSelected,
+    estimatedCost: estimatedCost,
+    addOns: addOns,
+    declaredValue: declaredValue,
+    items: orderItems,
+  );
+
+  // ✅ Step 15: Debug print
+  print("\n📋 FINAL ORDER REQUEST BODY:");
+  print("📦 Product Type ID: $productTypeId");
+  print("📦 Packaging Type ID: $packagingTypeId");
+  print("⚖️ Total Weight: ${totalWeight}kg");
+  print("🔢 Total Quantity: $totalQuantity");
+  print("📍 Pickup: $pickupAddress, $pickupCity, $pickupState");
+  print("👤 Pickup Contact: $pickupContactName - $pickupContactPhone");
+  print("📍 Delivery: $deliveryAddress, $deliveryCity, $deliveryState");
+  print("👤 Delivery Contact: $deliveryContactName - $deliveryContactPhone");
+  print("🚚 Service Type: $serviceType");
+  print("💰 Estimated Cost: R$estimatedCost");
+  print("➕ Add-ons: ${addOns.join(", ") ?? "None"}");
+  print("💎 Declared Value: R$declaredValue");
+  print("🚗 Selected Vehicle ID: ${selectedQuote.vehicleId}");
+  print("👨‍✈️ Selected Driver ID: ${selectedQuote.driver.id}");
+  print("📊 Matching Score: ${selectedQuote.totalScore}%");
+  print("📦 Items: ${orderItems.length} items");
+  print("📝 Special Instructions: ${specialInstructions ?? "None"}");
+
+  return orderRequestBody;
+}
 }

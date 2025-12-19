@@ -854,42 +854,48 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
     }
   }
 
-  void _saveSingleStopData() {
-    final cache = ref.read(orderCacheProvider.notifier);
+void _saveSingleStopData() {
+  final cache = ref.read(orderCacheProvider.notifier);
 
-    // Save pickup info
-    cache.saveValue("pickup_name", contactnameController.text);
-    cache.saveValue("pickup_phone", phoneController.text);
-    cache.saveValue("pickup_address1", address1Controller.text);
-    cache.saveValue("pickup_city", cityController.text);
-    cache.saveValue("pickup_state", stateController.text);
-    cache.saveValue("pickup_email", emailController.text);
-    cache.saveValue("pickup_notes", notesController.text);
+  // ✅ Save pickup info - City aur State ko save karna zaroori hai
+  cache.saveValue("pickup_name", contactnameController.text);
+  cache.saveValue("pickup_phone", phoneController.text);
+  cache.saveValue("pickup_address1", address1Controller.text);
+  cache.saveValue("pickup_city", cityController.text.trim()); // ✅ Trim karein
+  cache.saveValue("pickup_state", stateController.text.trim()); // ✅ Trim karein
+  cache.saveValue("pickup_email", emailController.text);
+  cache.saveValue("pickup_notes", notesController.text);
 
-    // Save delivery info
-    cache.saveValue("delivery_name", contactnameDeliveryController.text);
-    cache.saveValue("delivery_phone", phoneDeliveryController.text);
-    cache.saveValue("delivery_address1", address1DeliveryController.text);
-    cache.saveValue("delivery_city", cityDeliveryController.text);
-    cache.saveValue("delivery_state", stateDeliveryController.text);
-    cache.saveValue("delivery_email", emailDeliveryController.text);
-    cache.saveValue("delivery_notes", notesDeliveryController.text);
+  // ✅ Save delivery info
+  cache.saveValue("delivery_name", contactnameDeliveryController.text);
+  cache.saveValue("delivery_phone", phoneDeliveryController.text);
+  cache.saveValue("delivery_address1", address1DeliveryController.text);
+  cache.saveValue("delivery_city", cityDeliveryController.text.trim()); // ✅ Trim
+  cache.saveValue("delivery_state", stateDeliveryController.text.trim()); // ✅ Trim
+  cache.saveValue("delivery_email", emailDeliveryController.text);
+  cache.saveValue("delivery_notes", notesDeliveryController.text);
 
-    // Save address2 and postal if available
-    if (address2Controller.text.isNotEmpty) {
-      cache.saveValue("pickup_address2", address2Controller.text);
-    }
-    if (postalController.text.isNotEmpty) {
-      cache.saveValue("pickup_postal", postalController.text);
-    }
-    if (address2DeliveryController.text.isNotEmpty) {
-      cache.saveValue("delivery_address2", address2DeliveryController.text);
-    }
-    if (postalDeliveryController.text.isNotEmpty) {
-      cache.saveValue("delivery_postal", postalDeliveryController.text);
-    }
+  // ✅ DEBUG: Print what's being saved
+  print("💾 Saving to cache:");
+  print("Pickup City: ${cityController.text.trim()}");
+  print("Pickup State: ${stateController.text.trim()}");
+  print("Delivery City: ${cityDeliveryController.text.trim()}");
+  print("Delivery State: ${stateDeliveryController.text.trim()}");
+
+  // ✅ Save address2 and postal if available
+  if (address2Controller.text.isNotEmpty) {
+    cache.saveValue("pickup_address2", address2Controller.text);
   }
-
+  if (postalController.text.isNotEmpty) {
+    cache.saveValue("pickup_postal", postalController.text);
+  }
+  if (address2DeliveryController.text.isNotEmpty) {
+    cache.saveValue("delivery_address2", address2DeliveryController.text);
+  }
+  if (postalDeliveryController.text.isNotEmpty) {
+    cache.saveValue("delivery_postal", postalDeliveryController.text);
+  }
+}
   // Add a new route stop
   void _addRouteStop() {
     setState(() {

@@ -589,6 +589,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
+                    height: 380,
                     width: double.infinity,
                     padding: const EdgeInsets.only(
                       top: 16,
@@ -836,88 +837,39 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    DropDownContainer(
-                                      fw: FontWeight.normal,
-                                      dialogueScreen:
-                                          MaterialConditionPopupLeftIcon(
-                                            title: packagingItems.isNotEmpty
-                                                ? packagingItems[selectedIndex ??
-                                                          0]
-                                                      .name
-                                                : '',
-                                            conditions: packagingItems
-                                                .map((e) => e.name)
-                                                .toList(),
-                                            initialSelectedIndex: selectedIndex,
-                                            enableSearch: true,
-                                          ),
-                                      text:
-                                          selectedPackagingTypeId != null &&
-                                              packagingItems.isNotEmpty
-                                          ? packagingItems
-                                                .firstWhere(
-                                                  (item) =>
-                                                      item.id ==
-                                                      selectedPackagingTypeId,
-                                                  orElse: () =>
-                                                      packagingItems.first,
-                                                )
-                                                .name
-                                          : 'Select Packaging Type',
-                                      onItemSelected: (value) {
-                                        final selectedItem = packagingItems
-                                            .firstWhere(
-                                              (element) =>
-                                                  element.name == value,
-                                            );
-
-                                        setState(() {
-                                          selectedPackagingTypeId =
-                                              selectedItem.id;
-                                          selectedPackagingTypeName =
-                                              selectedItem.name;
-                                          packagingTypeError = null;
-                                          showDimensionsFields = selectedItem
-                                              .requiresDimensions; // FIXED ISSUE 3
-                                        });
-
-                                        // Save to cache
-                                        ref
-                                            .read(orderCacheProvider.notifier)
-                                            .saveValue(
-                                              "selected_packaging_type_id",
-                                              selectedItem.id.toString(),
-                                            );
-                                        ref
-                                            .read(orderCacheProvider.notifier)
-                                            .saveValue(
-                                              "selected_packaging_type_name",
-                                              selectedItem.name,
-                                            );
-                                        ref
-                                            .read(orderCacheProvider.notifier)
-                                            .saveValue(
-                                              "selected_packaging_handling_multiplier",
-                                              selectedItem.handlingMultiplier
-                                                  .toString(),
-                                            );
-                                        ref
-                                            .read(orderCacheProvider.notifier)
-                                            .saveValue(
-                                              "selected_packaging_requires_dimensions",
-                                              selectedItem.requiresDimensions
-                                                  .toString(),
-                                            );
-
-                                        // Clear dimensions if not required
-                                        if (!selectedItem.requiresDimensions) {
-                                          lengthController.clear();
-                                          widthController.clear();
-                                          heightController.clear();
-                                        }
-
-                                        _validateFields();
-                                      },
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: DropDownContainer(
+                                        fw: FontWeight.normal,
+                                        dialogueScreen:
+                                            MaterialConditionPopupLeftIcon(
+                                              title: packagingItems.isNotEmpty
+                                                  ? packagingItems[selectedIndex ??
+                                                            0]
+                                                        .name
+                                                  : '',
+                                              conditions: packagingItems
+                                                  .map((e) => e.name)
+                                                  .toList(),
+                                              initialSelectedIndex:
+                                                  selectedIndex,
+                                              enableSearch: true,
+                                            ),
+                                        text:
+                                            selectedPackagingTypeId != null &&
+                                                packagingItems.isNotEmpty
+                                            ? packagingItems
+                                                  .firstWhere(
+                                                    (item) =>
+                                                        item.id ==
+                                                        selectedPackagingTypeId,
+                                                    orElse: () =>
+                                                        packagingItems.first,
+                                                  )
+                                                  .name
+                                            : 'Select Packaging Type',
+                                        onItemSelected: (value) {},
+                                      ),
                                     ),
 
                                     if (packagingTypeError != null)
@@ -1149,7 +1101,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                         ),
 
                         // END PACKAGING TYPE DROPDOWN
-                        gapH8,
+                        gapH28,
 
                         Row(
                           children: [
@@ -1196,6 +1148,238 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
       ),
     );
   }
+
+  // ================= PACKAGING TYPE SECTION =================
+
+Widget buildPackagingTypeSection(BuildContext context, WidgetRef ref) {
+  final packagingTypeState = ref.watch(packagingTypeControllerProvider);
+
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      return SizedBox(
+        width: constraints.maxWidth, // 🔥 FORCE FULL WIDTH
+        child: packagingTypeState.when(
+          data: (data) {
+            final packagingItems = data.packagingTypes;
+
+            int? selectedIndex;
+            if (selectedPackagingTypeId != null) {
+              selectedIndex = packagingItems.indexWhere(
+                (item) => item.id == selectedPackagingTypeId,
+              );
+              if (selectedIndex < 0) selectedIndex = null;
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// LABEL
+                const Text(
+                  "Packaging Type",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                /// DROPDOWN (FULL WIDTH)
+                SizedBox(
+                  width: double.infinity,
+                  child: DropDownContainer(
+                    fw: FontWeight.normal,
+                    dialogueScreen: MaterialConditionPopupLeftIcon(
+                      title: selectedIndex != null &&
+                              packagingItems.isNotEmpty
+                          ? packagingItems[selectedIndex].name
+                          : '',
+                      conditions:
+                          packagingItems.map((e) => e.name).toList(),
+                      initialSelectedIndex: selectedIndex,
+                      enableSearch: true,
+                    ),
+                    text: selectedPackagingTypeId != null &&
+                            packagingItems.isNotEmpty
+                        ? packagingItems
+                            .firstWhere(
+                              (item) =>
+                                  item.id == selectedPackagingTypeId,
+                              orElse: () => packagingItems.first,
+                            )
+                            .name
+                        : "Select Packaging Type",
+                    onItemSelected: (value) {
+                      final selectedItem = packagingItems.firstWhere(
+                        (item) => item.name == value,
+                      );
+
+                      selectedPackagingTypeId = selectedItem.id;
+                      selectedPackagingTypeName = selectedItem.name;
+                      packagingTypeError = null;
+                      showDimensionsFields =
+                          selectedItem.requiresDimensions;
+
+                      /// SAVE TO CACHE
+                      ref
+                          .read(orderCacheProvider.notifier)
+                          .saveValue(
+                            "selected_packaging_type_id",
+                            selectedItem.id.toString(),
+                          );
+                      ref
+                          .read(orderCacheProvider.notifier)
+                          .saveValue(
+                            "selected_packaging_type_name",
+                            selectedItem.name,
+                          );
+                      ref
+                          .read(orderCacheProvider.notifier)
+                          .saveValue(
+                            "selected_packaging_handling_multiplier",
+                            selectedItem.handlingMultiplier.toString(),
+                          );
+                      ref
+                          .read(orderCacheProvider.notifier)
+                          .saveValue(
+                            "selected_packaging_requires_dimensions",
+                            selectedItem.requiresDimensions.toString(),
+                          );
+
+                      if (!selectedItem.requiresDimensions) {
+                        lengthController.clear();
+                        widthController.clear();
+                        heightController.clear();
+                      }
+
+                      _validateFields();
+                    },
+                  ),
+                ),
+
+                /// ERROR
+                if (packagingTypeError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      packagingTypeError!,
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+
+                /// DESCRIPTION
+                if (selectedPackagingTypeId != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          size: 14,
+                          color: Colors.blue,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            packagingItems
+                                .firstWhere(
+                                  (item) =>
+                                      item.id ==
+                                      selectedPackagingTypeId,
+                                )
+                                .description,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                /// DIMENSIONS
+                if (showDimensionsFields) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    "Package Dimensions (cm)",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: lengthController,
+                          label: "Length",
+                          icon: Icons.straighten,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: widthController,
+                          label: "Width",
+                          icon: Icons.width_normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                    controller: heightController,
+                    label: "Height",
+                    icon: Icons.height,
+                  ),
+                ],
+              ],
+            );
+          },
+
+          /// LOADING
+          loading: () => Container(
+            height: 56,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.lightBorder),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+
+          /// ERROR
+          error: (error, _) => Column(
+            children: [
+              const Text(
+                "Failed to load packaging types",
+                style: TextStyle(color: Colors.red),
+              ),
+              TextButton(
+                onPressed: () {
+                  ref
+                      .read(packagingTypeControllerProvider.notifier)
+                      .loadPackagingTypes();
+                },
+                child: const Text("Retry"),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 
   void _addDimensionCacheListeners() {
     lengthController.addListener(() {

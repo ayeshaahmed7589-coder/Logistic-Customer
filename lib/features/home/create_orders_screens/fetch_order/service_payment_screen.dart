@@ -202,7 +202,7 @@ Future<void> _calculateStandardQuotes({
     throw Exception("Please complete pickup and delivery information in Step 2");
   }
 
-  final dimensions = _getDimensionsFromCache(cache);
+    final dimensions = _getDimensionsFromCache(cache);
 
   try {
     await ref
@@ -483,35 +483,7 @@ Future<void> _calculateMultiStopQuotes({
               child: Column(
                 children: [
                   // Pickup Section
-                  Row(
-                    children: [
-                      Icon(Icons.bar_chart, color: AppColors.electricTeal),
-                      SizedBox(width: 8),
-                      CustomText(
-                        txt: "Pick Up",
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ],
-                  ),
-                  gapH8,
-                  _buildPickupSection(),
-                  gapH16,
-
-                  // Delivery Section
-                  Row(
-                    children: [
-                      Icon(Icons.bar_chart, color: AppColors.electricTeal),
-                      SizedBox(width: 8),
-                      CustomText(
-                        txt: "Delivery",
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ],
-                  ),
-                  gapH8,
-                  _buildDeliverySection(),
+                  _routeTimeline(),
                   gapH16,
 
                   // Service Options Section
@@ -930,6 +902,7 @@ Padding(
   }
 
   // Get Smart Quotes Button
+  Widget _buildGetQuotesButton() {
   Widget _buildGetQuotesButton() {
     final validationError = _validateBeforeQuotes();
     final isDisabled = validationError != null || isLoadingQuotes;
@@ -2042,35 +2015,154 @@ Widget _buildNoQuotesState(String message) {
     );
   }
 
+  void _openAddonsCenterModal(
+    BuildContext context,
+    List<AddOnItem> addOnsItems,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520, maxHeight: 520),
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      /// Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Select Add-ons",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      /// Grid
+                      Expanded(
+                        child: GridView.builder(
+                          itemCount: addOnsItems.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 0.78,
+                              ),
+                          itemBuilder: (context, index) {
+                            final item = addOnsItems[index];
+                            return GestureDetector(
+                              onTap: () {
+                                _toggleAddOn(
+                                  item.id,
+                                  item.calculateCost(
+                                    ref.read(declaredValueProvider),
+                                  ),
+                                );
+                                // ❗ update modal state to reflect selection immediately
+                                setModalState(() {});
+                              },
+                              child: _horizontalAddonCard(item: item),
+                            );
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      /// Confirm button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.electricTeal,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text(
+                            "Done",
+                            style: TextStyle(
+                              color: AppColors.darkText,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildAddOnsSection(List<AddOnItem> addOnsItems) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.electricTeal.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.add_circle_outline,
-                        color: AppColors.electricTeal,
-                        size: 20,
-                      ),
-                    ),
+        GestureDetector(
+          onTap: () => _openAddonsCenterModal(context, addOnsItems),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                /// Icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.electricTeal.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 10),
-                  Column(
+                  child: Icon(
+                    Icons.add_circle_outline,
+                    color: AppColors.electricTeal,
+                    size: 20,
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                /// Text
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -2081,6 +2173,7 @@ Widget _buildNoQuotesState(String message) {
                           color: AppColors.darkText,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         "Optional extras",
                         style: TextStyle(
@@ -2090,106 +2183,96 @@ Widget _buildNoQuotesState(String message) {
                       ),
                     ],
                   ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.electricTeal.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  "${addOnsItems.length} options",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.electricTeal,
+
+                /// Options count
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.electricTeal.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "${addOnsItems.length} options",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.electricTeal,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
 
-        SizedBox(
-          height: 160,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            shrinkWrap: true,
-            itemCount: addOnsItems.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  left: index == 0 ? 0 : 8,
-                  right: index == addOnsItems.length - 1 ? 0 : 8,
+                const SizedBox(width: 6),
+
+                /// Arrow
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.grey.shade500,
+                  size: 22,
                 ),
-                child: _horizontalAddonCard(item: addOnsItems[index]),
-              );
-            },
+              ],
+            ),
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
+        /// Selected Summary
         Consumer(
           builder: (context, ref, child) {
-            final selectedAddons = ref.read(selectedAddonsProvider);
-            final selectedWithCost = ref.read(selectedAddOnsWithCostProvider);
+            final selectedAddons = ref.watch(selectedAddonsProvider);
+            final selectedWithCost = ref.watch(selectedAddOnsWithCostProvider);
 
             if (selectedAddons.isEmpty) {
               return const SizedBox();
             }
 
-            double totalAddonsCost = 0;
-            for (var item in selectedWithCost) {
-              totalAddonsCost += item['cost'] ?? 0.0;
-            }
+            double totalAddonsCost = selectedWithCost.fold(
+              0,
+              (sum, item) => sum + (item['cost'] ?? 0.0),
+            );
 
             return Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.electricTeal.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.electricTeal.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.electricTeal.withOpacity(0.2),
-                  width: 1,
+                  color: AppColors.electricTeal.withOpacity(0.25),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            color: AppColors.electricTeal,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            "Selected (${selectedAddons.length})",
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.darkText,
-                            ),
-                          ),
-                        ],
+                      Icon(
+                        Icons.check_circle,
+                        color: AppColors.electricTeal,
+                        size: 16,
                       ),
+                      const SizedBox(width: 6),
                       Text(
-                        "R${totalAddonsCost.toStringAsFixed(2)}",
+                        "Selected (${selectedAddons.length})",
                         style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.electricTeal,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.darkText,
                         ),
                       ),
                     ],
+                  ),
+                  Text(
+                    "R${totalAddonsCost.toStringAsFixed(2)}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.electricTeal,
+                    ),
                   ),
                 ],
               ),
@@ -2203,7 +2286,8 @@ Widget _buildNoQuotesState(String message) {
   Widget _horizontalAddonCard({required AddOnItem item}) {
     return Consumer(
       builder: (context, ref, child) {
-        final selectedAddons = ref.read(selectedAddonsProvider);
+        // ✅ Use watch to rebuild when provider changes
+        final selectedAddons = ref.watch(selectedAddonsProvider);
         final declaredValue = ref.watch(declaredValueProvider);
         final isSelected = selectedAddons.contains(item.id);
         final dynamicCost = item.calculateCost(declaredValue);
@@ -2213,7 +2297,10 @@ Widget _buildNoQuotesState(String message) {
             : 'R${item.cost?.toStringAsFixed(0) ?? '0'}';
 
         return GestureDetector(
-          onTap: () => _toggleAddOn(item.id, dynamicCost),
+          onTap: () {
+            _toggleAddOn(item.id, dynamicCost);
+            // ❌ you can keep setModalState(() {}) if you want extra rebuild, optional
+          },
           child: Container(
             width: 140,
             decoration: BoxDecoration(

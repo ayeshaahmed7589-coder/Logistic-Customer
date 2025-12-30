@@ -107,44 +107,58 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
               },
 
               decoration: InputDecoration(
-                isDense: true,
-                prefixIcon: Icon(
-                  widget.prefixIcon,
-                  color: _errorText != null ? Colors.red : widget.iconColor,
-                ),
-                suffixIcon: widget.suffixIcon,
-                hintText: widget.hintText,
-                hintStyle: TextStyle(
-                  // ignore: deprecated_member_use
-                  color: widget.textColor.withOpacity(0.5),
-                  fontSize: 10,
-                ),
-                filled: true,
-                // ignore: deprecated_member_use
-                fillColor: Colors.white.withOpacity(0.25),
+  isDense: true,
 
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: borderRadius,
-                  borderSide: BorderSide(
-                    color: _errorText != null
-                        ? Colors.red
-                        // ignore: deprecated_member_use
-                        : widget.borderColor.withOpacity(0.7),
-                    width: 1.4,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: borderRadius,
-                  borderSide: BorderSide(
-                    color: _errorText != null ? Colors.red : widget.borderColor,
-                    width: 1.4,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 18,
-                  horizontal: 16,
-                ),
-              ),
+  prefixIcon: Padding(
+    padding: const EdgeInsets.only(left: 12, right: 6),
+    child: Icon(
+      widget.prefixIcon,
+      size: 20,
+      color: _errorText != null ? Colors.red : widget.iconColor,
+    ),
+  ),
+
+  // 🔥 THIS LINE FIXES THE GAP
+  prefixIconConstraints: const BoxConstraints(
+    minWidth: 0,
+    minHeight: 0,
+  ),
+
+  suffixIcon: widget.suffixIcon,
+
+  hintText: widget.hintText,
+  hintStyle: TextStyle(
+    color: widget.textColor.withOpacity(0.5),
+    fontSize: 12,
+  ),
+
+  filled: true,
+  fillColor: Colors.white.withOpacity(0.25),
+
+  enabledBorder: OutlineInputBorder(
+    borderRadius: borderRadius,
+    borderSide: BorderSide(
+      color: _errorText != null
+          ? Colors.red
+          : widget.borderColor.withOpacity(0.7),
+      width: 1.4,
+    ),
+  ),
+
+  focusedBorder: OutlineInputBorder(
+    borderRadius: borderRadius,
+    borderSide: BorderSide(
+      color: _errorText != null ? Colors.red : widget.borderColor,
+      width: 1.4,
+    ),
+  ),
+
+  // 👇 Text icon ke qareeb aa jayega
+  contentPadding: const EdgeInsets.symmetric(
+    vertical: 16,
+    horizontal: 12,
+  ),
+),
             ),
           ),
           // ----------------------- FLOATING LABEL ---------------------------

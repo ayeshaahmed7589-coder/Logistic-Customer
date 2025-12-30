@@ -107,58 +107,44 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
               },
 
               decoration: InputDecoration(
-  isDense: true,
+                isDense: true,
+                prefixIcon: Icon(
+                  widget.prefixIcon,
+                  color: _errorText != null ? Colors.red : widget.iconColor,
+                ),
+                suffixIcon: widget.suffixIcon,
+                hintText: widget.hintText,
+                hintStyle: TextStyle(
+                  // ignore: deprecated_member_use
+                  color: widget.textColor.withOpacity(0.5),
+                  fontSize: 10,
+                ),
+                filled: true,
+                // ignore: deprecated_member_use
+                fillColor: Colors.white.withOpacity(0.25),
 
-  prefixIcon: Padding(
-    padding: const EdgeInsets.only(left: 12, right: 6),
-    child: Icon(
-      widget.prefixIcon,
-      size: 20,
-      color: _errorText != null ? Colors.red : widget.iconColor,
-    ),
-  ),
-
-  // 🔥 THIS LINE FIXES THE GAP
-  prefixIconConstraints: const BoxConstraints(
-    minWidth: 0,
-    minHeight: 0,
-  ),
-
-  suffixIcon: widget.suffixIcon,
-
-  hintText: widget.hintText,
-  hintStyle: TextStyle(
-    color: widget.textColor.withOpacity(0.5),
-    fontSize: 12,
-  ),
-
-  filled: true,
-  fillColor: Colors.white.withOpacity(0.25),
-
-  enabledBorder: OutlineInputBorder(
-    borderRadius: borderRadius,
-    borderSide: BorderSide(
-      color: _errorText != null
-          ? Colors.red
-          : widget.borderColor.withOpacity(0.7),
-      width: 1.4,
-    ),
-  ),
-
-  focusedBorder: OutlineInputBorder(
-    borderRadius: borderRadius,
-    borderSide: BorderSide(
-      color: _errorText != null ? Colors.red : widget.borderColor,
-      width: 1.4,
-    ),
-  ),
-
-  // 👇 Text icon ke qareeb aa jayega
-  contentPadding: const EdgeInsets.symmetric(
-    vertical: 16,
-    horizontal: 12,
-  ),
-),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: borderRadius,
+                  borderSide: BorderSide(
+                    color: _errorText != null
+                        ? Colors.red
+                        // ignore: deprecated_member_use
+                        : widget.borderColor.withOpacity(0.7),
+                    width: 1.4,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: borderRadius,
+                  borderSide: BorderSide(
+                    color: _errorText != null ? Colors.red : widget.borderColor,
+                    width: 1.4,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 18,
+                  horizontal: 16,
+                ),
+              ),
             ),
           ),
           // ----------------------- FLOATING LABEL ---------------------------
@@ -198,105 +184,3 @@ class _CustomAnimatedTextFieldState extends State<CustomAnimatedTextField> {
     );
   }
 }
-
-
- // SizedBox(
-              //   height: 80,
-              //   child: Stack(
-              //     clipBehavior: Clip.none,
-              //     children: [
-              //       // Input Field
-              //       Positioned(
-              //         bottom: 0,
-              //         left: 0,
-              //         right: 0,
-              //         child: ClipRRect(
-              //           borderRadius: BorderRadius.circular(12),
-              //           child: BackdropFilter(
-              //             filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              //             child: Container(
-              //               decoration: BoxDecoration(
-              //                 color: Colors.white.withOpacity(0.3),
-              //                 borderRadius: BorderRadius.circular(12),
-              //                 border: Border.all(
-              //                   color: Colors.white.withOpacity(0.4),
-              //                   width: 1.2,
-              //                 ),
-              //                 boxShadow: [
-              //                   BoxShadow(
-              //                     color: Colors.black.withOpacity(0.05),
-              //                     blurRadius: 6,
-              //                     offset: const Offset(0, 3),
-              //                   ),
-              //                 ],
-              //               ),
-              //               child: TextFormField(
-              //                 controller: emailController,
-              //                 focusNode: _focusNode,
-              //                 keyboardType: TextInputType.emailAddress,
-              //                 style: const TextStyle(color: Colors.black54),
-              //                 decoration: InputDecoration(
-              //                   prefixIcon: Icon(
-              //                     Icons.email_outlined,
-              //                     color: blueColor,
-              //                   ),
-              //                   hintText: "Email ID",
-              //                   hintStyle: const TextStyle(
-              //                     color: Colors.black45,
-              //                     fontSize: 15,
-              //                   ),
-              //                   border: OutlineInputBorder(
-              //                     borderRadius: BorderRadius.circular(12),
-              //                     borderSide: BorderSide.none,
-              //                   ),
-              //                   focusedBorder: OutlineInputBorder(
-              //                     borderRadius: BorderRadius.circular(12),
-              //                     borderSide: BorderSide(
-              //                       color: blueColor,
-              //                       width: 2,
-              //                     ),
-              //                   ),
-              //                   enabledBorder: OutlineInputBorder(
-              //                     borderRadius: BorderRadius.circular(12),
-              //                     borderSide: BorderSide(
-              //                       color: blueColor.withOpacity(0.6),
-              //                       width: 1.5,
-              //                     ),
-              //                   ),
-              //                   contentPadding: const EdgeInsets.symmetric(
-              //                     vertical: 18,
-              //                     horizontal: 16,
-              //                   ),
-              //                   filled: true,
-              //                   fillColor: Colors.white.withOpacity(0.3),
-              //                 ),
-              //               ),
-              //             ),
-              //           ),
-              //         ),
-              //       ),
-
-              //       AnimatedPositioned(
-              //         duration: const Duration(milliseconds: 250),
-              //         left: 6,
-              //         top: _isFocused ? -2 : 20,
-              //         child: AnimatedOpacity(
-              //           duration: const Duration(milliseconds: 250),
-              //           opacity: _isFocused ? 1 : 0,
-              //           child: Container(
-              //             color: const Color(0xFFF8F9FD),
-              //             padding: const EdgeInsets.symmetric(horizontal: 2),
-              //             child: Text(
-              //               "Email ID",
-              //               style: TextStyle(
-              //                 color: blueColor,
-              //                 fontSize: 13,
-              //                 fontWeight: FontWeight.w600,
-              //               ),
-              //             ),
-              //           ),
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              // ),

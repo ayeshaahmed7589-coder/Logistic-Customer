@@ -2,25 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_repo.dart';
 
-
-import 'dart:convert';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logisticscustomer/constants/api_url.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_repo.dart';
-
-import 'dart:convert';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logisticscustomer/constants/api_url.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_repo.dart';
-
+// ✅ FIXED QUOTE CONTROLLER - DEMO QUOTE REMOVED
 class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
   final QuoteRepository repository;
+   Quote? _cachedBestQuote; // ✅ Cache the best quote
 
   QuoteController(this.repository) : super(const AsyncValue.data(null));
 
-  // Calculate Standard Quote - FIXED VERSION
+  // ✅ FIXED: Calculate Standard Quote WITHOUT DEMO
   Future<void> calculateStandardQuote({
     required int productTypeId,
     required int packagingTypeId,
@@ -37,7 +26,7 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
     double? height,
   }) async {
     state = const AsyncValue.loading();
-    
+
     print("🔄 Calculating Standard Quote in Controller...");
 
     try {
@@ -45,7 +34,7 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
         productTypeId: productTypeId,
         packagingTypeId: packagingTypeId,
         totalWeightKg: totalWeightKg,
-        pickupCity: pickupCity.trim(), // ✅ Trim whitespace
+        pickupCity: pickupCity.trim(),
         pickupState: pickupState.trim(),
         deliveryCity: deliveryCity.trim(),
         deliveryState: deliveryState.trim(),
@@ -74,42 +63,49 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
       print("Success: ${response.success}");
       print("Message: ${response.message}");
       print("Quotes Count: ${response.data?.quotes.length ?? 0}");
-      
+
       if (response.success) {
         if (response.data != null) {
           print("✅ Quotes data received successfully");
           print("Distance KM: ${response.data!.distanceKm}");
           print("Product Type: ${response.data!.productType?.name}");
           print("Packaging Type: ${response.data!.packagingType?.name}");
-          
-          if (response.data!.quotes.isEmpty) {
-            print("⚠️ No quotes available - creating demo quote for testing");
-            // Create a demo quote for testing
-            final demoQuote = _createDemoQuote(
-              productTypeId: productTypeId,
-              packagingTypeId: packagingTypeId,
-              pickupCity: pickupCity,
-              deliveryCity: deliveryCity,
-              totalWeightKg: totalWeightKg,
-              declaredValue: declaredValue,
-              addOns: addOns,
-            );
-            
-            final demoData = QuoteData(
-              quotes: [demoQuote],
-              distanceKm: response.data!.distanceKm ?? 1261.58,
-              productType: response.data!.productType,
-              packagingType: response.data!.packagingType,
-              nearbyDepots: response.data!.nearbyDepots,
-            );
-            
-            state = AsyncValue.data(demoData);
-          } else {
-            state = AsyncValue.data(response.data);
-          }
+
+          // ❌❌❌ DEMO QUOTE CODE HATA DO YAHAN SE ❌❌❌
+          // if (response.data!.quotes.isEmpty) {
+          //   print("⚠️ No quotes available - creating demo quote for testing");
+          //   // Create a demo quote for testing
+          //   final demoQuote = _createDemoQuote(
+          //     productTypeId: productTypeId,
+          //     packagingTypeId: packagingTypeId,
+          //     pickupCity: pickupCity,
+          //     deliveryCity: deliveryCity,
+          //     totalWeightKg: totalWeightKg,
+          //     declaredValue: declaredValue,
+          //     addOns: addOns,
+          //   );
+          //
+          //   final demoData = QuoteData(
+          //     quotes: [demoQuote],
+          //     distanceKm: response.data!.distanceKm ?? 1261.58,
+          //     productType: response.data!.productType,
+          //     packagingType: response.data!.packagingType,
+          //     nearbyDepots: response.data!.nearbyDepots,
+          //   );
+          //
+          //   state = AsyncValue.data(demoData);
+          // } else {
+          //   state = AsyncValue.data(response.data);
+          // }
+
+          // ✅✅✅ SIRF ACTUAL API DATA USE KARO:
+          state = AsyncValue.data(response.data);
         } else {
           print("⚠️ Response data is null");
-          state = AsyncValue.error("No quotes data received", StackTrace.current);
+          state = AsyncValue.error(
+            "No quotes data received",
+            StackTrace.current,
+          );
         }
       } else {
         print("❌ API Error: ${response.message}");
@@ -122,7 +118,7 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
     }
   }
 
-  // Calculate Multi-Stop Quote - FIXED VERSION
+  // ✅ FIXED: Calculate Multi-Stop Quote WITHOUT DEMO
   Future<void> calculateMultiStopQuote({
     required int productTypeId,
     required int packagingTypeId,
@@ -133,7 +129,7 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
     required List<String> addOns,
   }) async {
     state = const AsyncValue.loading();
-    
+
     print("🔄 Calculating Multi-Stop Quote in Controller...");
 
     try {
@@ -161,31 +157,43 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
       print("Quotes Count: ${response.data?.quotes.length ?? 0}");
 
       if (response.success) {
-        if (response.data != null && response.data!.quotes.isNotEmpty) {
+        if (response.data != null) {
+          // ❌❌❌ DEMO QUOTE CODE HATA DO YAHAN SE ❌❌❌
+          // if (response.data!.quotes.isNotEmpty) {
+          //   state = AsyncValue.data(response.data);
+          // } else {
+          //   print("⚠️ No multi-stop quotes available - creating demo quote");
+          //   // Create demo quote for multi-stop
+          //   final demoQuote = _createDemoQuote(
+          //     productTypeId: productTypeId,
+          //     packagingTypeId: packagingTypeId,
+          //     pickupCity: stops.isNotEmpty ? stops.first.city : "Unknown",
+          //     deliveryCity: stops.isNotEmpty ? stops.last.city : "Unknown",
+          //     totalWeightKg: totalWeightKg,
+          //     declaredValue: declaredValue,
+          //     addOns: addOns,
+          //     isMultiStop: true,
+          //   );
+          //
+          //   final demoData = QuoteData(
+          //     quotes: [demoQuote],
+          //     distanceKm: response.data?.distanceKm ?? 0,
+          //     productType: response.data?.productType,
+          //     packagingType: response.data?.packagingType,
+          //     nearbyDepots: response.data?.nearbyDepots ?? [],
+          //   );
+          //
+          //   state = AsyncValue.data(demoData);
+          // }
+
+          // ✅✅✅ SIRF ACTUAL API DATA USE KARO:
           state = AsyncValue.data(response.data);
         } else {
-          print("⚠️ No multi-stop quotes available - creating demo quote");
-          // Create demo quote for multi-stop
-          final demoQuote = _createDemoQuote(
-            productTypeId: productTypeId,
-            packagingTypeId: packagingTypeId,
-            pickupCity: stops.isNotEmpty ? stops.first.city : "Unknown",
-            deliveryCity: stops.isNotEmpty ? stops.last.city : "Unknown",
-            totalWeightKg: totalWeightKg,
-            declaredValue: declaredValue,
-            addOns: addOns,
-            isMultiStop: true,
+          print("⚠️ Response data is null");
+          state = AsyncValue.error(
+            "No quotes data received",
+            StackTrace.current,
           );
-          
-          final demoData = QuoteData(
-            quotes: [demoQuote],
-            distanceKm: response.data?.distanceKm ?? 0,
-            productType: response.data?.productType,
-            packagingType: response.data?.packagingType,
-            nearbyDepots: response.data?.nearbyDepots ?? [],
-          );
-          
-          state = AsyncValue.data(demoData);
         }
       } else {
         state = AsyncValue.error(response.message, StackTrace.current);
@@ -196,67 +204,19 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
     }
   }
 
-  // Helper function to create demo quote for testing
-  Quote _createDemoQuote({
-    required int productTypeId,
-    required int packagingTypeId,
-    required String pickupCity,
-    required String deliveryCity,
-    required double totalWeightKg,
-    required double declaredValue,
-    required List<String> addOns,
-    bool isMultiStop = false,
-  }) {
-    final basePrice = 100.0;
-    final distanceMultiplier = isMultiStop ? 1.5 : 1.0;
-    final addOnsCost = addOns.length * 15.0;
-    
-    return Quote(
-      vehicleId: 999,
-      vehicleType: "Demo Truck",
-      registrationNumber: "DEMO123GP",
-      make: "Toyota",
-      model: "Hiace",
-      capacityWeightKg: 1000.0,
-      capacityVolumeM3: 10.0,
-      isExclusive: false,
-      vehicleRating: "4.5",
-      depotId: 1,
-      depotName: "Demo Depot",
-      depotCity: pickupCity,
-      depotDistanceKm: 5.0,
-      totalScore: 85.0,
-      depotScore: 90.0,
-      distanceScore: 80.0,
-      priceScore: 85.0,
-      suitabilityScore: 90.0,
-      driverScore: 4.5,
-      matchingScore: 85.0,
-      isPreferred: false,
-      utilizationPercent: 60.0,
-      pricing: Pricing(
-        baseFare: basePrice,
-        distanceKm: 1261.58,
-        distanceCost: 500.0 * distanceMultiplier,
-        weightCharge: totalWeightKg * 10.0,
-        addOnsTotal: addOnsCost,
-        subtotalA: basePrice + (500.0 * distanceMultiplier) + (totalWeightKg * 10.0) + addOnsCost,
-        systemServiceFee: 50.0,
-        ssfPercentage: 5.0,
-        subtotalB: basePrice + (500.0 * distanceMultiplier) + (totalWeightKg * 10.0) + addOnsCost + 50.0,
-        serviceFee: 75.0,
-        serviceFeePercentage: 10.0,
-        tax: 100.0,
-        total: basePrice + (500.0 * distanceMultiplier) + (totalWeightKg * 10.0) + addOnsCost + 50.0 + 75.0 + 100.0,
-        vehicleMultiplier: 1.0,
-        productMultiplier: "1.0",
-        packagingMultiplier: "1.25",
-        currencySymbol: 'R',
-      ),
-      company: Company(id: 1, name: "Demo Logistics Co."),
-      driver: Driver(id: 1, name: "John Demo", rating: "4.5"),
-    );
-  }
+  // ❌❌❌ YE PURA FUNCTION DELETE KAR DO (DEMO QUOTE CREATION)
+  // Quote _createDemoQuote({
+  //   required int productTypeId,
+  //   required int packagingTypeId,
+  //   required String pickupCity,
+  //   required String deliveryCity,
+  //   required double totalWeightKg,
+  //   required double declaredValue,
+  //   required List<String> addOns,
+  //   bool isMultiStop = false,
+  // }) {
+  //   ...
+  // }
 
   // Clear quotes
   void clearQuotes() {
@@ -264,26 +224,62 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
   }
 
   // Get best quote (highest score or lowest price)
+  // ✅ FIXED: Get best quote automatically
+  // ✅ FIXED: Get best quote automatically
   Quote? getBestQuote() {
     return state.when(
       data: (data) {
-        if (data?.quotes.isEmpty ?? true) return null;
+        if (data == null || data.quotes.isEmpty) {
+          print("❌ No quotes available in getBestQuote");
+          return null;
+        }
 
-        // Sort by total score (descending) then by total price (ascending)
-        final sortedQuotes = List<Quote>.from(data!.quotes)
+        print("📊 Getting best quote from ${data.quotes.length} quotes");
+
+        // ✅ Sort by total score (descending)
+        final sortedQuotes = List<Quote>.from(data.quotes)
           ..sort((a, b) {
             final scoreCompare = b.totalScore.compareTo(a.totalScore);
-            if (scoreCompare != 0) return scoreCompare;
-            return a.pricing.total.compareTo(b.pricing.total);
+            if (scoreCompare != 0) {
+              print("🔀 Sorting by score: ${b.totalScore} vs ${a.totalScore}");
+              return scoreCompare;
+            }
+            
+            // ✅ If scores equal, sort by price (ascending)
+            final priceCompare = a.pricing.total.compareTo(b.pricing.total);
+            if (priceCompare != 0) {
+              print("🔀 Sorting by price: ${a.pricing.total} vs ${b.pricing.total}");
+              return priceCompare;
+            }
+            
+            return 0;
           });
 
-        return sortedQuotes.first;
+        final bestQuote = sortedQuotes.first;
+        
+        // ✅ FORCE UPDATE TO BEST QUOTE PROVIDER
+        print("🏆 Best Quote Selected: ${bestQuote.vehicleType} - Score: ${bestQuote.totalScore}");
+        print("💰 Price: R${bestQuote.pricing.total}");
+        
+        // ✅ IMPORTANT: Print all quotes for debugging
+        print("\n📋 ALL QUOTES AVAILABLE:");
+        for (int i = 0; i < data.quotes.length; i++) {
+          final quote = data.quotes[i];
+          print("${i + 1}. ${quote.vehicleType} - Score: ${quote.totalScore} - Price: R${quote.pricing.total}");
+        }
+        
+        return bestQuote;
       },
-      loading: () => null,
-      error: (error, stackTrace) => null,
+      loading: () {
+        print("🔄 Quotes loading...");
+        return null;
+      },
+      error: (error, stackTrace) {
+        print("❌ Error getting best quote: $error");
+        return null;
+      },
     );
   }
-
   // Get quote by vehicle ID
   Quote? getQuoteByVehicleId(int vehicleId) {
     return state.when(
@@ -304,149 +300,52 @@ class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
 }
 
 // Providers
+// ✅ FIXED: Best Quote Provider
+
 final quoteControllerProvider =
     StateNotifierProvider<QuoteController, AsyncValue<QuoteData?>>((ref) {
       final repository = ref.watch(quoteRepositoryProvider);
       return QuoteController(repository);
     });
 
+    // ✅ FIXED: Best Quote Provider with auto-selection
 final bestQuoteProvider = Provider<Quote?>((ref) {
-  return ref.watch(quoteControllerProvider.notifier).getBestQuote();
+  final quoteState = ref.watch(quoteControllerProvider);
+  
+  print("🔍 bestQuoteProvider called - State: ${quoteState.value?.quotes.length ?? 0} quotes");
+  
+  return quoteState.when(
+    data: (data) {
+      if (data == null) {
+        print("❌ bestQuoteProvider: QuoteData is null");
+        return null;
+      }
+      
+      if (data.quotes.isEmpty) {
+        print("❌ bestQuoteProvider: No quotes in data");
+        return null;
+      }
+      
+      print("📊 bestQuoteProvider: Found ${data.quotes.length} quotes");
+      
+      // ✅ Simple auto-selection: First quote is best quote
+      final bestQuote = data.quotes.first;
+      print("🏆 bestQuoteProvider Auto-Selected: ${bestQuote.vehicleType}");
+      print("💰 Price: R${bestQuote.pricing.total}");
+      print("⭐ Score: ${bestQuote.totalScore}");
+      
+      return bestQuote;
+    },
+    loading: () {
+      print("🔄 bestQuoteProvider: Loading...");
+      return null;
+    },
+    error: (error, stackTrace) {
+      print("❌ bestQuoteProvider Error: $error");
+      return null;
+    },
+  );
 });
-
-
-// class QuoteController extends StateNotifier<AsyncValue<QuoteData?>> {
-//   final QuoteRepository repository;
-
-//   QuoteController(this.repository) : super(const AsyncValue.data(null));
-
-//   // Calculate Standard Quote
-//   Future<void> calculateStandardQuote({
-//     required int productTypeId,
-//     required int packagingTypeId,
-//     required double totalWeightKg,
-//     required String pickupCity,
-//     required String pickupState,
-//     required String deliveryCity,
-//     required String deliveryState,
-//     required String serviceType,
-//     required double declaredValue,
-//     required List<String> addOns,
-//     double? length,
-//     double? width,
-//     double? height,
-//   }) async {
-//     state = const AsyncValue.loading();
-    
-//     try {
-//       final request = StandardQuoteRequest(
-//         productTypeId: productTypeId,
-//         packagingTypeId: packagingTypeId,
-//         totalWeightKg: totalWeightKg,
-//         pickupCity: pickupCity,
-//         pickupState: pickupState,
-//         deliveryCity: deliveryCity,
-//         deliveryState: deliveryState,
-//         serviceType: serviceType,
-//         declaredValue: declaredValue,
-//         addOns: addOns,
-//         length: length,
-//         width: width,
-//         height: height,
-//       );
-
-//       final response = await repository.calculateStandardQuote(request);
-      
-//       if (response.success) {
-//         state = AsyncValue.data(response.data);
-//       } else {
-//         state = AsyncValue.error(response.message, StackTrace.current);
-//       }
-//     } catch (e, stackTrace) {
-//       state = AsyncValue.error(e, stackTrace);
-//     }
-//   }
-
-//   // Calculate Multi-Stop Quote
-//   Future<void> calculateMultiStopQuote({
-//     required int productTypeId,
-//     required int packagingTypeId,
-//     required double totalWeightKg,
-//     required List<StopRequest> stops,
-//     required String serviceType,
-//     required double declaredValue,
-//     required List<String> addOns,
-//   }) async {
-//     state = const AsyncValue.loading();
-    
-//     try {
-//       final request = MultiStopQuoteRequest(
-//         productTypeId: productTypeId,
-//         packagingTypeId: packagingTypeId,
-//         totalWeightKg: totalWeightKg,
-//         isMultiStop: true,
-//         stops: stops,
-//         serviceType: serviceType,
-//         declaredValue: declaredValue,
-//         addOns: addOns,
-//       );
-
-//       final response = await repository.calculateMultiStopQuote(request);
-      
-//       if (response.success) {
-//         state = AsyncValue.data(response.data);
-//       } else {
-//         state = AsyncValue.error(response.message, StackTrace.current);
-//       }
-//     } catch (e, stackTrace) {
-//       state = AsyncValue.error(e, stackTrace);
-//     }
-//   }
-
-//   // Clear quotes
-//   void clearQuotes() {
-//     state = const AsyncValue.data(null);
-//   }
-
-//   // Get best quote (highest score or lowest price)
-//   Quote? getBestQuote() {
-//     return state.when(
-//       data: (data) {
-//         if (data?.quotes.isEmpty ?? true) return null;
-        
-//         // Sort by total score (descending) then by total price (ascending)
-//         final sortedQuotes = List<Quote>.from(data!.quotes)
-//           ..sort((a, b) {
-//             final scoreCompare = b.totalScore.compareTo(a.totalScore);
-//             if (scoreCompare != 0) return scoreCompare;
-//             return a.pricing.total.compareTo(b.pricing.total);
-//           });
-        
-//         return sortedQuotes.first;
-//       },
-//       loading: () => null,
-//       error: (error, stackTrace) => null,
-//     );
-//   }
-
-//   // Get quote by vehicle ID
-//   Quote? getQuoteByVehicleId(int vehicleId) {
-//     return state.when(
-//       data: (data) => data?.quotes.firstWhere(
-//         (quote) => quote.vehicleId == vehicleId,
-//         orElse: () => throw Exception("Quote not found"),
-//       ),
-//       loading: () => null,
-//       error: (error, stackTrace) => null,
-//     );
-//   }
-// }
-
-// // Providers
-// final quoteControllerProvider = StateNotifierProvider<QuoteController, AsyncValue<QuoteData?>>((ref) {
-//   final repository = ref.watch(quoteRepositoryProvider);
-//   return QuoteController(repository);
-// });
 
 // final bestQuoteProvider = Provider<Quote?>((ref) {
 //   return ref.watch(quoteControllerProvider.notifier).getBestQuote();

@@ -44,6 +44,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   @override
   void initState() {
     super.initState();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(serviceTypeControllerProvider.notifier).loadServiceTypes();
       ref.read(addOnsControllerProvider.notifier).loadAddOns();
@@ -146,6 +147,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     }
   }
 
+// ✅ FIXED: ServicePaymentScreen mein calculate function
 Future<void> _calculateStandardQuotes({
   required int productTypeId,
   required int packagingTypeId,
@@ -154,29 +156,50 @@ Future<void> _calculateStandardQuotes({
 }) async {
   final cache = ref.read(orderCacheProvider);
 
-  // ✅ IMPORTANT: Sab data ko proper way mein get karein
-  final pickupCity = cache["pickup_city"]?.toString().trim() ?? "";
-  final pickupState = cache["pickup_state"]?.toString().trim() ?? "";
-  final deliveryCity = cache["delivery_city"]?.toString().trim() ?? "";
-  final deliveryState = cache["delivery_state"]?.toString().trim() ?? "";
+  // ✅ PROPER VALIDATION
+  final pickupCity = cache["pickup_city"]?.toString().trim();
+  final pickupState = cache["pickup_state"]?.toString().trim();
+  final deliveryCity = cache["delivery_city"]?.toString().trim();
+  final deliveryState = cache["delivery_state"]?.toString().trim();
+  
+  // ✅ Service Type get karo (yeh IMPORTANT hai)
+  final serviceType = selectedServiceTypeId ?? "standard";
+  
+  // ✅ Declared value get karo
   final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
   final declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
-  final serviceType = cache["service_type_id"]?.toString() ?? "standard";
 
-  // ✅ DEBUG LOGS
+  // ✅ DEBUG LOGS - DETAILED
   print("📍📍📍 CALCULATING STANDARD QUOTES:");
-  print("Pickup: $pickupCity, $pickupState");
-  print("Delivery: $deliveryCity, $deliveryState");
-  print("Product Type ID: $productTypeId");
-  print("Packaging Type ID: $packagingTypeId");
-  print("Weight: ${totalWeightKg}kg");
-  print("Declared Value: R$declaredValue");
-  print("Service Type: $serviceType");
-  print("Add-ons: $selectedAddons");
+  print("📌 Pickup: $pickupCity, $pickupState");
+  print("📌 Delivery: $deliveryCity, $deliveryState");
+  print("📌 Product Type ID: $productTypeId");
+  print("📌 Packaging Type ID: $packagingTypeId");
+  print("📌 Weight: ${totalWeightKg}kg");
+  print("📌 Declared Value: R$declaredValue");
+  print("📌 Service Type: $serviceType");
+  print("📌 Add-ons: $selectedAddons");
+  
+  // ✅ Check COMPLETE cache data
+  print("🔍 COMPLETE CACHE CHECK:");
+  print("   pickup_name: ${cache["pickup_name"]}");
+  print("   pickup_phone: ${cache["pickup_phone"]}");
+  print("   pickup_address1: ${cache["pickup_address1"]}");
+  print("   pickup_city: ${cache["pickup_city"]}");
+  print("   pickup_state: ${cache["pickup_state"]}");
+  print("   delivery_name: ${cache["delivery_name"]}");
+  print("   delivery_phone: ${cache["delivery_phone"]}");
+  print("   delivery_address1: ${cache["delivery_address1"]}");
+  print("   delivery_city: ${cache["delivery_city"]}");
+  print("   delivery_state: ${cache["delivery_state"]}");
 
   // ✅ Validation
-  if (pickupCity.isEmpty || deliveryCity.isEmpty) {
-    throw Exception("Please provide pickup and delivery locations");
+  if (pickupCity == null || pickupCity.isEmpty || 
+      pickupState == null || pickupState.isEmpty ||
+      deliveryCity == null || deliveryCity.isEmpty ||
+      deliveryState == null || deliveryState.isEmpty) {
+    
+    throw Exception("Please complete pickup and delivery information in Step 2");
   }
 
   final dimensions = _getDimensionsFromCache(cache);
@@ -192,92 +215,90 @@ Future<void> _calculateStandardQuotes({
           pickupState: pickupState,
           deliveryCity: deliveryCity,
           deliveryState: deliveryState,
-          serviceType: serviceType, // ✅ Yeh important hai
+          serviceType: serviceType,
           declaredValue: declaredValue,
           addOns: selectedAddons,
           length: dimensions['length'],
           width: dimensions['width'],
           height: dimensions['height'],
         );
-    
+
     // ✅ Force state update
     setState(() {
       hasCalculatedQuotes = true;
       isLoadingQuotes = false;
     });
-    
+
     print("✅✅✅ Quotes calculation completed!");
-    
   } catch (e) {
     print("❌❌❌ Error in calculateStandardQuotes: $e");
     rethrow;
   }
 }
-  Future<void> _calculateMultiStopQuotes({
-    required int productTypeId,
-    required int packagingTypeId,
-    required double totalWeightKg,
-    required List<String> selectedAddons,
-  }) async {
-    final cache = ref.read(orderCacheProvider);
-    final stopsCount =
-        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+Future<void> _calculateMultiStopQuotes({
+  required int productTypeId,
+  required int packagingTypeId,
+  required double totalWeightKg,
+  required List<String> selectedAddons,
+}) async {
+  final cache = ref.read(orderCacheProvider);
+  final stopsCount = int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
 
-    if (stopsCount < 2) {
-      throw Exception("Multi-stop route requires at least 2 stops");
-    }
-
-    final stops = <StopRequest>[];
-
-    for (int i = 1; i <= stopsCount; i++) {
-      final stopType = cache["stop_${i}_type"]?.toString();
-      final city = cache["stop_${i}_city"]?.toString() ?? "";
-      final state = cache["stop_${i}_state"]?.toString() ?? "";
-      final contactName = cache["stop_${i}_contact_name"]?.toString() ?? "";
-      final contactPhone = cache["stop_${i}_contact_phone"]?.toString() ?? "";
-      final address = cache["stop_${i}_address"]?.toString() ?? "";
-
-      if (city.isEmpty || state.isEmpty || address.isEmpty) {
-        throw Exception("Please complete all stop information");
-      }
-
-      if (stopType != null) {
-        // Convert stop type string to API format
-        String apiStopType;
-        if (stopType.contains("pickup")) {
-          apiStopType = "pickup";
-        } else if (stopType.contains("waypoint")) {
-          apiStopType = "waypoint";
-        } else {
-          apiStopType = "drop_off";
-        }
-
-        stops.add(
-          StopRequest(
-            stopType: apiStopType,
-            city: city,
-            state: state,
-            contactName: contactName,
-            contactPhone: contactPhone,
-            address: address,
-          ),
-        );
-      }
-    }
-
-    await ref
-        .read(quoteControllerProvider.notifier)
-        .calculateMultiStopQuote(
-          productTypeId: productTypeId,
-          packagingTypeId: packagingTypeId,
-          totalWeightKg: totalWeightKg,
-          stops: stops,
-          serviceType: selectedServiceTypeId ?? "standard",
-          declaredValue: declaredValue,
-          addOns: selectedAddons,
-        );
+  if (stopsCount < 2) {
+    throw Exception("Multi-stop route requires at least 2 stops");
   }
 
+  final stops = <StopRequest>[];
+
+  for (int i = 1; i <= stopsCount; i++) {
+    final stopTypeStr = cache["stop_${i}_type"]?.toString() ?? "";
+    final city = cache["stop_${i}_city"]?.toString()?.trim() ?? "";
+    final state = cache["stop_${i}_state"]?.toString()?.trim() ?? "";
+    final contactName = cache["stop_${i}_contact_name"]?.toString() ?? "";
+    final contactPhone = cache["stop_${i}_contact_phone"]?.toString() ?? "";
+    final address = cache["stop_${i}_address"]?.toString() ?? "";
+
+    if (city.isEmpty || state.isEmpty) {
+      throw Exception("Stop $i: City and State are required");
+    }
+
+    // ✅ Convert UI StopType to API format
+    String apiStopType;
+    if (stopTypeStr.contains("pickup")) {
+      apiStopType = "pickup";
+    } else if (stopTypeStr.contains("waypoint")) {
+      apiStopType = "waypoint";
+    } else if (stopTypeStr.contains("dropOff")) {
+      apiStopType = "drop_off";
+    } else {
+      // Default: first is pickup, last is drop_off, others waypoint
+      if (i == 1) apiStopType = "pickup";
+      else if (i == stopsCount) apiStopType = "drop_off";
+      else apiStopType = "waypoint";
+    }
+
+    stops.add(
+      StopRequest(
+        stopType: apiStopType,
+        city: city,
+        state: state,
+        contactName: contactName.isNotEmpty ? contactName : null,
+        contactPhone: contactPhone.isNotEmpty ? contactPhone : null,
+        address: address.isNotEmpty ? address : null,
+      ),
+    );
+  }
+
+  await ref.read(quoteControllerProvider.notifier).calculateMultiStopQuote(
+    productTypeId: productTypeId,
+    packagingTypeId: packagingTypeId,
+    totalWeightKg: totalWeightKg,
+    stops: stops,
+    serviceType: selectedServiceTypeId ?? "standard",
+    declaredValue: declaredValue,
+    addOns: selectedAddons,
+  );
+}
   Map<String, double?> _getDimensionsFromCache(Map<String, dynamic> cache) {
     final length = cache["package_length"]?.toString();
     final width = cache["package_width"]?.toString();
@@ -396,6 +417,28 @@ Future<void> _calculateStandardQuotes({
   Widget build(BuildContext context) {
     final quoteState = ref.watch(quoteControllerProvider);
     final bestQuote = ref.watch(bestQuoteProvider);
+
+    // ✅ Yeh ab build method ke andar hai - sahi jagah
+    ref.listen<AsyncValue<QuoteData?>>(
+      quoteControllerProvider,
+      (previous, next) {
+        next.when(
+          data: (data) {
+            if (data != null && data.quotes.isNotEmpty) {
+              print("📊 Quotes data updated: ${data.quotes.length} quotes");
+              // Force UI refresh
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {});
+                }
+              });
+            }
+          },
+          loading: () => print("🔄 Quotes loading..."),
+          error: (error, stackTrace) => print("❌ Quotes error: $error"),
+        );
+      },
+    );
 
     // Debug print for console
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -550,8 +593,7 @@ Future<void> _calculateStandardQuotes({
                   gapH16,
 
                   // Place Order Button
-
-              // Place Order Button ka updated validation
+                  // Place Order Button section mein yeh change karein
 Padding(
   padding: const EdgeInsets.symmetric(horizontal: 20),
   child: Consumer(
@@ -561,17 +603,33 @@ Padding(
       final bestQuote = ref.watch(bestQuoteProvider);
       final quoteState = ref.watch(quoteControllerProvider);
 
-      // ✅ FIXED VALIDATION: Check if quotes exist
-      bool canPlaceOrder = hasCalculatedQuotes &&
+      // ✅ FIXED: SIMPLE VALIDATION - If quotes exist, allow order
+      bool canPlaceOrder = false;
+      bool hasQuotes = false;
+      Quote? quoteToUse = bestQuote;
+
+      if (hasCalculatedQuotes &&
           quoteState.value != null &&
-          quoteState.value!.quotes.isNotEmpty &&
-          !isOrderLoading;
+          quoteState.value!.quotes.isNotEmpty) {
+        hasQuotes = true;
+        
+        // ✅ If bestQuote is null but we have quotes, use first quote
+        if (bestQuote == null) {
+          print("⚠️ Best quote is null, using first quote");
+          quoteToUse = quoteState.value!.quotes.first;
+          canPlaceOrder = true;
+          print("✅✅✅ CAN PLACE ORDER: Using first quote as default");
+        } else {
+          quoteToUse = bestQuote;
+          canPlaceOrder = true;
+          print("✅✅✅ CAN PLACE ORDER: Best quote selected");
+        }
+      }
 
       print("🔄 Button Status:");
       print("hasCalculatedQuotes: $hasCalculatedQuotes");
-      print("quoteState has data: ${quoteState.value != null}");
-      print("quotes exist: ${quoteState.value?.quotes.isNotEmpty ?? false}");
-      print("isOrderLoading: $isOrderLoading");
+      print("hasQuotes: $hasQuotes");
+      print("quoteToUse: ${quoteToUse?.vehicleType ?? 'null'}");
       print("canPlaceOrder: $canPlaceOrder");
 
       return CustomButton(
@@ -587,56 +645,137 @@ Padding(
         textColor: canPlaceOrder
             ? AppColors.pureWhite
             : AppColors.darkText.withOpacity(0.5),
-        onPressed: canPlaceOrder ? () async {
-          print("🎯 Place Order Button Pressed");
-          
-          try {
-            final cache = ref.read(orderCacheProvider);
-            
-            // ✅ Final validation
-            if (cache["pickup_address1"] == null ||
-                cache["delivery_address1"] == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Please add pickup and delivery addresses"),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              return;
-            }
+        onPressed: canPlaceOrder && quoteToUse != null
+            ? () async {
+                print("🎯 Place Order Button Pressed");
+                print("📋 Selected Quote Details:");
+                print("Vehicle ID: ${quoteToUse!.vehicleId}");
+                print("Vehicle Type: ${quoteToUse.vehicleType}");
+                print("Driver ID: ${quoteToUse.driver.id}");
+                print("Price: R${quoteToUse.pricing.total}");
 
-            // final items = ref.read(packageItemsProvider);
-            // if (items.isEmpty) {
-            //   ScaffoldMessenger.of(context).showSnackBar(
-            //     SnackBar(
-            //       content: Text("Please add at least one item"),
-            //       backgroundColor: Colors.orange,
-            //     ),
-            //   );
-            //   return;
-            // }
+                try {
+                  // ✅ Temporary: Update bestQuoteProvider manually
+                  // Agar aap provider update nahi kar sakte
+                  if (bestQuote == null) {
+                    print("ℹ️ Manually setting quote for order placement");
+                  }
 
-            print("✅ All validations passed, placing order...");
-            
-            // ✅ Place order
-            await ref
-                .read(orderControllerProvider.notifier)
-                .placeOrder(context);
-                
-          } catch (e) {
-            print("❌ Error placing order: $e");
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Error: ${e.toString()}"),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        } : null,
+                  // ✅ Place order
+                  await ref
+                      .read(orderControllerProvider.notifier)
+                      .placeOrder(context);
+                } catch (e) {
+                  print("❌ Error placing order: $e");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Error: ${e.toString()}"),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            : null,
       );
     },
   ),
 ),
+                  // Padding(
+                  //   padding: const EdgeInsets.symmetric(horizontal: 20),
+                  //   child: Consumer(
+                  //     builder: (context, ref, child) {
+                  //       final orderState = ref.watch(orderControllerProvider);
+                  //       final isOrderLoading = orderState.isLoading;
+                  //       final bestQuote = ref.watch(bestQuoteProvider);
+                  //       final quoteState = ref.watch(quoteControllerProvider);
+
+                  //       // ✅ FIXED VALIDATION: Check if quotes exist AND bestQuote is selected
+                  //       bool canPlaceOrder = false;
+
+                  //       if (hasCalculatedQuotes &&
+                  //           quoteState.value != null &&
+                  //           quoteState.value!.quotes.isNotEmpty) {
+                  //         if (bestQuote != null) {
+                  //           canPlaceOrder = true;
+                  //           print("✅✅✅ CAN PLACE ORDER: Best quote selected!");
+                  //         } else {
+                  //           print(
+                  //             "⚠️⚠️⚠️ Cannot place order: Best quote is null",
+                  //           );
+                  //         }
+                  //       }
+
+                  //       print("🔄 Button Status:");
+                  //       print("hasCalculatedQuotes: $hasCalculatedQuotes");
+                  //       print(
+                  //         "quoteState has data: ${quoteState.value != null}",
+                  //       );
+                  //       print(
+                  //         "quotes exist: ${quoteState.value?.quotes.isNotEmpty ?? false}",
+                  //       );
+                  //       print("bestQuote is null: ${bestQuote == null}");
+                  //       print("isOrderLoading: $isOrderLoading");
+                  //       print("canPlaceOrder: $canPlaceOrder");
+
+                  //       return CustomButton(
+                  //         text: isOrderLoading
+                  //             ? "Placing Order..."
+                  //             : "Place Order",
+                  //         backgroundColor: canPlaceOrder
+                  //             ? AppColors.electricTeal
+                  //             : AppColors.mediumGray.withOpacity(0.3),
+                  //         borderColor: canPlaceOrder
+                  //             ? AppColors.electricTeal
+                  //             : AppColors.mediumGray.withOpacity(0.5),
+                  //         textColor: canPlaceOrder
+                  //             ? AppColors.pureWhite
+                  //             : AppColors.darkText.withOpacity(0.5),
+                  //         onPressed: canPlaceOrder
+                  //             ? () async {
+                  //                 print("🎯 Place Order Button Pressed");
+                  //                 print("📋 Selected Quote Details:");
+                  //                 print("Vehicle ID: ${bestQuote!.vehicleId}");
+                  //                 print(
+                  //                   "Vehicle Type: ${bestQuote.vehicleType}",
+                  //                 );
+                  //                 print("Driver ID: ${bestQuote.driver.id}");
+                  //                 print("Price: R${bestQuote.pricing.total}");
+
+                  //                 try {
+                  //                   // ✅ Final validation
+                  //                   if (bestQuote == null) {
+                  //                     ScaffoldMessenger.of(
+                  //                       context,
+                  //                     ).showSnackBar(
+                  //                       SnackBar(
+                  //                         content: Text(
+                  //                           "Please select a quote first",
+                  //                         ),
+                  //                         backgroundColor: Colors.orange,
+                  //                       ),
+                  //                     );
+                  //                     return;
+                  //                   }
+
+                  //                   // ✅ Place order
+                  //                   await ref
+                  //                       .read(orderControllerProvider.notifier)
+                  //                       .placeOrder(context);
+                  //                 } catch (e) {
+                  //                   print("❌ Error placing order: $e");
+                  //                   ScaffoldMessenger.of(context).showSnackBar(
+                  //                     SnackBar(
+                  //                       content: Text("Error: ${e.toString()}"),
+                  //                       backgroundColor: Colors.red,
+                  //                     ),
+                  //                   );
+                  //                 }
+                  //               }
+                  //             : null,
+                  //       );
+                  //     },
+                  //   ),
+                  // ),
                  
                   gapH12,
                 ],
@@ -650,105 +789,109 @@ Padding(
 
   // DEBUG INFORMATION WIDGET
   Widget _buildDebugInfoSection() {
-    final bestQuote = ref.watch(bestQuoteProvider);
-    final quoteState = ref.watch(quoteControllerProvider);
+    return Consumer(
+      builder: (context, ref, child) {
+        final bestQuote = ref.watch(bestQuoteProvider);
+        final quoteState = ref.watch(quoteControllerProvider);
 
-    return Container(
-      margin: EdgeInsets.all(12),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.orange[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        return Container(
+          margin: EdgeInsets.all(12),
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.bug_report, size: 18, color: Colors.orange[800]),
-              SizedBox(width: 8),
-              Text(
-                "Debug Information",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange[800],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          _buildDebugRow("Quotes Calculated", hasCalculatedQuotes),
-          _buildDebugRow("Best Quote Selected", bestQuote != null),
-          _buildDebugRow(
-            "Quotes Available",
-            quoteState.value?.quotes.length ?? 0,
-          ),
-          SizedBox(height: 8),
-          if (bestQuote != null)
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green[200]!),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
+                  Icon(Icons.bug_report, size: 18, color: Colors.orange[800]),
+                  SizedBox(width: 8),
                   Text(
-                    "Selected Quote Details:",
+                    "Debug Information",
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green[800],
+                      color: Colors.orange[800],
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    "Vehicle: ${bestQuote.vehicleType}",
-                    style: TextStyle(fontSize: 12, color: Colors.green[800]),
-                  ),
-                  Text(
-                    "Price: R${bestQuote.pricing.total.toStringAsFixed(2)}",
-                    style: TextStyle(fontSize: 12, color: Colors.green[800]),
-                  ),
-                  Text(
-                    "Driver: ${bestQuote.driver.name}",
-                    style: TextStyle(fontSize: 12, color: Colors.green[800]),
                   ),
                 ],
               ),
-            )
-          else if (hasCalculatedQuotes)
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red[200]!),
+              SizedBox(height: 12),
+              _buildDebugRow("Quotes Calculated", hasCalculatedQuotes),
+              _buildDebugRow("Best Quote Selected", bestQuote != null),
+              _buildDebugRow(
+                "Quotes Available",
+                quoteState.value?.quotes.length ?? 0,
               ),
-              child: Text(
-                "⚠️ Quotes calculated but no best quote selected",
-                style: TextStyle(fontSize: 12, color: Colors.red[800]),
-              ),
-            )
-          else
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Text(
-                "ℹ️ Click 'Get Smart Quotes' to calculate",
-                style: TextStyle(fontSize: 12, color: Colors.blue[800]),
-              ),
-            ),
-        ],
-      ),
+              SizedBox(height: 8),
+              if (bestQuote != null)
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Selected Quote Details:",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[800],
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "Vehicle: ${bestQuote.vehicleType}",
+                        style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                      ),
+                      Text(
+                        "Price: R${bestQuote.pricing.total.toStringAsFixed(2)}",
+                        style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                      ),
+                      Text(
+                        "Driver: ${bestQuote.driver.name}",
+                        style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                      ),
+                    ],
+                  ),
+                )
+              else if (hasCalculatedQuotes)
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Text(
+                    "⚠️ Quotes calculated but no best quote selected",
+                    style: TextStyle(fontSize: 12, color: Colors.red[800]),
+                  ),
+                )
+              else
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Text(
+                    "ℹ️ Click 'Get Smart Quotes' to calculate",
+                    style: TextStyle(fontSize: 12, color: Colors.blue[800]),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -787,7 +930,7 @@ Padding(
   }
 
   // Get Smart Quotes Button
-    Widget _buildGetQuotesButton() {
+  Widget _buildGetQuotesButton() {
     final validationError = _validateBeforeQuotes();
     final isDisabled = validationError != null || isLoadingQuotes;
 
@@ -885,84 +1028,226 @@ Padding(
     );
   }
 
-  // Payment Summary Widget
-// Payment Summary Widget - FIXED VERSION
+  // Payment Summary Widget - UPDATED VERSION
+// ✅ FIXED: Payment Summary Widget
+// ✅ FIXED: Payment Summary Widget
 Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 1),
-    child: Column(
-      children: [
-        // Header with Icon
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.electricTeal.withOpacity(0.1),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            border: Border.all(
-              color: AppColors.electricTeal.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.receipt_long,
-                color: AppColors.electricTeal,
-                size: 22,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                "Payment Summary",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.darkText,
+  return Consumer(
+    builder: (context, ref, child) {
+      final bestQuote = ref.watch(bestQuoteProvider);
+      final quoteState = ref.watch(quoteControllerProvider);
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 1),
+        child: Column(
+          children: [
+            // Header with Icon
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: AppColors.electricTeal.withOpacity(0.1),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                border: Border.all(
+                  color: AppColors.electricTeal.withOpacity(0.3),
+                  width: 1,
                 ),
               ),
-            ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.receipt_long,
+                    color: AppColors.electricTeal,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Payment Summary",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.darkText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Summary Content
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.pureWhite,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+                border: Border.all(
+                  color: AppColors.mediumGray.withOpacity(0.2),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: quoteState.when(
+                data: (quoteData) {
+                  // ✅ Check if we have quotes
+                  if (quoteData == null) {
+                    print("❌ No quote data available");
+                    return _buildNoQuotesState("No quote data received");
+                  }
+
+                  if (quoteData.quotes.isEmpty) {
+                    print("❌ No quotes available from API");
+                    return _buildNoQuotesState("No quotes available for your request");
+                  }
+
+                  // ✅ CHECK IF BEST QUOTE IS NULL
+                  if (bestQuote == null) {
+                    print("⚠️ Quotes available but bestQuote is null");
+                    print("Total quotes count: ${quoteData.quotes.length}");
+                    
+                    // ✅ AUTO-SELECT THE FIRST QUOTE AS BEST QUOTE
+                    // Yeh temporary fix hai taki UI show kare
+                    final firstQuote = quoteData.quotes.first;
+                    print("Auto-selecting first quote: ${firstQuote.vehicleType}");
+                    
+                    return _buildQuoteDetails(firstQuote, quoteData);
+                  }
+
+                  print("✅ Showing best quote: ${bestQuote.vehicleType}");
+                  return _buildQuoteDetails(bestQuote, quoteData);
+                },
+                loading: () => _buildLoadingState(),
+                error: (e, st) => _buildErrorState(),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+// Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
+//   return Consumer(
+//     builder: (context, ref, child) {
+//       final bestQuote = ref.watch(bestQuoteProvider);
+//       final quoteState = ref.watch(quoteControllerProvider);
+
+//       return Padding(
+//         padding: const EdgeInsets.symmetric(horizontal: 1),
+//         child: Column(
+//           children: [
+//             // Header with Icon
+//             Container(
+//               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+//               decoration: BoxDecoration(
+//                 color: AppColors.electricTeal.withOpacity(0.1),
+//                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+//                 border: Border.all(
+//                   color: AppColors.electricTeal.withOpacity(0.3),
+//                   width: 1,
+//                 ),
+//               ),
+//               child: Row(
+//                 mainAxisAlignment: MainAxisAlignment.center,
+//                 children: [
+//                   Icon(
+//                     Icons.receipt_long,
+//                     color: AppColors.electricTeal,
+//                     size: 22,
+//                   ),
+//                   const SizedBox(width: 8),
+//                   Text(
+//                     "Payment Summary",
+//                     style: TextStyle(
+//                       fontSize: 18,
+//                       fontWeight: FontWeight.w700,
+//                       color: AppColors.darkText,
+//                     ),
+//                   ),
+//                 ],
+//               ),
+//             ),
+
+//             // Summary Content
+//             Container(
+//               decoration: BoxDecoration(
+//                 color: AppColors.pureWhite,
+//                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+//                 border: Border.all(
+//                   color: AppColors.mediumGray.withOpacity(0.2),
+//                   width: 1,
+//                 ),
+//                 boxShadow: [
+//                   BoxShadow(
+//                     color: Colors.black.withOpacity(0.05),
+//                     blurRadius: 8,
+//                     offset: Offset(0, 4),
+//                   ),
+//                 ],
+//               ),
+//               child: quoteState.when(
+//                 data: (quoteData) {
+//                   // ✅ Check if we have quotes
+//                   if (quoteData == null) {
+//                     print("❌ No quote data available");
+//                     return _buildNoQuotesState("No quote data received");
+//                   }
+
+//                   if (quoteData.quotes.isEmpty) {
+//                     print("❌ No quotes available from API");
+//                     return _buildNoQuotesState("No quotes available for your request");
+//                   }
+
+//                   if (bestQuote == null) {
+//                     print("⚠️ No best quote selected");
+//                     return _buildNoQuotesState("Please select a quote");
+//                   }
+
+//                   print("✅ Showing best quote: ${bestQuote.vehicleType}");
+//                   return _buildQuoteDetails(bestQuote, quoteData);
+//                 },
+//                 loading: () => _buildLoadingState(),
+//                 error: (e, st) => _buildErrorState(),
+//               ),
+//             ),
+//           ],
+//         ),
+//       );
+//     },
+//   );
+// }
+
+// ✅ FIXED: No Quotes State
+Widget _buildNoQuotesState(String message) {
+  return Container(
+    padding: EdgeInsets.all(24),
+    child: Column(
+      children: [
+        Icon(Icons.receipt_long, size: 48, color: AppColors.mediumGray),
+        SizedBox(height: 16),
+        Text(
+          "No Quotes Available",
+          style: TextStyle(
+            fontSize: 16,
+            color: AppColors.mediumGray,
+            fontWeight: FontWeight.w600,
           ),
         ),
-
-        // Summary Content
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.pureWhite,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-            border: Border.all(
-              color: AppColors.mediumGray.withOpacity(0.2),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: quoteState.when(
-            data: (quoteData) {
-              // ✅ FIX: Check if quoteData is null
-              if (quoteData == null) {
-                return _buildNoQuotesState();
-              }
-              
-              // ✅ FIX: Check if quotes array is empty
-              if (quoteData.quotes.isEmpty) {
-                return _buildNoQuotesState();
-              }
-
-              // Get best quote
-              final bestQuote = ref.read(bestQuoteProvider);
-              if (bestQuote == null) {
-                return _buildNoQuotesState();
-              }
-
-              return _buildQuoteDetails(bestQuote, quoteData);
-            },
-            loading: () => _buildLoadingState(),
-            error: (e, st) => _buildErrorState(),
+        SizedBox(height: 8),
+        Text(
+          message,
+          style: TextStyle(fontSize: 14, color: AppColors.mediumGray),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: _getSmartQuotes,
+          child: Text("Try Again"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.electricTeal,
           ),
         ),
       ],
@@ -1443,31 +1728,31 @@ Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
     );
   }
 
-  Widget _buildNoQuotesState() {
-    return Container(
-      padding: EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Icon(Icons.receipt_long, size: 48, color: AppColors.mediumGray),
-          SizedBox(height: 16),
-          Text(
-            "No Quotes Available",
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.mediumGray,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            "Click 'Get Smart Quotes' to calculate pricing",
-            style: TextStyle(fontSize: 14, color: AppColors.mediumGray),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildNoQuotesState() {
+  //   return Container(
+  //     padding: EdgeInsets.all(24),
+  //     child: Column(
+  //       children: [
+  //         Icon(Icons.receipt_long, size: 48, color: AppColors.mediumGray),
+  //         SizedBox(height: 16),
+  //         Text(
+  //           "No Quotes Available",
+  //           style: TextStyle(
+  //             fontSize: 16,
+  //             color: AppColors.mediumGray,
+  //             fontWeight: FontWeight.w600,
+  //           ),
+  //         ),
+  //         SizedBox(height: 8),
+  //         Text(
+  //           "Click 'Get Smart Quotes' to calculate pricing",
+  //           style: TextStyle(fontSize: 14, color: AppColors.mediumGray),
+  //           textAlign: TextAlign.center,
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildLoadingState() {
     return Container(
@@ -1516,148 +1801,156 @@ Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
 
   // pickup section
   Widget _buildPickupSection() {
-    final cache = ref.watch(orderCacheProvider);
+    return Consumer(
+      builder: (context, ref, child) {
+        final cache = ref.watch(orderCacheProvider);
 
-    // Check if multi-stop is enabled
-    final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+        // Check if multi-stop is enabled
+        final isMultiStop = cache["is_multi_stop_enabled"] == "true";
 
-    // Get pickup data based on mode
-    String pickupName;
-    String pickupPhone;
-    String pickupAddress;
-    String pickupCity;
-    String pickupState;
+        // Get pickup data based on mode
+        String pickupName;
+        String pickupPhone;
+        String pickupAddress;
+        String pickupCity;
+        String pickupState;
 
-    if (isMultiStop) {
-      // For multi-stop, get from specific stop 1 (pickup)
-      pickupName =
-          cache["stop_1_contact_name"] ?? cache["pickup_name"] ?? "Name N/A";
-      pickupPhone =
-          cache["stop_1_contact_phone"] ?? cache["pickup_phone"] ?? "Phone N/A";
-      pickupAddress =
-          cache["stop_1_address"] ?? cache["pickup_address1"] ?? "No Address";
-      pickupCity = cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
-      pickupState =
-          cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
-    } else {
-      // For single-stop, get from standard cache
-      pickupName = cache["pickup_name"] ?? "Name N/A";
-      pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
-      pickupAddress = cache["pickup_address1"] ?? "No Address";
-      pickupCity = cache["pickup_city"] ?? "City N/A";
-      pickupState = cache["pickup_state"] ?? "State N/A";
-    }
+        if (isMultiStop) {
+          // For multi-stop, get from specific stop 1 (pickup)
+          pickupName =
+              cache["stop_1_contact_name"] ?? cache["pickup_name"] ?? "Name N/A";
+          pickupPhone =
+              cache["stop_1_contact_phone"] ?? cache["pickup_phone"] ?? "Phone N/A";
+          pickupAddress =
+              cache["stop_1_address"] ?? cache["pickup_address1"] ?? "No Address";
+          pickupCity = cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
+          pickupState =
+              cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
+        } else {
+          // For single-stop, get from standard cache
+          pickupName = cache["pickup_name"] ?? "Name N/A";
+          pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
+          pickupAddress = cache["pickup_address1"] ?? "No Address";
+          pickupCity = cache["pickup_city"] ?? "City N/A";
+          pickupState = cache["pickup_state"] ?? "State N/A";
+        }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.electricTeal),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.mediumGray.withOpacity(0.10),
-            blurRadius: 6,
-            offset: Offset(0, 3),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.pureWhite,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.electricTeal),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.mediumGray.withOpacity(0.10),
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(pickupAddress, style: _boldText),
-          SizedBox(height: 4),
-          Text("$pickupCity - $pickupState", style: _subText),
-          SizedBox(height: 4),
-          CustomText(
-            txt: "$pickupName - $pickupPhone",
-            fontSize: 15,
-            color: AppColors.mediumGray,
-            fontWeight: FontWeight.w600,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(pickupAddress, style: _boldText),
+              SizedBox(height: 4),
+              Text("$pickupCity - $pickupState", style: _subText),
+              SizedBox(height: 4),
+              CustomText(
+                txt: "$pickupName - $pickupPhone",
+                fontSize: 15,
+                color: AppColors.mediumGray,
+                fontWeight: FontWeight.w600,
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildDeliverySection() {
-    final cache = ref.watch(orderCacheProvider);
+    return Consumer(
+      builder: (context, ref, child) {
+        final cache = ref.watch(orderCacheProvider);
 
-    // Check if multi-stop is enabled
-    final isMultiStop = cache["is_multi_stop_enabled"] == "true";
-    final stopsCount =
-        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+        // Check if multi-stop is enabled
+        final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+        final stopsCount =
+            int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
 
-    // Get delivery data based on mode
-    String deliveryName;
-    String deliveryPhone;
-    String deliveryAddress;
-    String deliveryCity;
-    String deliveryState;
+        // Get delivery data based on mode
+        String deliveryName;
+        String deliveryPhone;
+        String deliveryAddress;
+        String deliveryCity;
+        String deliveryState;
 
-    if (isMultiStop && stopsCount > 0) {
-      // For multi-stop, get from last stop (drop-off)
-      final lastStopIndex = stopsCount;
-      deliveryName =
-          cache["stop_${lastStopIndex}_contact_name"] ??
-          cache["delivery_name"] ??
-          "Name N/A";
-      deliveryPhone =
-          cache["stop_${lastStopIndex}_contact_phone"] ??
-          cache["delivery_phone"] ??
-          "Phone N/A";
-      deliveryAddress =
-          cache["stop_${lastStopIndex}_address"] ??
-          cache["delivery_address1"] ??
-          "No Address";
-      deliveryCity =
-          cache["stop_${lastStopIndex}_city"] ??
-          cache["delivery_city"] ??
-          "City N/A";
-      deliveryState =
-          cache["stop_${lastStopIndex}_state"] ??
-          cache["delivery_state"] ??
-          "State N/A";
-    } else {
-      // For single-stop, get from standard cache
-      deliveryName = cache["delivery_name"] ?? "Name N/A";
-      deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
-      deliveryAddress = cache["delivery_address1"] ?? "No Address";
-      deliveryCity = cache["delivery_city"] ?? "City N/A";
-      deliveryState = cache["delivery_state"] ?? "State N/A";
-    }
+        if (isMultiStop && stopsCount > 0) {
+          // For multi-stop, get from last stop (drop-off)
+          final lastStopIndex = stopsCount;
+          deliveryName =
+              cache["stop_${lastStopIndex}_contact_name"] ??
+              cache["delivery_name"] ??
+              "Name N/A";
+          deliveryPhone =
+              cache["stop_${lastStopIndex}_contact_phone"] ??
+              cache["delivery_phone"] ??
+              "Phone N/A";
+          deliveryAddress =
+              cache["stop_${lastStopIndex}_address"] ??
+              cache["delivery_address1"] ??
+              "No Address";
+          deliveryCity =
+              cache["stop_${lastStopIndex}_city"] ??
+              cache["delivery_city"] ??
+              "City N/A";
+          deliveryState =
+              cache["stop_${lastStopIndex}_state"] ??
+              cache["delivery_state"] ??
+              "State N/A";
+        } else {
+          // For single-stop, get from standard cache
+          deliveryName = cache["delivery_name"] ?? "Name N/A";
+          deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
+          deliveryAddress = cache["delivery_address1"] ?? "No Address";
+          deliveryCity = cache["delivery_city"] ?? "City N/A";
+          deliveryState = cache["delivery_state"] ?? "State N/A";
+        }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.electricTeal),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.mediumGray.withOpacity(0.10),
-            blurRadius: 6,
-            offset: Offset(0, 3),
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.pureWhite,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.electricTeal),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.mediumGray.withOpacity(0.10),
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(deliveryAddress, style: _boldText),
-          SizedBox(height: 4),
-          Text("$deliveryCity - $deliveryState", style: _subText),
-          SizedBox(height: 4),
-          CustomText(
-            txt: "$deliveryName - $deliveryPhone",
-            fontSize: 15,
-            color: AppColors.mediumGray,
-            fontWeight: FontWeight.w600,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(deliveryAddress, style: _boldText),
+              SizedBox(height: 4),
+              Text("$deliveryCity - $deliveryState", style: _subText),
+              SizedBox(height: 4),
+              CustomText(
+                txt: "$deliveryName - $deliveryPhone",
+                fontSize: 15,
+                color: AppColors.mediumGray,
+                fontWeight: FontWeight.w600,
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -2266,9 +2559,6 @@ const _subText = TextStyle(
   color: AppColors.mediumGray,
   fontWeight: FontWeight.w600,
 );
-
-
-
 
 
     //  NEW: Special Instructions

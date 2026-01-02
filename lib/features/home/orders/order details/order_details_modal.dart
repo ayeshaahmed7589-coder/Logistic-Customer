@@ -1,7 +1,7 @@
 class OrderDetailsModel {
   final bool success;
   final String message;
-  final Order order;
+  final OrderDetails order;
 
   OrderDetailsModel({
     required this.success,
@@ -13,12 +13,12 @@ class OrderDetailsModel {
     return OrderDetailsModel(
       success: json["success"] ?? false,
       message: json["message"] ?? "",
-      order: Order.fromJson(json["data"]["order"]),
+      order: OrderDetails.fromJson(json["data"]["order"]),
     );
   }
 }
 
-class Order {
+class OrderDetails {
   final int id;
   final String orderNumber;
   final String trackingCode;
@@ -35,7 +35,7 @@ class Order {
   final String createdAt;
   final bool isMultiStop;
 
-  Order({
+  OrderDetails({
     required this.id,
     required this.orderNumber,
     required this.trackingCode,
@@ -53,24 +53,26 @@ class Order {
     required this.isMultiStop,
   });
 
-  factory Order.fromJson(Map<String, dynamic> json) {
-    return Order(
-      id: json["id"],
+  /// ✅ Constructor name FIXED
+  factory OrderDetails.fromJson(Map<String, dynamic> json) {
+    return OrderDetails(
+      id: json["id"] ?? 0,
       orderNumber: json["order_number"] ?? "",
       trackingCode: json["tracking_code"] ?? "",
       status: json["status"] ?? "",
       paymentStatus: json["payment_status"] ?? "",
-      productType: ProductType.fromJson(json["product_type"]),
-      packagingType: PackagingType.fromJson(json["packaging_type"]),
-      vehicle: Vehicle.fromJson(json["vehicle"]),
-      driver: Driver.fromJson(json["driver"]),
-      pricing: Pricing.fromJson(json["pricing"]),
-      items: (json["items"] as List)
+      productType: ProductType.fromJson(json["product_type"] ?? {}),
+      packagingType: PackagingType.fromJson(json["packaging_type"] ?? {}),
+      vehicle: Vehicle.fromJson(json["vehicle"] ?? {}),
+      driver: Driver.fromJson(json["driver"] ?? {}),
+      pricing: Pricing.fromJson(json["pricing"] ?? {}),
+      items: (json["items"] as List? ?? [])
           .map((e) => OrderItem.fromJson(e))
           .toList(),
       addOns: List<String>.from(json["add_ons"] ?? []),
-      stops:
-          (json["stops"] as List).map((e) => Stop.fromJson(e)).toList(),
+      stops: (json["stops"] as List? ?? [])
+          .map((e) => Stop.fromJson(e))
+          .toList(),
       createdAt: json["created_at"] ?? "",
       isMultiStop: json["is_multi_stop"] ?? false,
     );
@@ -98,19 +100,17 @@ class Vehicle {
   final String registration;
   Vehicle({required this.vehicleType, required this.registration});
   factory Vehicle.fromJson(Map<String, dynamic> json) => Vehicle(
-        vehicleType: json["vehicle_type"] ?? "",
-        registration: json["registration_number"] ?? "",
-      );
+    vehicleType: json["vehicle_type"] ?? "",
+    registration: json["registration_number"] ?? "",
+  );
 }
 
 class Driver {
   final String name;
   final String phone;
   Driver({required this.name, required this.phone});
-  factory Driver.fromJson(Map<String, dynamic> json) => Driver(
-        name: json["name"] ?? "",
-        phone: json["phone"] ?? "",
-      );
+  factory Driver.fromJson(Map<String, dynamic> json) =>
+      Driver(name: json["name"] ?? "", phone: json["phone"] ?? "");
 }
 
 class Pricing {
@@ -118,9 +118,9 @@ class Pricing {
   final String tax;
   Pricing({required this.finalCost, required this.tax});
   factory Pricing.fromJson(Map<String, dynamic> json) => Pricing(
-        finalCost: json["final_cost"] ?? "",
-        tax: json["tax_amount"] ?? "",
-      );
+    finalCost: json["final_cost"] ?? "",
+    tax: json["tax_amount"] ?? "",
+  );
 }
 
 class OrderItem {
@@ -128,9 +128,9 @@ class OrderItem {
   final String weight;
   OrderItem({required this.productName, required this.weight});
   factory OrderItem.fromJson(Map<String, dynamic> json) => OrderItem(
-        productName: json["product_name"] ?? "",
-        weight: json["weight_kg"] ?? "",
-      );
+    productName: json["product_name"] ?? "",
+    weight: json["weight_kg"] ?? "",
+  );
 }
 
 class Stop {
@@ -139,8 +139,8 @@ class Stop {
   final String address;
   Stop({required this.type, required this.city, required this.address});
   factory Stop.fromJson(Map<String, dynamic> json) => Stop(
-        type: json["stop_type"] ?? "",
-        city: json["city"] ?? "",
-        address: json["address"] ?? "",
-      );
+    type: json["stop_type"] ?? "",
+    city: json["city"] ?? "",
+    address: json["address"] ?? "",
+  );
 }

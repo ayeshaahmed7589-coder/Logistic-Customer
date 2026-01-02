@@ -9,644 +9,186 @@ import 'package:logisticscustomer/features/home/main_screens/home_screen/home_mo
 import 'package:logisticscustomer/features/home/main_screens/home_screen/view_all.dart';
 import 'package:logisticscustomer/features/home/notification_screen.dart';
 
-// Active Orders
+import 'package:shimmer/shimmer.dart';
 
-// Ye code apne UI me replace karen
-// orderResponse.when(
-//   data: (data) {
-//     final orders = data.data.orders
-//         .where((order) => order.isActive)
-//         .toList();
+class DashboardShimmer extends StatelessWidget {
+  const DashboardShimmer({super.key});
 
-//     return orders.isEmpty
-//         ? Container(
-//             padding: EdgeInsets.all(20),
-//             decoration: BoxDecoration(
-//               color: AppColors.pureWhite,
-//               borderRadius: BorderRadius.circular(12),
-//               boxShadow: [
-//                 BoxShadow(
-//                   color: AppColors.mediumGray
-//                       .withOpacity(0.1),
-//                   blurRadius: 6,
-//                   offset: Offset(0, 3),
-//                 ),
-//               ],
-//             ),
-//             child: Column(
-//               children: [
-//                 Icon(
-//                   Icons.inbox_outlined,
-//                   size: 48,
-//                   color: AppColors.mediumGray
-//                       .withOpacity(0.5),
-//                 ),
-//                 SizedBox(height: 12),
-//                 CustomText(
-//                   txt: "No active orders",
-//                   color: AppColors.mediumGray,
-//                   fontWeight: FontWeight.w500,
-//                 ),
-//                 SizedBox(height: 8),
-//                 CustomText(
-//                   txt:
-//                       "You don't have any active shipments right now",
-//                   color: AppColors.mediumGray,
-//                   fontSize: 12,
-//                   align: TextAlign.center,
-//                 ),
-//               ],
-//             ),
-//           )
-//         : Column(
-//             children: orders.take(3).map((order) {
-//               return GestureDetector(
-//                 onTap: () {
-//                   // Order details screen pe navigate karen
-//                   // Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(order: order)));
-//                 },
-//                 child: Container(
-//                   margin: EdgeInsets.only(bottom: 16),
-//                   width: double.infinity,
-//                   padding: EdgeInsets.all(16),
-//                   decoration: BoxDecoration(
-//                     color: AppColors.pureWhite,
-//                     borderRadius:
-//                         BorderRadius.circular(16),
-//                     boxShadow: [
-//                       BoxShadow(
-//                         color: AppColors.mediumGray
-//                             .withOpacity(0.1),
-//                         blurRadius: 10,
-//                         offset: Offset(0, 4),
-//                       ),
-//                     ],
-//                   ),
-//                   child: Column(
-//                     crossAxisAlignment:
-//                         CrossAxisAlignment.start,
-//                     children: [
-//                       // Header Row
-//                       Row(
-//                         mainAxisAlignment:
-//                             MainAxisAlignment
-//                                 .spaceBetween,
-//                         children: [
-//                           Column(
-//                             crossAxisAlignment:
-//                                 CrossAxisAlignment
-//                                     .start,
-//                             children: [
-//                               CustomText(
-//                                 txt: "ORDER",
-//                                 fontSize: 10,
-//                                 fontWeight:
-//                                     FontWeight.w600,
-//                                 color: AppColors
-//                                     .mediumGray,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.lightGrayBackground,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _appBarShimmer(),
+            const SizedBox(height: 16),
+            _buttonShimmer(),
+            const SizedBox(height: 16),
+            _statsShimmer(),
+            const SizedBox(height: 24),
+            _sectionTitleShimmer(),
+            const SizedBox(height: 12),
+            _orderCardShimmer(),
+            _orderCardShimmer(),
+            _orderCardShimmer(),
+            const SizedBox(height: 24),
+            _sectionTitleShimmer(),
+            const SizedBox(height: 12),
+            _recentOrderShimmer(),
+            _recentOrderShimmer(),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-//                                 // letterSpacing: 0.5,
-//                               ),
-//                               CustomText(
-//                                 txt:
-//                                     order.orderNumber,
-//                                 fontSize: 16,
-//                                 fontWeight:
-//                                     FontWeight.bold,
-//                                 color: AppColors
-//                                     .darkText,
-//                               ),
-//                             ],
-//                           ),
-//                           // Status Badge
-//                           Container(
-//                             padding:
-//                                 EdgeInsets.symmetric(
-//                                   horizontal: 12,
-//                                   vertical: 6,
-//                                 ),
-//                             decoration: BoxDecoration(
-//                               color: _getStatusColor(
-//                                 order.status,
-//                               ).withOpacity(0.1),
-//                               borderRadius:
-//                                   BorderRadius.circular(
-//                                     20,
-//                                   ),
-//                               border: Border.all(
-//                                 color:
-//                                     _getStatusColor(
-//                                       order.status,
-//                                     ).withOpacity(
-//                                       0.3,
-//                                     ),
-//                                 width: 1,
-//                               ),
-//                             ),
-//                             child: Row(
-//                               children: [
-//                                 Icon(
-//                                   Icons.circle,
-//                                   size: 8,
-//                                   color:
-//                                       _getStatusColor(
-//                                         order.status,
-//                                       ),
-//                                 ),
-//                                 SizedBox(width: 6),
-//                                 CustomText(
-//                                   txt: order
-//                                       .statusText
-//                                       .toUpperCase(),
-//                                   fontSize: 11,
-//                                   fontWeight:
-//                                       FontWeight.w600,
-//                                   color:
-//                                       _getStatusColor(
-//                                         order.status,
-//                                       ),
-//                                 ),
-//                               ],
-//                             ),
-//                           ),
-//                         ],
-//                       ),
+Widget _appBarShimmer() {
+  return Container(
+    padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
+    decoration: const BoxDecoration(color: AppColors.electricTeal),
+    child: Shimmer.fromColors(
+      baseColor: Colors.white.withOpacity(0.3),
+      highlightColor: Colors.white.withOpacity(0.6),
+      child: Row(
+        children: [
+          const CircleAvatar(radius: 22, backgroundColor: Colors.white),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _box(width: 120, height: 14),
+              const SizedBox(height: 6),
+              _box(width: 90, height: 12),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
-//                       SizedBox(height: 16),
+Widget _buttonShimmer() {
+  return Padding(
+    padding: const EdgeInsets.all(12),
+    child: Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: _box(height: 52, radius: 12),
+    ),
+  );
+}
 
-//                       // Route Information
-//                       Container(
-//                         padding: EdgeInsets.all(12),
-//                         decoration: BoxDecoration(
-//                           color:
-//                               AppColors.lightBorder,
-//                           borderRadius:
-//                               BorderRadius.circular(
-//                                 12,
-//                               ),
-//                         ),
-//                         child: Column(
-//                           children: [
-//                             Row(
-//                               children: [
-//                                 Container(
-//                                   padding:
-//                                       EdgeInsets.all(
-//                                         6,
-//                                       ),
-//                                   decoration: BoxDecoration(
-//                                     color: AppColors
-//                                         .electricTeal,
-//                                     borderRadius:
-//                                         BorderRadius.circular(
-//                                           8,
-//                                         ),
-//                                   ),
-//                                   child: Icon(
-//                                     Icons
-//                                         .location_on_outlined,
-//                                     size: 16,
-//                                     color: AppColors
-//                                         .pureWhite,
-//                                   ),
-//                                 ),
-//                                 SizedBox(width: 12),
-//                                 Expanded(
-//                                   child: Column(
-//                                     crossAxisAlignment:
-//                                         CrossAxisAlignment
-//                                             .start,
-//                                     children: [
-//                                       CustomText(
-//                                         txt: "Pickup",
-//                                         fontSize: 10,
-//                                         color: AppColors
-//                                             .mediumGray,
-//                                         fontWeight:
-//                                             FontWeight
-//                                                 .w500,
-//                                       ),
-//                                       CustomText(
-//                                         txt: order
-//                                             .pickupCity,
-//                                         fontSize: 14,
-//                                         fontWeight:
-//                                             FontWeight
-//                                                 .w600,
-//                                         color: AppColors
-//                                             .darkText,
-//                                       ),
-//                                     ],
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
+Widget _statsShimmer() {
+  return Padding(
+    padding: const EdgeInsets.all(12),
+    child: Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(child: _box(height: 60)),
+                const SizedBox(width: 16),
+                Expanded(child: _box(height: 60)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _box(height: 60)),
+                const SizedBox(width: 16),
+                Expanded(child: _box(height: 60)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
-//                             SizedBox(height: 8),
+Widget _sectionTitleShimmer() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [_box(width: 140, height: 16), _box(width: 60, height: 14)],
+      ),
+    ),
+  );
+}
 
-//                             Padding(
-//                               padding:
-//                                   EdgeInsets.only(
-//                                     left: 24,
-//                                   ),
-//                               child: Column(
-//                                 children: [
-//                                   Container(
-//                                     height: 20,
-//                                     width: 2,
-//                                     color: AppColors
-//                                         .mediumGray
-//                                         .withOpacity(
-//                                           0.3,
-//                                         ),
-//                                   ),
-//                                   Icon(
-//                                     Icons
-//                                         .arrow_downward,
-//                                     size: 16,
-//                                     color: AppColors
-//                                         .mediumGray,
-//                                   ),
-//                                   Container(
-//                                     height: 20,
-//                                     width: 2,
-//                                     color: AppColors
-//                                         .mediumGray
-//                                         .withOpacity(
-//                                           0.3,
-//                                         ),
-//                                   ),
-//                                 ],
-//                               ),
-//                             ),
+Widget _orderCardShimmer() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    child: Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _box(width: 140, height: 14),
+            const SizedBox(height: 10),
+            _box(width: 90, height: 12),
+            const SizedBox(height: 8),
+            _box(width: double.infinity, height: 12),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _box(width: 90, height: 12),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
-//                             SizedBox(height: 8),
+Widget _recentOrderShimmer() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    child: Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: _box(height: 60, radius: 12),
+    ),
+  );
+}
 
-//                             Row(
-//                               children: [
-//                                 Container(
-//                                   padding:
-//                                       EdgeInsets.all(
-//                                         6,
-//                                       ),
-//                                   decoration: BoxDecoration(
-//                                     color: AppColors
-//                                         .limeGreen,
-//                                     borderRadius:
-//                                         BorderRadius.circular(
-//                                           8,
-//                                         ),
-//                                   ),
-//                                   child: Icon(
-//                                     Icons.location_on,
-//                                     size: 16,
-//                                     color: AppColors
-//                                         .electricTeal,
-//                                   ),
-//                                 ),
-//                                 SizedBox(width: 12),
-//                                 Expanded(
-//                                   child: Column(
-//                                     crossAxisAlignment:
-//                                         CrossAxisAlignment
-//                                             .start,
-//                                     children: [
-//                                       CustomText(
-//                                         txt:
-//                                             "Delivery",
-//                                         fontSize: 10,
-//                                         color: AppColors
-//                                             .mediumGray,
-//                                         fontWeight:
-//                                             FontWeight
-//                                                 .w500,
-//                                       ),
-//                                       CustomText(
-//                                         txt: order
-//                                             .deliveryCity,
-//                                         fontSize: 14,
-//                                         fontWeight:
-//                                             FontWeight
-//                                                 .w600,
-//                                         color: AppColors
-//                                             .darkText,
-//                                       ),
-//                                     ],
-//                                   ),
-//                                 ),
-//                               ],
-//                             ),
-//                           ],
-//                         ),
-//                       ),
+Widget _box({
+  double width = double.infinity,
+  double height = 12,
+  double radius = 8,
+}) {
+  return Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(radius),
+    ),
+  );
+}
 
-//                       SizedBox(height: 16),
-
-//                       // Order Details Row
-//                       Row(
-//                         mainAxisAlignment:
-//                             MainAxisAlignment
-//                                 .spaceBetween,
-//                         children: [
-//                           // Product Info
-//                           if (order.productType !=
-//                               null)
-//                             _buildDetailItem(
-//                               icon: Icons
-//                                   .inventory_2_outlined,
-//                               label: "Product",
-//                               value:
-//                                   order.productType!,
-//                             ),
-
-//                           // Weight Info
-//                           if (order.totalWeightKg !=
-//                               null)
-//                             _buildDetailItem(
-//                               icon: Icons
-//                                   .scale_outlined,
-//                               label: "Weight",
-//                               value:
-//                                   "${order.totalWeightKg} kg",
-//                             ),
-
-//                           // Cost Info
-//                           if (order.finalCost != null)
-//                             _buildDetailItem(
-//                               icon: Icons
-//                                   .attach_money_outlined,
-//                               label: "Cost",
-//                               value:
-//                                   "\$${order.finalCost}",
-//                             ),
-//                         ],
-//                       ),
-
-//                       SizedBox(height: 12),
-
-//                       // Driver & Vehicle Info
-//                       Container(
-//                         padding: EdgeInsets.all(12),
-//                         decoration: BoxDecoration(
-//                           color: AppColors.skyBlue,
-//                           borderRadius:
-//                               BorderRadius.circular(
-//                                 12,
-//                               ),
-//                           border: Border.all(
-//                             color: AppColors.skyBlue
-//                                 .withOpacity(0.3),
-//                           ),
-//                         ),
-//                         child: Row(
-//                           children: [
-//                             // Driver Info
-//                             Expanded(
-//                               child: Row(
-//                                 children: [
-//                                   Container(
-//                                     width: 40,
-//                                     height: 40,
-//                                     decoration: BoxDecoration(
-//                                       color: AppColors
-//                                           .electricTeal
-//                                           .withOpacity(
-//                                             0.1,
-//                                           ),
-//                                       borderRadius:
-//                                           BorderRadius.circular(
-//                                             20,
-//                                           ),
-//                                     ),
-//                                     child: Icon(
-//                                       Icons
-//                                           .person_outline,
-//                                       color: AppColors
-//                                           .electricTeal,
-//                                       size: 20,
-//                                     ),
-//                                   ),
-//                                   SizedBox(width: 10),
-//                                   Column(
-//                                     crossAxisAlignment:
-//                                         CrossAxisAlignment
-//                                             .start,
-//                                     children: [
-//                                       CustomText(
-//                                         txt: "Driver",
-//                                         fontSize: 10,
-//                                         color: AppColors
-//                                             .mediumGray,
-//                                       ),
-//                                       Row(
-//                                         children: [
-//                                           CustomText(
-//                                             txt: order
-//                                                 .driver
-//                                                 .name,
-//                                             fontSize:
-//                                                 13,
-//                                             fontWeight:
-//                                                 FontWeight
-//                                                     .w600,
-//                                           ),
-//                                           SizedBox(
-//                                             width: 4,
-//                                           ),
-//                                           Row(
-//                                             children: [
-//                                               Icon(
-//                                                 Icons
-//                                                     .star,
-//                                                 size:
-//                                                     12,
-//                                                 color:
-//                                                     AppColors.skyBlue,
-//                                               ),
-//                                               SizedBox(
-//                                                 width:
-//                                                     2,
-//                                               ),
-//                                               CustomText(
-//                                                 txt: order
-//                                                     .driver
-//                                                     .rating,
-//                                                 fontSize:
-//                                                     11,
-//                                                 fontWeight:
-//                                                     FontWeight.w600,
-//                                               ),
-//                                             ],
-//                                           ),
-//                                         ],
-//                                       ),
-//                                     ],
-//                                   ),
-//                                 ],
-//                               ),
-//                             ),
-
-//                             // Vehicle Info
-//                             Expanded(
-//                               child: Row(
-//                                 children: [
-//                                   Container(
-//                                     width: 40,
-//                                     height: 40,
-//                                     decoration: BoxDecoration(
-//                                       color: AppColors
-//                                           .skyBlue
-//                                           .withOpacity(
-//                                             0.1,
-//                                           ),
-//                                       borderRadius:
-//                                           BorderRadius.circular(
-//                                             20,
-//                                           ),
-//                                     ),
-//                                     child: Icon(
-//                                       Icons
-//                                           .local_shipping_outlined,
-//                                       color: AppColors
-//                                           .skyBlue,
-//                                       size: 20,
-//                                     ),
-//                                   ),
-//                                   SizedBox(width: 10),
-//                                   Column(
-//                                     crossAxisAlignment:
-//                                         CrossAxisAlignment
-//                                             .start,
-//                                     children: [
-//                                       CustomText(
-//                                         txt:
-//                                             "Vehicle",
-//                                         fontSize: 10,
-//                                         color: AppColors
-//                                             .mediumGray,
-//                                       ),
-//                                       CustomText(
-//                                         txt: order
-//                                             .vehicle
-//                                             .vehicleType,
-//                                         fontSize: 13,
-//                                         fontWeight:
-//                                             FontWeight
-//                                                 .w600,
-//                                         maxLines: 1,
-//                                         overflow:
-//                                             TextOverflow
-//                                                 .ellipsis,
-//                                       ),
-//                                       CustomText(
-//                                         txt: order
-//                                             .vehicle
-//                                             .registrationNumber,
-//                                         fontSize: 11,
-//                                         color: AppColors
-//                                             .mediumGray,
-//                                       ),
-//                                     ],
-//                                   ),
-//                                 ],
-//                               ),
-//                             ),
-//                           ],
-//                         ),
-//                       ),
-
-//                       SizedBox(height: 12),
-
-//                       // Track Button
-//                       Container(
-//                         width: double.infinity,
-//                         child: ElevatedButton(
-//                           onPressed: () {
-//                             // Tracking screen pe navigate karen
-//                           },
-//                           style: ElevatedButton.styleFrom(
-//                             backgroundColor: AppColors
-//                                 .electricTeal
-//                                 .withOpacity(0.1),
-//                             foregroundColor: AppColors
-//                                 .electricTeal,
-//                             elevation: 0,
-//                             shape: RoundedRectangleBorder(
-//                               borderRadius:
-//                                   BorderRadius.circular(
-//                                     12,
-//                                   ),
-//                               side: BorderSide(
-//                                 color: AppColors
-//                                     .electricTeal
-//                                     .withOpacity(0.3),
-//                               ),
-//                             ),
-//                             padding:
-//                                 EdgeInsets.symmetric(
-//                                   vertical: 14,
-//                                 ),
-//                           ),
-//                           child: Row(
-//                             mainAxisAlignment:
-//                                 MainAxisAlignment
-//                                     .center,
-//                             children: [
-//                               Icon(
-//                                 Icons.map_outlined,
-//                                 size: 18,
-//                               ),
-//                               SizedBox(width: 8),
-//                               CustomText(
-//                                 txt: "Track Order",
-//                                 fontWeight:
-//                                     FontWeight.w600,
-//                                 fontSize: 14,
-//                               ),
-//                               SizedBox(width: 8),
-//                               Icon(
-//                                 Icons.arrow_forward,
-//                                 size: 16,
-//                               ),
-//                             ],
-//                           ),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               );
-//             }).toList(),
-//           );
-//   },
-//   loading: () =>
-//       Center(child: CircularProgressIndicator()),
-//   error: (error, stackTrace) => Container(
-//     padding: EdgeInsets.all(20),
-//     decoration: BoxDecoration(
-//       color: AppColors.pureWhite,
-//       borderRadius: BorderRadius.circular(12),
-//     ),
-//     child: Center(
-//       child: Column(
-//         children: [
-//           Icon(
-//             Icons.error_outline,
-//             size: 48,
-//             color: AppColors.skyBlue,
-//           ),
-//           SizedBox(height: 12),
-//           CustomText(
-//             txt: "Failed to load orders",
-//             color: AppColors.skyBlue,
-//             fontWeight: FontWeight.w500,
-//           ),
-//         ],
-//       ),
-//     ),
-//   ),
-// ),
-
+//////////////////
 class CurrentScreen extends ConsumerStatefulWidget {
   const CurrentScreen({super.key});
 
@@ -670,8 +212,7 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
     // final orderResponse = ref.watch(orderControllerProvider);
 
     return state.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const DashboardShimmer(),
       error: (e, st) => Scaffold(body: Center(child: Text("Error: $e"))),
 
       data: (dashboard) {

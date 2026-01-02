@@ -811,6 +811,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                             );
                           },
                         ),
+
                         gapH8,
 
                         // PACKAGE TYPE DROPDOWN
@@ -1149,7 +1150,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                         ),
 
                         // END PACKAGING TYPE DROPDOWN
-                        gapH8,
+                        gapH20,
 
                         Row(
                           children: [
@@ -1171,8 +1172,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                           ],
                         ),
 
-                        gapH8,
-
+                        // gapH8,
                         _buildTextField(
                           controller: declaredValueController, // FIXED
                           label: "Declared Value (R)",

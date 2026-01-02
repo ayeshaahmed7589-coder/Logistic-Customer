@@ -127,7 +127,7 @@ class OrderRepository {
 
     print("🔍 Preparing order data...");
 
-    // ✅ Step 1: Get selected quote data
+    //  Step 1: Get selected quote data
     final selectedQuote = ref.read(bestQuoteProvider);
 
     if (selectedQuote == null) {
@@ -152,7 +152,7 @@ class OrderRepository {
 
     print("✅ Quote found: ${selectedQuote.vehicleType}");
 
-    // ✅ Step 2: Check if we have package items
+    //  Step 2: Check if we have package items
     if (items.isEmpty) {
       print("⚠️ No package items - using default item");
 
@@ -175,7 +175,7 @@ class OrderRepository {
       return _buildOrderRequestBody(cache, selectedQuote, defaultItems);
     }
 
-    // ✅ Step 3: Calculate total weight and item quantity
+    // Step 3: Calculate total weight and item quantity
     double totalWeight = 0.0;
     int totalQuantity = 0;
 
@@ -208,7 +208,7 @@ class OrderRepository {
     Quote selectedQuote,
     List<OrderItemRequest> orderItems,
   ) {
-    // ✅ Get product and packaging type IDs
+    //  Get product and packaging type IDs
     final productTypeIdStr =
         cache["selected_product_type_id"]?.toString() ?? "0";
     final packagingTypeIdStr =
@@ -223,12 +223,12 @@ class OrderRepository {
       );
     }
 
-    // ✅ Get declared value
+    // Get declared value
     double declaredValue = 0.0;
     final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
     declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
 
-    // ✅ Get add-ons
+    //  Get add-ons
     List<String> addOns = [];
     final selectedAddons = cache["selected_addons"];
 
@@ -240,7 +240,7 @@ class OrderRepository {
       }
     }
 
-    // ✅ Get addresses
+    //  Get addresses
     String pickupAddress = cache["pickup_address1"]?.toString() ?? "";
     if (pickupAddress.isEmpty) {
       pickupAddress = cache["pickup_city"]?.toString() ?? "Unknown Location";
@@ -252,13 +252,13 @@ class OrderRepository {
           cache["delivery_city"]?.toString() ?? "Unknown Location";
     }
 
-    // ✅ Get contact information
+    // Get contact information
     final pickupContactName = cache["pickup_name"]?.toString() ?? "Unknown";
     final pickupContactPhone = cache["pickup_phone"]?.toString() ?? "";
     final deliveryContactName = cache["delivery_name"]?.toString() ?? "Unknown";
     final deliveryContactPhone = cache["delivery_phone"]?.toString() ?? "";
 
-    // ✅ Get city/state/postal code
+    //  Get city/state/postal code
     final pickupCity = cache["pickup_city"]?.toString() ?? "";
     final pickupState = cache["pickup_state"]?.toString() ?? "";
     final pickupPostalCode = cache["pickup_postal"]?.toString() ?? "";
@@ -267,26 +267,26 @@ class OrderRepository {
     final deliveryState = cache["delivery_state"]?.toString() ?? "";
     final deliveryPostalCode = cache["delivery_postal"]?.toString() ?? "";
 
-    // ✅ Get service type
+    //  Get service type
     final serviceType = cache["service_type_id"]?.toString() ?? "standard";
 
-    // ✅ Get special instructions
+    // Get special instructions
     final specialInstructions = cache["special_instructions"]?.toString();
 
-    // ✅ Get estimated cost from quote
+    // Get estimated cost from quote
     double estimatedCost = selectedQuote.pricing.total;
 
-    // ✅ Create SelectedQuote object
+    //  Create SelectedQuote object
     final quoteSelected = SelectedQuote(
       vehicleId: selectedQuote.vehicleId,
       driverId: selectedQuote.driver.id,
       matchingScore: selectedQuote.totalScore,
-      depotScore: selectedQuote.depotScore ?? 100.0,
-      distanceScore: selectedQuote.distanceScore ?? 70.0,
-      priceScore: selectedQuote.priceScore ?? 100.0,
-      suitabilityScore: selectedQuote.suitabilityScore ?? 85.0,
-      driverScore: (selectedQuote.driver.rating) ?? 5.0,
-      depotId: selectedQuote.depotId ?? 0,
+      depotScore: selectedQuote.depotScore,
+      distanceScore: selectedQuote.distanceScore,
+      priceScore: selectedQuote.priceScore,
+      suitabilityScore: selectedQuote.suitabilityScore,
+      driverScore: (selectedQuote.driver.rating),
+      depotId: selectedQuote.depotId,
     );
 
     // ✅ Calculate total weight from items

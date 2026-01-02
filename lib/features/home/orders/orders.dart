@@ -86,10 +86,10 @@ class _OrdersState extends ConsumerState<Orders> {
       padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
       decoration: BoxDecoration(
         color: AppColors.electricTeal,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
+        // borderRadius: const BorderRadius.only(
+        //   bottomLeft: Radius.circular(20),
+        //   bottomRight: Radius.circular(20),
+        // ),
         boxShadow: [
           BoxShadow(
             color: AppColors.mediumGray.withOpacity(0.2),
@@ -147,7 +147,9 @@ class _OrdersState extends ConsumerState<Orders> {
                 txt: filter,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? AppColors.pureWhite : AppColors.mediumGray,
+                color: isSelected
+                    ? AppColors.pureWhite
+                    : AppColors.electricTeal,
               ),
               selected: isSelected,
               selectedColor: AppColors.electricTeal,
@@ -175,7 +177,7 @@ class _OrdersState extends ConsumerState<Orders> {
                 side: BorderSide(
                   color: isSelected
                       ? AppColors.electricTeal
-                      : AppColors.mediumGray.withOpacity(0.3),
+                      : AppColors.electricTeal,
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -434,9 +436,11 @@ class _OrdersState extends ConsumerState<Orders> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
+
       decoration: BoxDecoration(
         color: AppColors.pureWhite,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.electricTeal),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),

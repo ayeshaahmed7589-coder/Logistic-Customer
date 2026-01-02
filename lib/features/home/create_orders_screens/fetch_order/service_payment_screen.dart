@@ -12,11 +12,7 @@ import 'package:logisticscustomer/features/home/create_orders_screens/fetch_orde
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/order_types/service_type/service_type_controller.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/place_order_controller.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
 // Update StopRequest model to include contact info
-
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ServicePaymentScreen extends ConsumerStatefulWidget {
   const ServicePaymentScreen({super.key});
@@ -44,7 +40,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(serviceTypeControllerProvider.notifier).loadServiceTypes();
       ref.read(addOnsControllerProvider.notifier).loadAddOns();
@@ -147,158 +143,171 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     }
   }
 
-// ✅ FIXED: ServicePaymentScreen mein calculate function
-Future<void> _calculateStandardQuotes({
-  required int productTypeId,
-  required int packagingTypeId,
-  required double totalWeightKg,
-  required List<String> selectedAddons,
-}) async {
-  final cache = ref.read(orderCacheProvider);
+  // FIXED: ServicePaymentScreen mein calculate function
+  Future<void> _calculateStandardQuotes({
+    required int productTypeId,
+    required int packagingTypeId,
+    required double totalWeightKg,
+    required List<String> selectedAddons,
+  }) async {
+    final cache = ref.read(orderCacheProvider);
 
-  // ✅ PROPER VALIDATION
-  final pickupCity = cache["pickup_city"]?.toString().trim();
-  final pickupState = cache["pickup_state"]?.toString().trim();
-  final deliveryCity = cache["delivery_city"]?.toString().trim();
-  final deliveryState = cache["delivery_state"]?.toString().trim();
-  
-  // ✅ Service Type get karo (yeh IMPORTANT hai)
-  final serviceType = selectedServiceTypeId ?? "standard";
-  
-  // ✅ Declared value get karo
-  final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
-  final declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
+    // ✅ PROPER VALIDATION
+    final pickupCity = cache["pickup_city"]?.toString().trim();
+    final pickupState = cache["pickup_state"]?.toString().trim();
+    final deliveryCity = cache["delivery_city"]?.toString().trim();
+    final deliveryState = cache["delivery_state"]?.toString().trim();
 
-  // ✅ DEBUG LOGS - DETAILED
-  print("📍📍📍 CALCULATING STANDARD QUOTES:");
-  print("📌 Pickup: $pickupCity, $pickupState");
-  print("📌 Delivery: $deliveryCity, $deliveryState");
-  print("📌 Product Type ID: $productTypeId");
-  print("📌 Packaging Type ID: $packagingTypeId");
-  print("📌 Weight: ${totalWeightKg}kg");
-  print("📌 Declared Value: R$declaredValue");
-  print("📌 Service Type: $serviceType");
-  print("📌 Add-ons: $selectedAddons");
-  
-  // ✅ Check COMPLETE cache data
-  print("🔍 COMPLETE CACHE CHECK:");
-  print("   pickup_name: ${cache["pickup_name"]}");
-  print("   pickup_phone: ${cache["pickup_phone"]}");
-  print("   pickup_address1: ${cache["pickup_address1"]}");
-  print("   pickup_city: ${cache["pickup_city"]}");
-  print("   pickup_state: ${cache["pickup_state"]}");
-  print("   delivery_name: ${cache["delivery_name"]}");
-  print("   delivery_phone: ${cache["delivery_phone"]}");
-  print("   delivery_address1: ${cache["delivery_address1"]}");
-  print("   delivery_city: ${cache["delivery_city"]}");
-  print("   delivery_state: ${cache["delivery_state"]}");
+    // ✅ Service Type get karo (yeh IMPORTANT hai)
+    final serviceType = selectedServiceTypeId ?? "standard";
 
-  // ✅ Validation
-  if (pickupCity == null || pickupCity.isEmpty || 
-      pickupState == null || pickupState.isEmpty ||
-      deliveryCity == null || deliveryCity.isEmpty ||
-      deliveryState == null || deliveryState.isEmpty) {
-    
-    throw Exception("Please complete pickup and delivery information in Step 2");
+    // ✅ Declared value get karo
+    final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
+    final declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
+
+    // ✅ DEBUG LOGS - DETAILED
+    print("📍📍📍 CALCULATING STANDARD QUOTES:");
+    print("📌 Pickup: $pickupCity, $pickupState");
+    print("📌 Delivery: $deliveryCity, $deliveryState");
+    print("📌 Product Type ID: $productTypeId");
+    print("📌 Packaging Type ID: $packagingTypeId");
+    print("📌 Weight: ${totalWeightKg}kg");
+    print("📌 Declared Value: R$declaredValue");
+    print("📌 Service Type: $serviceType");
+    print("📌 Add-ons: $selectedAddons");
+
+    // ✅ Check COMPLETE cache data
+    print("🔍 COMPLETE CACHE CHECK:");
+    print("   pickup_name: ${cache["pickup_name"]}");
+    print("   pickup_phone: ${cache["pickup_phone"]}");
+    print("   pickup_address1: ${cache["pickup_address1"]}");
+    print("   pickup_city: ${cache["pickup_city"]}");
+    print("   pickup_state: ${cache["pickup_state"]}");
+    print("   delivery_name: ${cache["delivery_name"]}");
+    print("   delivery_phone: ${cache["delivery_phone"]}");
+    print("   delivery_address1: ${cache["delivery_address1"]}");
+    print("   delivery_city: ${cache["delivery_city"]}");
+    print("   delivery_state: ${cache["delivery_state"]}");
+
+    // ✅ Validation
+    if (pickupCity == null ||
+        pickupCity.isEmpty ||
+        pickupState == null ||
+        pickupState.isEmpty ||
+        deliveryCity == null ||
+        deliveryCity.isEmpty ||
+        deliveryState == null ||
+        deliveryState.isEmpty) {
+      throw Exception(
+        "Please complete pickup and delivery information in Step 2",
+      );
+    }
+
+    final dimensions = _getDimensionsFromCache(cache);
+
+    try {
+      await ref
+          .read(quoteControllerProvider.notifier)
+          .calculateStandardQuote(
+            productTypeId: productTypeId,
+            packagingTypeId: packagingTypeId,
+            totalWeightKg: totalWeightKg,
+            pickupCity: pickupCity,
+            pickupState: pickupState,
+            deliveryCity: deliveryCity,
+            deliveryState: deliveryState,
+            serviceType: serviceType,
+            declaredValue: declaredValue,
+            addOns: selectedAddons,
+            length: dimensions['length'],
+            width: dimensions['width'],
+            height: dimensions['height'],
+          );
+
+      // ✅ Force state update
+      setState(() {
+        hasCalculatedQuotes = true;
+        isLoadingQuotes = false;
+      });
+
+      print("✅✅✅ Quotes calculation completed!");
+    } catch (e) {
+      print("❌❌❌ Error in calculateStandardQuotes: $e");
+      rethrow;
+    }
   }
 
-  final dimensions = _getDimensionsFromCache(cache);
+  Future<void> _calculateMultiStopQuotes({
+    required int productTypeId,
+    required int packagingTypeId,
+    required double totalWeightKg,
+    required List<String> selectedAddons,
+  }) async {
+    final cache = ref.read(orderCacheProvider);
+    final stopsCount =
+        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
 
-  try {
+    if (stopsCount < 2) {
+      throw Exception("Multi-stop route requires at least 2 stops");
+    }
+
+    final stops = <StopRequest>[];
+
+    for (int i = 1; i <= stopsCount; i++) {
+      final stopTypeStr = cache["stop_${i}_type"]?.toString() ?? "";
+      final city = cache["stop_${i}_city"]?.toString().trim() ?? "";
+      final state = cache["stop_${i}_state"]?.toString().trim() ?? "";
+      final contactName = cache["stop_${i}_contact_name"]?.toString() ?? "";
+      final contactPhone = cache["stop_${i}_contact_phone"]?.toString() ?? "";
+      final address = cache["stop_${i}_address"]?.toString() ?? "";
+
+      if (city.isEmpty || state.isEmpty) {
+        throw Exception("Stop $i: City and State are required");
+      }
+
+      // ✅ Convert UI StopType to API format
+      String apiStopType;
+      if (stopTypeStr.contains("pickup")) {
+        apiStopType = "pickup";
+      } else if (stopTypeStr.contains("waypoint")) {
+        apiStopType = "waypoint";
+      } else if (stopTypeStr.contains("dropOff")) {
+        apiStopType = "drop_off";
+      } else {
+        // Default: first is pickup, last is drop_off, others waypoint
+        if (i == 1)
+          apiStopType = "pickup";
+        else if (i == stopsCount)
+          apiStopType = "drop_off";
+        else
+          apiStopType = "waypoint";
+      }
+
+      stops.add(
+        StopRequest(
+          stopType: apiStopType,
+          city: city,
+          state: state,
+          contactName: contactName.isNotEmpty ? contactName : null,
+          contactPhone: contactPhone.isNotEmpty ? contactPhone : null,
+          address: address.isNotEmpty ? address : null,
+        ),
+      );
+    }
+
     await ref
         .read(quoteControllerProvider.notifier)
-        .calculateStandardQuote(
+        .calculateMultiStopQuote(
           productTypeId: productTypeId,
           packagingTypeId: packagingTypeId,
           totalWeightKg: totalWeightKg,
-          pickupCity: pickupCity,
-          pickupState: pickupState,
-          deliveryCity: deliveryCity,
-          deliveryState: deliveryState,
-          serviceType: serviceType,
+          stops: stops,
+          serviceType: selectedServiceTypeId ?? "standard",
           declaredValue: declaredValue,
           addOns: selectedAddons,
-          length: dimensions['length'],
-          width: dimensions['width'],
-          height: dimensions['height'],
         );
-
-    // ✅ Force state update
-    setState(() {
-      hasCalculatedQuotes = true;
-      isLoadingQuotes = false;
-    });
-
-    print("✅✅✅ Quotes calculation completed!");
-  } catch (e) {
-    print("❌❌❌ Error in calculateStandardQuotes: $e");
-    rethrow;
-  }
-}
-Future<void> _calculateMultiStopQuotes({
-  required int productTypeId,
-  required int packagingTypeId,
-  required double totalWeightKg,
-  required List<String> selectedAddons,
-}) async {
-  final cache = ref.read(orderCacheProvider);
-  final stopsCount = int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
-
-  if (stopsCount < 2) {
-    throw Exception("Multi-stop route requires at least 2 stops");
   }
 
-  final stops = <StopRequest>[];
-
-  for (int i = 1; i <= stopsCount; i++) {
-    final stopTypeStr = cache["stop_${i}_type"]?.toString() ?? "";
-    final city = cache["stop_${i}_city"]?.toString()?.trim() ?? "";
-    final state = cache["stop_${i}_state"]?.toString()?.trim() ?? "";
-    final contactName = cache["stop_${i}_contact_name"]?.toString() ?? "";
-    final contactPhone = cache["stop_${i}_contact_phone"]?.toString() ?? "";
-    final address = cache["stop_${i}_address"]?.toString() ?? "";
-
-    if (city.isEmpty || state.isEmpty) {
-      throw Exception("Stop $i: City and State are required");
-    }
-
-    // ✅ Convert UI StopType to API format
-    String apiStopType;
-    if (stopTypeStr.contains("pickup")) {
-      apiStopType = "pickup";
-    } else if (stopTypeStr.contains("waypoint")) {
-      apiStopType = "waypoint";
-    } else if (stopTypeStr.contains("dropOff")) {
-      apiStopType = "drop_off";
-    } else {
-      // Default: first is pickup, last is drop_off, others waypoint
-      if (i == 1) apiStopType = "pickup";
-      else if (i == stopsCount) apiStopType = "drop_off";
-      else apiStopType = "waypoint";
-    }
-
-    stops.add(
-      StopRequest(
-        stopType: apiStopType,
-        city: city,
-        state: state,
-        contactName: contactName.isNotEmpty ? contactName : null,
-        contactPhone: contactPhone.isNotEmpty ? contactPhone : null,
-        address: address.isNotEmpty ? address : null,
-      ),
-    );
-  }
-
-  await ref.read(quoteControllerProvider.notifier).calculateMultiStopQuote(
-    productTypeId: productTypeId,
-    packagingTypeId: packagingTypeId,
-    totalWeightKg: totalWeightKg,
-    stops: stops,
-    serviceType: selectedServiceTypeId ?? "standard",
-    declaredValue: declaredValue,
-    addOns: selectedAddons,
-  );
-}
   Map<String, double?> _getDimensionsFromCache(Map<String, dynamic> cache) {
     final length = cache["package_length"]?.toString();
     final width = cache["package_width"]?.toString();
@@ -335,6 +344,7 @@ Future<void> _calculateMultiStopQuotes({
     }
   }
 
+  // Add-on toggle function
   void _toggleAddOn(String addOnId, double cost) {
     final selectedAddons = ref.read(selectedAddonsProvider);
 
@@ -359,6 +369,121 @@ Future<void> _calculateMultiStopQuotes({
     if (hasCalculatedQuotes) {
       _getSmartQuotes();
     }
+  }
+
+  // addons
+  void _openAddOnsModal(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.45),
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 80,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Consumer(
+            builder: (context, ref, child) {
+              final addOnsState = ref.watch(addOnsControllerProvider);
+
+              return addOnsState.when(
+                loading: () => const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+
+                error: (e, _) => const SizedBox(
+                  height: 200,
+                  child: Center(child: Text("Failed to load add-ons")),
+                ),
+
+                data: (data) => SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.65,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // -------- Header --------
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Select Add-ons",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => Navigator.pop(context),
+                              child: const Icon(Icons.close),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Divider(height: 1),
+
+                      // -------- Grid --------
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: GridView.builder(
+                            itemCount: data.addOns.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2, // ✅ 2 per row
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.1,
+                                ),
+                            itemBuilder: (context, index) {
+                              return _addonModalCard(item: data.addOns[index]);
+                            },
+                          ),
+                        ),
+                      ),
+
+                      // -------- Bottom Action (optional but recommended) --------
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 46,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.electricTeal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text(
+                              "Done",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
   // Check if all required data is available for quote calculation
@@ -418,27 +543,26 @@ Future<void> _calculateMultiStopQuotes({
     final quoteState = ref.watch(quoteControllerProvider);
     final bestQuote = ref.watch(bestQuoteProvider);
 
-    // ✅ Yeh ab build method ke andar hai - sahi jagah
-    ref.listen<AsyncValue<QuoteData?>>(
-      quoteControllerProvider,
-      (previous, next) {
-        next.when(
-          data: (data) {
-            if (data != null && data.quotes.isNotEmpty) {
-              print("📊 Quotes data updated: ${data.quotes.length} quotes");
-              // Force UI refresh
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() {});
-                }
-              });
-            }
-          },
-          loading: () => print("🔄 Quotes loading..."),
-          error: (error, stackTrace) => print("❌ Quotes error: $error"),
-        );
-      },
-    );
+    ref.listen<AsyncValue<QuoteData?>>(quoteControllerProvider, (
+      previous,
+      next,
+    ) {
+      next.when(
+        data: (data) {
+          if (data != null && data.quotes.isNotEmpty) {
+            print("📊 Quotes data updated: ${data.quotes.length} quotes");
+            // Force UI refresh
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {});
+              }
+            });
+          }
+        },
+        loading: () => print("🔄 Quotes loading..."),
+        error: (error, stackTrace) => print("❌ Quotes error: $error"),
+      );
+    });
 
     // Debug print for console
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -593,93 +717,102 @@ Future<void> _calculateMultiStopQuotes({
                   gapH16,
 
                   // Place Order Button
-                  // Place Order Button section mein yeh change karein
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 20),
-  child: Consumer(
-    builder: (context, ref, child) {
-      final orderState = ref.watch(orderControllerProvider);
-      final isOrderLoading = orderState.isLoading;
-      final bestQuote = ref.watch(bestQuoteProvider);
-      final quoteState = ref.watch(quoteControllerProvider);
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final orderState = ref.watch(orderControllerProvider);
+                        final isOrderLoading = orderState.isLoading;
+                        final bestQuote = ref.watch(bestQuoteProvider);
+                        final quoteState = ref.watch(quoteControllerProvider);
 
-      // ✅ FIXED: SIMPLE VALIDATION - If quotes exist, allow order
-      bool canPlaceOrder = false;
-      bool hasQuotes = false;
-      Quote? quoteToUse = bestQuote;
+                        // ✅ FIXED: SIMPLE VALIDATION - If quotes exist, allow order
+                        bool canPlaceOrder = false;
+                        bool hasQuotes = false;
+                        Quote? quoteToUse = bestQuote;
 
-      if (hasCalculatedQuotes &&
-          quoteState.value != null &&
-          quoteState.value!.quotes.isNotEmpty) {
-        hasQuotes = true;
-        
-        // ✅ If bestQuote is null but we have quotes, use first quote
-        if (bestQuote == null) {
-          print("⚠️ Best quote is null, using first quote");
-          quoteToUse = quoteState.value!.quotes.first;
-          canPlaceOrder = true;
-          print("✅✅✅ CAN PLACE ORDER: Using first quote as default");
-        } else {
-          quoteToUse = bestQuote;
-          canPlaceOrder = true;
-          print("✅✅✅ CAN PLACE ORDER: Best quote selected");
-        }
-      }
+                        if (hasCalculatedQuotes &&
+                            quoteState.value != null &&
+                            quoteState.value!.quotes.isNotEmpty) {
+                          hasQuotes = true;
 
-      print("🔄 Button Status:");
-      print("hasCalculatedQuotes: $hasCalculatedQuotes");
-      print("hasQuotes: $hasQuotes");
-      print("quoteToUse: ${quoteToUse?.vehicleType ?? 'null'}");
-      print("canPlaceOrder: $canPlaceOrder");
+                          // ✅ If bestQuote is null but we have quotes, use first quote
+                          if (bestQuote == null) {
+                            print("⚠️ Best quote is null, using first quote");
+                            quoteToUse = quoteState.value!.quotes.first;
+                            canPlaceOrder = true;
+                            print(
+                              "✅✅✅ CAN PLACE ORDER: Using first quote as default",
+                            );
+                          } else {
+                            quoteToUse = bestQuote;
+                            canPlaceOrder = true;
+                            print("✅✅✅ CAN PLACE ORDER: Best quote selected");
+                          }
+                        }
 
-      return CustomButton(
-        text: isOrderLoading
-            ? "Placing Order..."
-            : "Place Order",
-        backgroundColor: canPlaceOrder
-            ? AppColors.electricTeal
-            : AppColors.mediumGray.withOpacity(0.3),
-        borderColor: canPlaceOrder
-            ? AppColors.electricTeal
-            : AppColors.mediumGray.withOpacity(0.5),
-        textColor: canPlaceOrder
-            ? AppColors.pureWhite
-            : AppColors.darkText.withOpacity(0.5),
-        onPressed: canPlaceOrder && quoteToUse != null
-            ? () async {
-                print("🎯 Place Order Button Pressed");
-                print("📋 Selected Quote Details:");
-                print("Vehicle ID: ${quoteToUse!.vehicleId}");
-                print("Vehicle Type: ${quoteToUse.vehicleType}");
-                print("Driver ID: ${quoteToUse.driver.id}");
-                print("Price: R${quoteToUse.pricing.total}");
+                        print("🔄 Button Status:");
+                        print("hasCalculatedQuotes: $hasCalculatedQuotes");
+                        print("hasQuotes: $hasQuotes");
+                        print(
+                          "quoteToUse: ${quoteToUse?.vehicleType ?? 'null'}",
+                        );
+                        print("canPlaceOrder: $canPlaceOrder");
 
-                try {
-                  // ✅ Temporary: Update bestQuoteProvider manually
-                  // Agar aap provider update nahi kar sakte
-                  if (bestQuote == null) {
-                    print("ℹ️ Manually setting quote for order placement");
-                  }
+                        return CustomButton(
+                          text: isOrderLoading
+                              ? "Placing Order..."
+                              : "Place Order",
 
-                  // ✅ Place order
-                  await ref
-                      .read(orderControllerProvider.notifier)
-                      .placeOrder(context);
-                } catch (e) {
-                  print("❌ Error placing order: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Error: ${e.toString()}"),
-                      backgroundColor: Colors.red,
+                          backgroundColor: canPlaceOrder
+                              ? AppColors.electricTeal
+                              : AppColors.lightGrayBackground,
+                          borderColor: canPlaceOrder
+                              ? AppColors.electricTeal
+                              : AppColors.electricTeal,
+                          textColor: canPlaceOrder
+                              ? AppColors.pureWhite
+                              : AppColors.electricTeal,
+                          onPressed: canPlaceOrder && quoteToUse != null
+                              ? () async {
+                                  print("🎯 Place Order Button Pressed");
+                                  print("📋 Selected Quote Details:");
+                                  print("Vehicle ID: ${quoteToUse!.vehicleId}");
+                                  print(
+                                    "Vehicle Type: ${quoteToUse.vehicleType}",
+                                  );
+                                  print("Driver ID: ${quoteToUse.driver.id}");
+                                  print("Price: R${quoteToUse.pricing.total}");
+
+                                  try {
+                                    // ✅ Temporary: Update bestQuoteProvider manually
+                                    // Agar aap provider update nahi kar sakte
+                                    if (bestQuote == null) {
+                                      print(
+                                        "ℹ️ Manually setting quote for order placement",
+                                      );
+                                    }
+
+                                    // ✅ Place order
+                                    await ref
+                                        .read(orderControllerProvider.notifier)
+                                        .placeOrder(context);
+                                  } catch (e) {
+                                    print("❌ Error placing order: $e");
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text("Error: ${e.toString()}"),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              : null,
+                        );
+                      },
                     ),
-                  );
-                }
-              }
-            : null,
-      );
-    },
-  ),
-),
+                  ),
+
                   // Padding(
                   //   padding: const EdgeInsets.symmetric(horizontal: 20),
                   //   child: Consumer(
@@ -776,7 +909,6 @@ Padding(
                   //     },
                   //   ),
                   // ),
-                 
                   gapH12,
                 ],
               ),
@@ -849,15 +981,24 @@ Padding(
                       SizedBox(height: 4),
                       Text(
                         "Vehicle: ${bestQuote.vehicleType}",
-                        style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[800],
+                        ),
                       ),
                       Text(
                         "Price: R${bestQuote.pricing.total.toStringAsFixed(2)}",
-                        style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[800],
+                        ),
                       ),
                       Text(
                         "Driver: ${bestQuote.driver.name}",
-                        style: TextStyle(fontSize: 12, color: Colors.green[800]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[800],
+                        ),
                       ),
                     ],
                   ),
@@ -1028,232 +1169,240 @@ Padding(
     );
   }
 
-  // Payment Summary Widget - UPDATED VERSION
-// ✅ FIXED: Payment Summary Widget
-// ✅ FIXED: Payment Summary Widget
-Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
-  return Consumer(
-    builder: (context, ref, child) {
-      final bestQuote = ref.watch(bestQuoteProvider);
-      final quoteState = ref.watch(quoteControllerProvider);
+  // FIXED: Payment Summary Widget
+  Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final bestQuote = ref.watch(bestQuoteProvider);
+        final quoteState = ref.watch(quoteControllerProvider);
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 1),
-        child: Column(
-          children: [
-            // Header with Icon
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.electricTeal.withOpacity(0.1),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                border: Border.all(
-                  color: AppColors.electricTeal.withOpacity(0.3),
-                  width: 1,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1),
+          child: Column(
+            children: [
+              // Header with Icon
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.receipt_long,
-                    color: AppColors.electricTeal,
-                    size: 22,
+                decoration: BoxDecoration(
+                  color: AppColors.electricTeal.withOpacity(0.1),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  border: Border.all(
+                    color: AppColors.electricTeal.withOpacity(0.3),
+                    width: 1,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Payment Summary",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.darkText,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.receipt_long,
+                      color: AppColors.electricTeal,
+                      size: 22,
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Summary Content
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.pureWhite,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-                border: Border.all(
-                  color: AppColors.mediumGray.withOpacity(0.2),
-                  width: 1,
+                    const SizedBox(width: 8),
+                    Text(
+                      "Payment Summary",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
+              ),
+
+              // Summary Content
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.pureWhite,
+                  borderRadius: BorderRadius.vertical(
+                    bottom: Radius.circular(12),
                   ),
-                ],
+                  border: Border.all(
+                    color: AppColors.mediumGray.withOpacity(0.2),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: quoteState.when(
+                  data: (quoteData) {
+                    // ✅ Check if we have quotes
+                    if (quoteData == null) {
+                      print("❌ No quote data available");
+                      return _buildNoQuotesState("No quote data received");
+                    }
+
+                    if (quoteData.quotes.isEmpty) {
+                      print("❌ No quotes available from API");
+                      return _buildNoQuotesState(
+                        "No quotes available for your request",
+                      );
+                    }
+
+                    // ✅ CHECK IF BEST QUOTE IS NULL
+                    if (bestQuote == null) {
+                      print("⚠️ Quotes available but bestQuote is null");
+                      print("Total quotes count: ${quoteData.quotes.length}");
+
+                      // ✅ AUTO-SELECT THE FIRST QUOTE AS BEST QUOTE
+                      // Yeh temporary fix hai taki UI show kare
+                      final firstQuote = quoteData.quotes.first;
+                      print(
+                        "Auto-selecting first quote: ${firstQuote.vehicleType}",
+                      );
+
+                      return _buildQuoteDetails(firstQuote, quoteData);
+                    }
+
+                    print("✅ Showing best quote: ${bestQuote.vehicleType}");
+                    return _buildQuoteDetails(bestQuote, quoteData);
+                  },
+                  loading: () => _buildLoadingState(),
+                  error: (e, st) => _buildErrorState(),
+                ),
               ),
-              child: quoteState.when(
-                data: (quoteData) {
-                  // ✅ Check if we have quotes
-                  if (quoteData == null) {
-                    print("❌ No quote data available");
-                    return _buildNoQuotesState("No quote data received");
-                  }
+            ],
+          ),
+        );
+      },
+    );
+  }
+  // Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
+  //   return Consumer(
+  //     builder: (context, ref, child) {
+  //       final bestQuote = ref.watch(bestQuoteProvider);
+  //       final quoteState = ref.watch(quoteControllerProvider);
 
-                  if (quoteData.quotes.isEmpty) {
-                    print("❌ No quotes available from API");
-                    return _buildNoQuotesState("No quotes available for your request");
-                  }
+  //       return Padding(
+  //         padding: const EdgeInsets.symmetric(horizontal: 1),
+  //         child: Column(
+  //           children: [
+  //             // Header with Icon
+  //             Container(
+  //               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+  //               decoration: BoxDecoration(
+  //                 color: AppColors.electricTeal.withOpacity(0.1),
+  //                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+  //                 border: Border.all(
+  //                   color: AppColors.electricTeal.withOpacity(0.3),
+  //                   width: 1,
+  //                 ),
+  //               ),
+  //               child: Row(
+  //                 mainAxisAlignment: MainAxisAlignment.center,
+  //                 children: [
+  //                   Icon(
+  //                     Icons.receipt_long,
+  //                     color: AppColors.electricTeal,
+  //                     size: 22,
+  //                   ),
+  //                   const SizedBox(width: 8),
+  //                   Text(
+  //                     "Payment Summary",
+  //                     style: TextStyle(
+  //                       fontSize: 18,
+  //                       fontWeight: FontWeight.w700,
+  //                       color: AppColors.darkText,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
 
-                  // ✅ CHECK IF BEST QUOTE IS NULL
-                  if (bestQuote == null) {
-                    print("⚠️ Quotes available but bestQuote is null");
-                    print("Total quotes count: ${quoteData.quotes.length}");
-                    
-                    // ✅ AUTO-SELECT THE FIRST QUOTE AS BEST QUOTE
-                    // Yeh temporary fix hai taki UI show kare
-                    final firstQuote = quoteData.quotes.first;
-                    print("Auto-selecting first quote: ${firstQuote.vehicleType}");
-                    
-                    return _buildQuoteDetails(firstQuote, quoteData);
-                  }
+  //             // Summary Content
+  //             Container(
+  //               decoration: BoxDecoration(
+  //                 color: AppColors.pureWhite,
+  //                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+  //                 border: Border.all(
+  //                   color: AppColors.mediumGray.withOpacity(0.2),
+  //                   width: 1,
+  //                 ),
+  //                 boxShadow: [
+  //                   BoxShadow(
+  //                     color: Colors.black.withOpacity(0.05),
+  //                     blurRadius: 8,
+  //                     offset: Offset(0, 4),
+  //                   ),
+  //                 ],
+  //               ),
+  //               child: quoteState.when(
+  //                 data: (quoteData) {
+  //                   // ✅ Check if we have quotes
+  //                   if (quoteData == null) {
+  //                     print("❌ No quote data available");
+  //                     return _buildNoQuotesState("No quote data received");
+  //                   }
 
-                  print("✅ Showing best quote: ${bestQuote.vehicleType}");
-                  return _buildQuoteDetails(bestQuote, quoteData);
-                },
-                loading: () => _buildLoadingState(),
-                error: (e, st) => _buildErrorState(),
-              ),
+  //                   if (quoteData.quotes.isEmpty) {
+  //                     print("❌ No quotes available from API");
+  //                     return _buildNoQuotesState("No quotes available for your request");
+  //                   }
+
+  //                   if (bestQuote == null) {
+  //                     print("⚠️ No best quote selected");
+  //                     return _buildNoQuotesState("Please select a quote");
+  //                   }
+
+  //                   print("✅ Showing best quote: ${bestQuote.vehicleType}");
+  //                   return _buildQuoteDetails(bestQuote, quoteData);
+  //                 },
+  //                 loading: () => _buildLoadingState(),
+  //                 error: (e, st) => _buildErrorState(),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  //  FIXED: No Quotes State
+  Widget _buildNoQuotesState(String message) {
+    return Container(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(Icons.receipt_long, size: 48, color: AppColors.mediumGray),
+          SizedBox(height: 16),
+          Text(
+            "No Quotes Available",
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.mediumGray,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
-      );
-    },
-  );
-}
-// Widget _buildPaymentSummary(AsyncValue<QuoteData?> quoteState) {
-//   return Consumer(
-//     builder: (context, ref, child) {
-//       final bestQuote = ref.watch(bestQuoteProvider);
-//       final quoteState = ref.watch(quoteControllerProvider);
-
-//       return Padding(
-//         padding: const EdgeInsets.symmetric(horizontal: 1),
-//         child: Column(
-//           children: [
-//             // Header with Icon
-//             Container(
-//               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-//               decoration: BoxDecoration(
-//                 color: AppColors.electricTeal.withOpacity(0.1),
-//                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-//                 border: Border.all(
-//                   color: AppColors.electricTeal.withOpacity(0.3),
-//                   width: 1,
-//                 ),
-//               ),
-//               child: Row(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                   Icon(
-//                     Icons.receipt_long,
-//                     color: AppColors.electricTeal,
-//                     size: 22,
-//                   ),
-//                   const SizedBox(width: 8),
-//                   Text(
-//                     "Payment Summary",
-//                     style: TextStyle(
-//                       fontSize: 18,
-//                       fontWeight: FontWeight.w700,
-//                       color: AppColors.darkText,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//             ),
-
-//             // Summary Content
-//             Container(
-//               decoration: BoxDecoration(
-//                 color: AppColors.pureWhite,
-//                 borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-//                 border: Border.all(
-//                   color: AppColors.mediumGray.withOpacity(0.2),
-//                   width: 1,
-//                 ),
-//                 boxShadow: [
-//                   BoxShadow(
-//                     color: Colors.black.withOpacity(0.05),
-//                     blurRadius: 8,
-//                     offset: Offset(0, 4),
-//                   ),
-//                 ],
-//               ),
-//               child: quoteState.when(
-//                 data: (quoteData) {
-//                   // ✅ Check if we have quotes
-//                   if (quoteData == null) {
-//                     print("❌ No quote data available");
-//                     return _buildNoQuotesState("No quote data received");
-//                   }
-
-//                   if (quoteData.quotes.isEmpty) {
-//                     print("❌ No quotes available from API");
-//                     return _buildNoQuotesState("No quotes available for your request");
-//                   }
-
-//                   if (bestQuote == null) {
-//                     print("⚠️ No best quote selected");
-//                     return _buildNoQuotesState("Please select a quote");
-//                   }
-
-//                   print("✅ Showing best quote: ${bestQuote.vehicleType}");
-//                   return _buildQuoteDetails(bestQuote, quoteData);
-//                 },
-//                 loading: () => _buildLoadingState(),
-//                 error: (e, st) => _buildErrorState(),
-//               ),
-//             ),
-//           ],
-//         ),
-//       );
-//     },
-//   );
-// }
-
-// ✅ FIXED: No Quotes State
-Widget _buildNoQuotesState(String message) {
-  return Container(
-    padding: EdgeInsets.all(24),
-    child: Column(
-      children: [
-        Icon(Icons.receipt_long, size: 48, color: AppColors.mediumGray),
-        SizedBox(height: 16),
-        Text(
-          "No Quotes Available",
-          style: TextStyle(
-            fontSize: 16,
-            color: AppColors.mediumGray,
-            fontWeight: FontWeight.w600,
           ),
-        ),
-        SizedBox(height: 8),
-        Text(
-          message,
-          style: TextStyle(fontSize: 14, color: AppColors.mediumGray),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _getSmartQuotes,
-          child: Text("Try Again"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.electricTeal,
+          SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(fontSize: 14, color: AppColors.mediumGray),
+            textAlign: TextAlign.center,
           ),
-        ),
-      ],
-    ),
-  );
-}
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _getSmartQuotes,
+            child: Text("Try Again"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.electricTeal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Quote Details Widget
   Widget _buildQuoteDetails(Quote quote, QuoteData quoteData) {
     final pricing = quote.pricing;
@@ -1800,15 +1949,13 @@ Widget _buildNoQuotesState(String message) {
   }
 
   // pickup section
+  // pickup section
   Widget _buildPickupSection() {
     return Consumer(
       builder: (context, ref, child) {
         final cache = ref.watch(orderCacheProvider);
-
-        // Check if multi-stop is enabled
         final isMultiStop = cache["is_multi_stop_enabled"] == "true";
 
-        // Get pickup data based on mode
         String pickupName;
         String pickupPhone;
         String pickupAddress;
@@ -1816,18 +1963,23 @@ Widget _buildNoQuotesState(String message) {
         String pickupState;
 
         if (isMultiStop) {
-          // For multi-stop, get from specific stop 1 (pickup)
           pickupName =
-              cache["stop_1_contact_name"] ?? cache["pickup_name"] ?? "Name N/A";
+              cache["stop_1_contact_name"] ??
+              cache["pickup_name"] ??
+              "Name N/A";
           pickupPhone =
-              cache["stop_1_contact_phone"] ?? cache["pickup_phone"] ?? "Phone N/A";
+              cache["stop_1_contact_phone"] ??
+              cache["pickup_phone"] ??
+              "Phone N/A";
           pickupAddress =
-              cache["stop_1_address"] ?? cache["pickup_address1"] ?? "No Address";
-          pickupCity = cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
+              cache["stop_1_address"] ??
+              cache["pickup_address1"] ??
+              "No Address";
+          pickupCity =
+              cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
           pickupState =
               cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
         } else {
-          // For single-stop, get from standard cache
           pickupName = cache["pickup_name"] ?? "Name N/A";
           pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
           pickupAddress = cache["pickup_address1"] ?? "No Address";
@@ -1836,32 +1988,119 @@ Widget _buildNoQuotesState(String message) {
         }
 
         return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: AppColors.pureWhite,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.electricTeal),
+            borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: AppColors.mediumGray.withOpacity(0.10),
-                blurRadius: 6,
-                offset: Offset(0, 3),
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(pickupAddress, style: _boldText),
-              SizedBox(height: 4),
-              Text("$pickupCity - $pickupState", style: _subText),
-              SizedBox(height: 4),
-              CustomText(
-                txt: "$pickupName - $pickupPhone",
-                fontSize: 15,
-                color: AppColors.mediumGray,
-                fontWeight: FontWeight.w600,
+              // HEADER
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.electricTeal.withOpacity(0.12),
+                      AppColors.electricTeal.withOpacity(0.04),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(
+                      Icons.store_mall_directory,
+                      size: 18,
+                      color: AppColors.electricTeal,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      "Pickup Location",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // BODY
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // TIMELINE
+                    Column(
+                      children: [
+                        _dot(AppColors.electricTeal),
+                        Container(
+                          width: 2,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.electricTeal.withOpacity(0.4),
+                                AppColors.mediumGray.withOpacity(0.2),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+
+                    // CONTENT
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText(
+                            txt: pickupAddress,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(height: 4),
+                          CustomText(
+                            txt: "$pickupCity • $pickupState",
+                            fontSize: 12,
+                            color: AppColors.mediumGray,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                              CustomText(
+                                txt: "$pickupName • $pickupPhone",
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mediumGray,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1870,17 +2109,93 @@ Widget _buildNoQuotesState(String message) {
     );
   }
 
+  // Widget _buildPickupSection() {
+  //   return Consumer(
+  //     builder: (context, ref, child) {
+  //       final cache = ref.watch(orderCacheProvider);
+
+  //       // Check if multi-stop is enabled
+  //       final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+
+  //       // Get pickup data based on mode
+  //       String pickupName;
+  //       String pickupPhone;
+  //       String pickupAddress;
+  //       String pickupCity;
+  //       String pickupState;
+
+  //       if (isMultiStop) {
+  //         // For multi-stop, get from specific stop 1 (pickup)
+  //         pickupName =
+  //             cache["stop_1_contact_name"] ??
+  //             cache["pickup_name"] ??
+  //             "Name N/A";
+  //         pickupPhone =
+  //             cache["stop_1_contact_phone"] ??
+  //             cache["pickup_phone"] ??
+  //             "Phone N/A";
+  //         pickupAddress =
+  //             cache["stop_1_address"] ??
+  //             cache["pickup_address1"] ??
+  //             "No Address";
+  //         pickupCity =
+  //             cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
+  //         pickupState =
+  //             cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
+  //       } else {
+  //         // For single-stop, get from standard cache
+  //         pickupName = cache["pickup_name"] ?? "Name N/A";
+  //         pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
+  //         pickupAddress = cache["pickup_address1"] ?? "No Address";
+  //         pickupCity = cache["pickup_city"] ?? "City N/A";
+  //         pickupState = cache["pickup_state"] ?? "State N/A";
+  //       }
+
+  //       return Container(
+  //         width: double.infinity,
+  //         padding: const EdgeInsets.all(16),
+  //         decoration: BoxDecoration(
+  //           color: AppColors.pureWhite,
+  //           borderRadius: BorderRadius.circular(12),
+  //           border: Border.all(color: AppColors.electricTeal),
+  //           boxShadow: [
+  //             BoxShadow(
+  //               color: AppColors.mediumGray.withOpacity(0.10),
+  //               blurRadius: 6,
+  //               offset: Offset(0, 3),
+  //             ),
+  //           ],
+  //         ),
+  //         child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Text(pickupAddress, style: _boldText),
+  //             SizedBox(height: 4),
+  //             Text("$pickupCity - $pickupState", style: _subText),
+  //             SizedBox(height: 4),
+  //             CustomText(
+  //               txt: "$pickupName - $pickupPhone",
+  //               fontSize: 15,
+  //               color: AppColors.mediumGray,
+  //               fontWeight: FontWeight.w600,
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  // delivery section
   Widget _buildDeliverySection() {
     return Consumer(
       builder: (context, ref, child) {
         final cache = ref.watch(orderCacheProvider);
 
-        // Check if multi-stop is enabled
         final isMultiStop = cache["is_multi_stop_enabled"] == "true";
         final stopsCount =
             int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
 
-        // Get delivery data based on mode
         String deliveryName;
         String deliveryPhone;
         String deliveryAddress;
@@ -1888,7 +2203,6 @@ Widget _buildNoQuotesState(String message) {
         String deliveryState;
 
         if (isMultiStop && stopsCount > 0) {
-          // For multi-stop, get from last stop (drop-off)
           final lastStopIndex = stopsCount;
           deliveryName =
               cache["stop_${lastStopIndex}_contact_name"] ??
@@ -1911,7 +2225,6 @@ Widget _buildNoQuotesState(String message) {
               cache["delivery_state"] ??
               "State N/A";
         } else {
-          // For single-stop, get from standard cache
           deliveryName = cache["delivery_name"] ?? "Name N/A";
           deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
           deliveryAddress = cache["delivery_address1"] ?? "No Address";
@@ -1920,37 +2233,210 @@ Widget _buildNoQuotesState(String message) {
         }
 
         return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: AppColors.pureWhite,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.electricTeal),
+            borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: AppColors.mediumGray.withOpacity(0.10),
-                blurRadius: 6,
-                offset: Offset(0, 3),
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(deliveryAddress, style: _boldText),
-              SizedBox(height: 4),
-              Text("$deliveryCity - $deliveryState", style: _subText),
-              SizedBox(height: 4),
-              CustomText(
-                txt: "$deliveryName - $deliveryPhone",
-                fontSize: 15,
-                color: AppColors.mediumGray,
-                fontWeight: FontWeight.w600,
+              // HEADER
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.orange.withOpacity(0.14),
+                      Colors.orange.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text(
+                      "Delivery Location",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // BODY
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        Container(
+                          width: 2,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.mediumGray.withOpacity(0.25),
+                                AppColors.limeGreen.withOpacity(0.5),
+                              ],
+                            ),
+                          ),
+                        ),
+                        _dot(AppColors.limeGreen),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText(
+                            txt: deliveryAddress,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(height: 4),
+                          CustomText(
+                            txt: "$deliveryCity • $deliveryState",
+                            fontSize: 12,
+                            color: AppColors.mediumGray,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                              CustomText(
+                                txt: "$deliveryName • $deliveryPhone",
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mediumGray,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  // Widget _buildDeliverySection() {
+  //   return Consumer(
+  //     builder: (context, ref, child) {
+  //       final cache = ref.watch(orderCacheProvider);
+
+  //       // Check if multi-stop is enabled
+  //       final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+  //       final stopsCount =
+  //           int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+
+  //       // Get delivery data based on mode
+  //       String deliveryName;
+  //       String deliveryPhone;
+  //       String deliveryAddress;
+  //       String deliveryCity;
+  //       String deliveryState;
+
+  //       if (isMultiStop && stopsCount > 0) {
+  //         // For multi-stop, get from last stop (drop-off)
+  //         final lastStopIndex = stopsCount;
+  //         deliveryName =
+  //             cache["stop_${lastStopIndex}_contact_name"] ??
+  //             cache["delivery_name"] ??
+  //             "Name N/A";
+  //         deliveryPhone =
+  //             cache["stop_${lastStopIndex}_contact_phone"] ??
+  //             cache["delivery_phone"] ??
+  //             "Phone N/A";
+  //         deliveryAddress =
+  //             cache["stop_${lastStopIndex}_address"] ??
+  //             cache["delivery_address1"] ??
+  //             "No Address";
+  //         deliveryCity =
+  //             cache["stop_${lastStopIndex}_city"] ??
+  //             cache["delivery_city"] ??
+  //             "City N/A";
+  //         deliveryState =
+  //             cache["stop_${lastStopIndex}_state"] ??
+  //             cache["delivery_state"] ??
+  //             "State N/A";
+  //       } else {
+  //         // For single-stop, get from standard cache
+  //         deliveryName = cache["delivery_name"] ?? "Name N/A";
+  //         deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
+  //         deliveryAddress = cache["delivery_address1"] ?? "No Address";
+  //         deliveryCity = cache["delivery_city"] ?? "City N/A";
+  //         deliveryState = cache["delivery_state"] ?? "State N/A";
+  //       }
+
+  //       return Container(
+  //         width: double.infinity,
+  //         padding: const EdgeInsets.all(16),
+  //         decoration: BoxDecoration(
+  //           color: AppColors.pureWhite,
+  //           borderRadius: BorderRadius.circular(12),
+  //           border: Border.all(color: AppColors.electricTeal),
+  //           boxShadow: [
+  //             BoxShadow(
+  //               color: AppColors.mediumGray.withOpacity(0.10),
+  //               blurRadius: 6,
+  //               offset: Offset(0, 3),
+  //             ),
+  //           ],
+  //         ),
+  //         child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Text(deliveryAddress, style: _boldText),
+  //             SizedBox(height: 4),
+  //             Text("$deliveryCity - $deliveryState", style: _subText),
+  //             SizedBox(height: 4),
+  //             CustomText(
+  //               txt: "$deliveryName - $deliveryPhone",
+  //               fontSize: 15,
+  //               color: AppColors.mediumGray,
+  //               fontWeight: FontWeight.w600,
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  Widget _dot(Color color) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 
@@ -2042,125 +2528,135 @@ Widget _buildNoQuotesState(String message) {
     );
   }
 
+  // add-ons section
   Widget _buildAddOnsSection(List<AddOnItem> addOnsItems) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.electricTeal.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.add_circle_outline,
-                        color: AppColors.electricTeal,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Add-ons",
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.darkText,
-                        ),
-                      ),
-                      Text(
-                        "Optional extras",
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          _openAddOnsModal(context); // ✅ modal open on click
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.electricTeal.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.electricTeal, width: 1.2),
+                  color: Colors.white, // optional
                 ),
-                child: Text(
-                  "${addOnsItems.length} options",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.electricTeal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.electricTeal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.add_circle_outline,
+                              color: AppColors.electricTeal,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Add-ons",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.darkText,
+                              ),
+                            ),
+                            Text(
+                              "Optional extras",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    // Right side indicator
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.electricTeal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            "${addOnsItems.length} options",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.electricTeal,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.chevron_right,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // -------- Selected Summary (same as before) --------
+            Consumer(
+              builder: (context, ref, child) {
+                final selectedAddons = ref.watch(selectedAddonsProvider);
+                final selectedWithCost = ref.watch(
+                  selectedAddOnsWithCostProvider,
+                );
+
+                if (selectedAddons.isEmpty) {
+                  return const SizedBox();
+                }
+
+                double totalAddonsCost = 0;
+                for (var item in selectedWithCost) {
+                  totalAddonsCost += item['cost'] ?? 0.0;
+                }
+
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.electricTeal.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.electricTeal.withOpacity(0.2),
+                      width: 1,
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(
-          height: 160,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            shrinkWrap: true,
-            itemCount: addOnsItems.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  left: index == 0 ? 0 : 8,
-                  right: index == addOnsItems.length - 1 ? 0 : 8,
-                ),
-                child: _horizontalAddonCard(item: addOnsItems[index]),
-              );
-            },
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        Consumer(
-          builder: (context, ref, child) {
-            final selectedAddons = ref.read(selectedAddonsProvider);
-            final selectedWithCost = ref.read(selectedAddOnsWithCostProvider);
-
-            if (selectedAddons.isEmpty) {
-              return const SizedBox();
-            }
-
-            double totalAddonsCost = 0;
-            for (var item in selectedWithCost) {
-              totalAddonsCost += item['cost'] ?? 0.0;
-            }
-
-            return Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.electricTeal.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.electricTeal.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
@@ -2191,134 +2687,158 @@ Widget _buildNoQuotesState(String message) {
                       ),
                     ],
                   ),
-                ],
-              ),
-            );
-          },
+                );
+              },
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _horizontalAddonCard({required AddOnItem item}) {
+  Widget _addonModalCard({required AddOnItem item}) {
     return Consumer(
       builder: (context, ref, child) {
-        final selectedAddons = ref.read(selectedAddonsProvider);
+        final selectedAddons = ref.watch(selectedAddonsProvider);
         final declaredValue = ref.watch(declaredValueProvider);
+
         final isSelected = selectedAddons.contains(item.id);
         final dynamicCost = item.calculateCost(declaredValue);
         final isPercentage = item.type == 'percentage';
-        final costText = isPercentage
-            ? '${(item.rate * 100).toStringAsFixed(0)}%'
-            : 'R${item.cost?.toStringAsFixed(0) ?? '0'}';
+        final basePrice = item.cost ?? 0.0;
 
-        return GestureDetector(
-          onTap: () => _toggleAddOn(item.id, dynamicCost),
-          child: Container(
-            width: 140,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: isSelected
-                  ? AppColors.electricTeal.withOpacity(0.08)
-                  : Colors.white,
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.electricTeal
-                    : Colors.grey.shade200,
-                width: isSelected ? 1.5 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Padding(
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              _toggleAddOn(item.id, dynamicCost);
+            },
+            splashColor: AppColors.electricTeal.withOpacity(0.2),
+            highlightColor: AppColors.electricTeal.withOpacity(0.1),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              // width: 90,
+              // height: 20,
               padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.electricTeal
+                      : Colors.grey.shade200,
+                  width: isSelected ? 2 : 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected
+                        ? AppColors.electricTeal.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.06),
+                    blurRadius: isSelected ? 15 : 8,
+                    offset: const Offset(0, 4),
+                    spreadRadius: isSelected ? 0.5 : 0,
+                  ),
+                ],
+                gradient: isSelected
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.electricTeal.withOpacity(0.03),
+                          AppColors.electricTeal.withOpacity(0.01),
+                        ],
+                      )
+                    : null,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
+                  // -------- Icon + Selection Indicator --------
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.electricTeal.withOpacity(0.1)
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                item.getIconData(),
-                                size: 16,
-                                color: isSelected
-                                    ? AppColors.electricTeal
-                                    : Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isSelected
-                                  ? AppColors.electricTeal
-                                  : Colors.transparent,
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.electricTeal
-                                    : Colors.grey.shade400,
-                                width: 1.5,
-                              ),
-                            ),
-                            child: isSelected
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 12,
-                                    color: Colors.white,
-                                  )
-                                : null,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
                       Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.electricTeal.withOpacity(0.1)
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(6),
+                          gradient: isSelected
+                              ? LinearGradient(
+                                  colors: [
+                                    AppColors.electricTeal.withOpacity(0.9),
+                                    AppColors.electricTeal,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                              : null,
+                          color: isSelected ? null : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.electricTeal.withOpacity(
+                                      0.4,
+                                    ),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
                         ),
-                        child: Text(
-                          costText,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                        child: Center(
+                          child: Icon(
+                            item.getIconData(),
+                            size: 16,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? AppColors.electricTeal
+                              : Colors.transparent,
+                          border: Border.all(
                             color: isSelected
                                 ? AppColors.electricTeal
-                                : Colors.grey.shade800,
+                                : Colors.grey.shade400,
+                            width: isSelected ? 0 : 1.5,
                           ),
-                          textAlign: TextAlign.center,
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.electricTeal.withOpacity(
+                                      0.5,
+                                    ),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
+                                  ),
+                                ]
+                              : null,
                         ),
+                        child: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                size: 12,
+                                color: Colors.white,
+                              )
+                            : null,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 10),
+
+                  // -------- Title --------
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2326,8 +2846,8 @@ Widget _buildNoQuotesState(String message) {
                         Text(
                           item.name,
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.darkText,
                             height: 1.2,
                           ),
@@ -2348,75 +2868,86 @@ Widget _buildNoQuotesState(String message) {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 8),
+
+                  // -------- Price Chip --------
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: isSelected
+                          ? LinearGradient(
+                              colors: [
+                                AppColors.electricTeal.withOpacity(0.9),
+                                AppColors.electricTeal,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: isSelected
+                          ? null
+                          : AppColors.electricTeal.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: isSelected
+                          ? null
+                          : Border.all(
+                              color: AppColors.electricTeal.withOpacity(0.2),
+                              width: 1,
+                            ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "R${dynamicCost.toStringAsFixed(0)}",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.electricTeal,
+                          ),
+                        ),
+                        if (isPercentage)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 2),
+                            child: Text(
+                              "(${(item.rate * 100).toStringAsFixed(0)}%)",
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: isSelected
+                                    ? Colors.white.withOpacity(0.9)
+                                    : AppColors.electricTeal.withOpacity(0.7),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  // -------- Original Price (if different) --------
+                  if (isPercentage && basePrice > 0 && dynamicCost != basePrice)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "Base: R${basePrice.toStringAsFixed(0)}",
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.grey.shade500,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildLoadingContainer(String text) {
-    return Column(
-      children: [
-        Container(
-          height: 60,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.mediumGray.withOpacity(0.4)),
-          ),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 12),
-                Text(text),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildErrorContainer(String text) {
-    return Column(
-      children: [
-        Container(
-          height: 60,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.red),
-          ),
-          child: Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, color: Colors.red),
-                const SizedBox(width: 12),
-                Text(text, style: TextStyle(color: Colors.red)),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton(
-            onPressed: () {
-              ref
-                  .read(serviceTypeControllerProvider.notifier)
-                  .loadServiceTypes();
-            },
-            child: const Text('Retry'),
-          ),
-        ),
-      ],
     );
   }
 
@@ -2533,6 +3064,73 @@ Widget _buildNoQuotesState(String message) {
     );
   }
 
+  // add-ons section end
+
+  // Service Options Section
+  Widget _buildLoadingContainer(String text) {
+    return Column(
+      children: [
+        Container(
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.mediumGray.withOpacity(0.4)),
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Text(text),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Service Options Section
+  Widget _buildErrorContainer(String text) {
+    return Column(
+      children: [
+        Container(
+          height: 60,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.red),
+          ),
+          child: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, color: Colors.red),
+                const SizedBox(width: 12),
+                Text(text, style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton(
+            onPressed: () {
+              ref
+                  .read(serviceTypeControllerProvider.notifier)
+                  .loadServiceTypes();
+            },
+            child: const Text('Retry'),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _sectionTitle(IconData icon, String title) {
     return Row(
       children: [
@@ -2548,203 +3146,3 @@ Widget _buildNoQuotesState(String message) {
     );
   }
 }
-
-const _boldText = TextStyle(
-  fontSize: 15,
-  fontWeight: FontWeight.w600,
-  color: AppColors.mediumGray,
-);
-const _subText = TextStyle(
-  fontSize: 13,
-  color: AppColors.mediumGray,
-  fontWeight: FontWeight.w600,
-);
-
-
-    //  NEW: Special Instructions
-                  // Column(
-                  //   crossAxisAlignment: CrossAxisAlignment.start,
-                  //   children: [
-                  //     _sectionTitle(
-                  //       Icons.note,
-                  //       "Special Instructions (Optional)",
-                  //     ),
-                  //     const SizedBox(height: 10),
-                  //     Container(
-                  //       padding: const EdgeInsets.symmetric(horizontal: 12),
-                  //       decoration: BoxDecoration(
-                  //         color: AppColors.pureWhite,
-                  //         borderRadius: BorderRadius.circular(10),
-                  //         border: Border.all(
-                  //           color: AppColors.electricTeal.withOpacity(0.3),
-                  //         ),
-                  //       ),
-                  //       child: TextField(
-                  //         decoration: InputDecoration(
-                  //           hintStyle: TextStyle(
-                  //             color: AppColors.electricTeal,
-                  //             fontSize: 14,
-                  //           ),
-                  //           hintText:
-                  //               "E.g., Fragile items, gate code, call before arrival...",
-                  //           border: InputBorder.none,
-                  //           contentPadding: EdgeInsets.symmetric(vertical: 14),
-                  //         ),
-                  //         maxLines: 3,
-                  //         onChanged: _onSpecialInstructionsChanged,
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
-                  // gapH16,
-
-                  
-  // //  NEW: Special instructions handler
-  // void _onSpecialInstructionsChanged(String instructions) {
-  //   setState(() => specialInstructions = instructions);
-  //   ref
-  //       .read(orderCacheProvider.notifier)
-  //       .saveValue("special_instructions", instructions);
-  // }
-
-
-
-
-
-                  // // Payment Method
-                  // Column(
-                  //   children: [
-                  //     _sectionTitle(
-                  //       Icons.account_balance_wallet,
-                  //       "Payment Method",
-                  //     ),
-                  //     const SizedBox(height: 10),
-                  //     _paymentOption(
-                  //       selected: paymentMethod == "wallet",
-                  //       title: "Wallet (Balance R500.0)",
-                  //       value: "wallet",
-                  //     ),
-                  //     _paymentOption(
-                  //       selected: paymentMethod == "cod",
-                  //       title: "Cash on Delivery",
-                  //       value: "cod",
-                  //     ),
-                  //     _paymentOption(
-                  //       selected: paymentMethod == "card",
-                  //       title: "Card Payment",
-                  //       value: "card",
-                  //     ),
-                  //   ],
-                  // ),
-                  // const SizedBox(height: 30),
-
-  //                   Widget _paymentOption({
-  //   required bool selected,
-  //   required String title,
-  //   required String value,
-  // }) {
-  //   return GestureDetector(
-  //     onTap: () => _onPaymentMethodChanged(value),
-  //     child: Container(
-  //       margin: const EdgeInsets.only(bottom: 12),
-  //       padding: const EdgeInsets.all(14),
-  //       decoration: BoxDecoration(
-  //         borderRadius: BorderRadius.circular(10),
-  //         border: Border.all(
-  //           color: selected
-  //               ? AppColors.electricTeal
-  //               : AppColors.mediumGray.withOpacity(0.4),
-  //           width: selected ? 2 : 1,
-  //         ),
-  //       ),
-  //       child: Row(
-  //         children: [
-  //           Icon(
-  //             selected ? Icons.radio_button_checked : Icons.radio_button_off,
-  //             color: selected ? AppColors.electricTeal : Colors.grey,
-  //           ),
-  //           const SizedBox(width: 12),
-  //           Expanded(
-  //             child: CustomText(
-  //               txt: title,
-  //               fontSize: 15,
-  //               color: AppColors.darkText,
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  
-  // void _onPaymentMethodChanged(String newMethod) {
-  //   setState(() => paymentMethod = newMethod);
-  //   ref
-  //       .read(orderCacheProvider.notifier)
-  //       .saveValue("payment_method", newMethod);
-  //   print("✅ Payment method saved: $newMethod");
-  // }
-
-
-
-
-    //  // Vehicle Type
-    //               Column(
-    //                 children: [
-    //                   _sectionTitle(Icons.local_shipping, "Vehicle Type"),
-    //                   const SizedBox(height: 10),
-    //                   _serviceOption2(
-    //                     selected: vehicleMethod == "bike",
-    //                     title: "Bike (Small Packages)",
-    //                     value: "bike",
-    //                   ),
-    //                   _serviceOption2(
-    //                     selected: vehicleMethod == "van",
-    //                     title: "Van (Medium Load)",
-    //                     value: "van",
-    //                   ),
-    //                   _serviceOption2(
-    //                     selected: vehicleMethod == "truck",
-    //                     title: "Truck (Heavy/Bulk)",
-    //                     value: "truck",
-    //                   ),
-    //                 ],
-    //               ),
-    //               gapH16,
-
-
-  //     Widget _serviceOption2({
-  //   required bool selected,
-  //   required String title,
-  //   required String value,
-  // }) {
-  //   return GestureDetector(
-  //     onTap: () => _onVehicleTypeChanged(value),
-  //     child: Container(
-  //       margin: const EdgeInsets.only(bottom: 12),
-  //       padding: const EdgeInsets.all(14),
-  //       decoration: BoxDecoration(
-  //         borderRadius: BorderRadius.circular(10),
-  //         border: Border.all(
-  //           color: selected
-  //               ? AppColors.electricTeal
-  //               : AppColors.mediumGray.withOpacity(0.4),
-  //           width: selected ? 2 : 1,
-  //         ),
-  //       ),
-  //       child: Row(
-  //         children: [
-  //           Icon(
-  //             selected ? Icons.radio_button_checked : Icons.radio_button_off,
-  //             color: selected
-  //                 ? AppColors.electricTeal
-  //                 : AppColors.mediumGray.withOpacity(0.4),
-  //           ),
-  //           const SizedBox(width: 12),
-  //           CustomText(txt: title, fontSize: 15, color: AppColors.darkText),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }

@@ -1184,7 +1184,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                   gapH20,
 
                   // Default Address
-                  _defaultAddressSection(),
+                  // _defaultAddressSection(),
 
                   // Defult address end
                   gapH16,

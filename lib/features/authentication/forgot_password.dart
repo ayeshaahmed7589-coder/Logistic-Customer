@@ -68,7 +68,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                "koovs",
+                "Drovvi",
                 style: TextStyle(
                   color: AppColors.electricTeal,
                   fontSize: 50,

@@ -179,7 +179,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      "Already a Koovs Member? ",
+                      "Already a Drovvi Member? ",
                       style: TextStyle(
                         color: AppColors.mediumGray,
                         fontSize: 14,

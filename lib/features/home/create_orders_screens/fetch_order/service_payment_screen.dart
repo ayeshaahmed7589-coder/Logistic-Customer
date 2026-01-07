@@ -36,6 +36,8 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   bool hasCalculatedQuotes = false;
   bool isLoadingQuotes = false;
   String? quoteError;
+  // MULTI-STOP STORAGE VARIABLES
+  List<Map<String, String>> multiStopLocations = [];
 
   @override
   void initState() {
@@ -45,7 +47,70 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
       ref.read(serviceTypeControllerProvider.notifier).loadServiceTypes();
       ref.read(addOnsControllerProvider.notifier).loadAddOns();
       _loadCachedData();
+      _loadMultiStopData(); // NEW: Load multi-stop data
     });
+  }
+
+  // NEW: Load multi-stop data from cache
+  void _loadMultiStopData() {
+    final cache = ref.read(orderCacheProvider);
+    final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+
+    if (!isMultiStop) return;
+
+    final stopsCount =
+        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+
+    print("🔍 Loading multi-stop data...");
+    print("Stops count: $stopsCount");
+    print(
+      "Cache keys: ${cache.keys.where((key) => key.contains('stop')).toList()}",
+    );
+
+    List<Map<String, String>> loadedStops = [];
+
+    for (int i = 1; i <= stopsCount; i++) {
+      final name = cache["stop_${i}_contact_name"]?.toString() ?? "Name N/A";
+      final phone = cache["stop_${i}_contact_phone"]?.toString() ?? "Phone N/A";
+      final address = cache["stop_${i}_address"]?.toString() ?? "Address N/A";
+      final city = cache["stop_${i}_city"]?.toString() ?? "City N/A";
+      final state = cache["stop_${i}_state"]?.toString() ?? "State N/A";
+      final stopTypeStr = cache["stop_${i}_type"]?.toString() ?? "";
+
+      String stopType = "Waypoint";
+      Color color = Colors.grey;
+
+      if (stopTypeStr.contains("pickup")) {
+        stopType = "Pickup";
+        color = AppColors.electricTeal;
+      } else if (stopTypeStr.contains("dropOff")) {
+        stopType = "Delivery";
+        color = Colors.orange;
+      } else {
+        stopType = "Waypoint ${i - 1}";
+        color = Colors.blue;
+      }
+
+      loadedStops.add({
+        'index': i.toString(),
+        'name': name,
+        'phone': phone,
+        'address': address,
+        'city': city,
+        'state': state,
+        'stopType': stopType,
+        'color': color.value.toString(),
+      });
+
+      print("📍 Stop $i: $name, $address, $city, $state");
+    }
+
+    if (loadedStops.isNotEmpty) {
+      setState(() {
+        multiStopLocations = loadedStops;
+      });
+      print("✅ Loaded ${multiStopLocations.length} multi-stop locations");
+    }
   }
 
   void _loadCachedData() {
@@ -440,7 +505,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                                   crossAxisCount: 2, // ✅ 2 per row
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio: 1.1,
+                                  childAspectRatio: 0.80,
                                 ),
                             itemBuilder: (context, index) {
                               return _addonModalCard(item: data.addOns[index]);
@@ -607,35 +672,49 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
               child: Column(
                 children: [
                   // Pickup Section
-                  Row(
-                    children: [
-                      Icon(Icons.bar_chart, color: AppColors.electricTeal),
-                      SizedBox(width: 8),
-                      CustomText(
-                        txt: "Pick Up",
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ],
-                  ),
-                  gapH8,
-                  _buildPickupSection(),
-                  gapH16,
+                  // Row(
+                  //   children: [
+                  //     Icon(Icons.bar_chart, color: AppColors.electricTeal),
+                  //     SizedBox(width: 8),
+                  //     CustomText(
+                  //       txt: "Pick Up",
+                  //       fontSize: 17,
+                  //       fontWeight: FontWeight.bold,
+                  //     ),
+                  //   ],
+                  // ),
+                  // gapH8,
+                  // _buildPickupSection(),
+                  // gapH16,
 
-                  // Delivery Section
-                  Row(
-                    children: [
-                      Icon(Icons.bar_chart, color: AppColors.electricTeal),
-                      SizedBox(width: 8),
-                      CustomText(
-                        txt: "Delivery",
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ],
+                  // // Delivery Section
+                  // Row(
+                  //   children: [
+                  //     Icon(Icons.bar_chart, color: AppColors.electricTeal),
+                  //     SizedBox(width: 8),
+                  //     CustomText(
+                  //       txt: "Delivery",
+                  //       fontSize: 17,
+                  //       fontWeight: FontWeight.bold,
+                  //     ),
+                  //   ],
+                  // ),
+                  // gapH8,
+                  // _buildDeliverySection(),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final cache = ref.watch(orderCacheProvider);
+                      final isMultiStop =
+                          cache["is_multi_stop_enabled"] == "true";
+
+                      if (isMultiStop) {
+                        return _buildMultiStopRouteOverview();
+                      } else {
+                        return _buildStandardRouteOverview();
+                      }
+                    },
                   ),
-                  gapH8,
-                  _buildDeliverySection(),
+
                   gapH16,
 
                   // Service Options Section
@@ -712,8 +791,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                   if (hasCalculatedQuotes) _buildPaymentSummary(quoteState),
 
                   // DEBUG INFORMATION SECTION
-                  _buildDebugInfoSection(),
-
+                  // _buildDebugInfoSection(),
                   gapH16,
 
                   // Place Order Button
@@ -918,6 +996,640 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
       ),
     );
   }
+
+  // NEW: Multi-Stop Route Overview Widget
+  Widget _buildMultiStopRouteOverview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Row(
+          children: [
+            Icon(Icons.route, color: AppColors.electricTeal),
+            SizedBox(width: 8),
+            CustomText(
+              txt: "Multi-Stop Route",
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+            SizedBox(width: 8),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.electricTeal.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                "${multiStopLocations.length} Stops",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.electricTeal,
+                ),
+              ),
+            ),
+          ],
+        ),
+        gapH8,
+
+        // Route Timeline
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: AppColors.pureWhite,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // HEADER
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.electricTeal.withOpacity(0.12),
+                      AppColors.electricTeal.withOpacity(0.04),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(
+                      Icons.map_outlined,
+                      size: 18,
+                      color: AppColors.electricTeal,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      "Route Overview",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // BODY - Timeline
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Timeline with all stops
+                    for (int i = 0; i < multiStopLocations.length; i++)
+                      _buildTimelineStop(
+                        index: i,
+                        total: multiStopLocations.length,
+                        stop: multiStopLocations[i],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // NEW: Build individual timeline stop
+  Widget _buildTimelineStop({
+    required int index,
+    required int total,
+    required Map<String, String> stop,
+  }) {
+    final isFirst = index == 0;
+    final isLast = index == total - 1;
+    final stopType = stop['stopType'] ?? 'Stop';
+    final color = Color(
+      int.tryParse(stop['color'] ?? '0xFF000000') ?? 0xFF000000,
+    );
+
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Timeline line and dot
+            Column(
+              children: [
+                // Top connector (not for first)
+                if (!isFirst)
+                  Container(
+                    width: 2,
+                    height: 20,
+                    color: AppColors.mediumGray.withOpacity(0.3),
+                  ),
+
+                // Dot
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Bottom connector (not for last)
+                if (!isLast)
+                  Container(
+                    width: 2,
+                    height: 20,
+                    color: AppColors.mediumGray.withOpacity(0.3),
+                  ),
+              ],
+            ),
+
+            SizedBox(width: 12),
+
+            // Stop details
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: color.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Stop header with number
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            stopType,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          "Stop ${index + 1}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.mediumGray,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 8),
+
+                    // Address
+                    Text(
+                      stop['address'] ?? 'No Address',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+
+                    SizedBox(height: 4),
+
+                    // City/State
+                    Text(
+                      "${stop['city'] ?? 'City'} • ${stop['state'] ?? 'State'}",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.mediumGray,
+                      ),
+                    ),
+
+                    SizedBox(height: 8),
+
+                    // Contact info
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.person_outline,
+                          size: 14,
+                          color: AppColors.mediumGray,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          "${stop['name']} • ${stop['phone']}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.mediumGray,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Existing standard route overview (for single stop)
+  Widget _buildStandardRouteOverview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Pickup Section
+        Row(
+          children: [
+            Icon(Icons.bar_chart, color: AppColors.electricTeal),
+            SizedBox(width: 8),
+            CustomText(
+              txt: "Pick Up",
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ],
+        ),
+        gapH8,
+        _buildPickupSection(),
+        gapH16,
+
+        // Delivery Section
+        Row(
+          children: [
+            Icon(Icons.bar_chart, color: AppColors.electricTeal),
+            SizedBox(width: 8),
+            CustomText(
+              txt: "Delivery",
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ],
+        ),
+        gapH8,
+        _buildDeliverySection(),
+      ],
+    );
+  }
+
+  // Your existing _buildPickupSection() and _buildDeliverySection() methods remain same
+  Widget _buildPickupSection() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final cache = ref.watch(orderCacheProvider);
+        final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+
+        String pickupName;
+        String pickupPhone;
+        String pickupAddress;
+        String pickupCity;
+        String pickupState;
+
+        if (isMultiStop) {
+          pickupName =
+              cache["stop_1_contact_name"] ??
+              cache["pickup_name"] ??
+              "Name N/A";
+          pickupPhone =
+              cache["stop_1_contact_phone"] ??
+              cache["pickup_phone"] ??
+              "Phone N/A";
+          pickupAddress =
+              cache["stop_1_address"] ??
+              cache["pickup_address1"] ??
+              "No Address";
+          pickupCity =
+              cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
+          pickupState =
+              cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
+        } else {
+          pickupName = cache["pickup_name"] ?? "Name N/A";
+          pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
+          pickupAddress = cache["pickup_address1"] ?? "No Address";
+          pickupCity = cache["pickup_city"] ?? "City N/A";
+          pickupState = cache["pickup_state"] ?? "State N/A";
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: AppColors.pureWhite,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // HEADER
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.electricTeal.withOpacity(0.12),
+                      AppColors.electricTeal.withOpacity(0.04),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(
+                      Icons.store_mall_directory,
+                      size: 18,
+                      color: AppColors.electricTeal,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      "Pickup Location",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // BODY
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // TIMELINE
+                    Column(
+                      children: [
+                        _dot(AppColors.electricTeal),
+                        Container(
+                          width: 2,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.electricTeal.withOpacity(0.4),
+                                AppColors.mediumGray.withOpacity(0.2),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+
+                    // CONTENT
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText(
+                            txt: pickupAddress,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(height: 4),
+                          CustomText(
+                            txt: "$pickupCity • $pickupState",
+                            fontSize: 12,
+                            color: AppColors.mediumGray,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                              CustomText(
+                                txt: "$pickupName • $pickupPhone",
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mediumGray,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDeliverySection() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final cache = ref.watch(orderCacheProvider);
+
+        final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+        final stopsCount =
+            int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+
+        String deliveryName;
+        String deliveryPhone;
+        String deliveryAddress;
+        String deliveryCity;
+        String deliveryState;
+
+        if (isMultiStop && stopsCount > 0) {
+          final lastStopIndex = stopsCount;
+          deliveryName =
+              cache["stop_${lastStopIndex}_contact_name"] ??
+              cache["delivery_name"] ??
+              "Name N/A";
+          deliveryPhone =
+              cache["stop_${lastStopIndex}_contact_phone"] ??
+              cache["delivery_phone"] ??
+              "Phone N/A";
+          deliveryAddress =
+              cache["stop_${lastStopIndex}_address"] ??
+              cache["delivery_address1"] ??
+              "No Address";
+          deliveryCity =
+              cache["stop_${lastStopIndex}_city"] ??
+              cache["delivery_city"] ??
+              "City N/A";
+          deliveryState =
+              cache["stop_${lastStopIndex}_state"] ??
+              cache["delivery_state"] ??
+              "State N/A";
+        } else {
+          deliveryName = cache["delivery_name"] ?? "Name N/A";
+          deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
+          deliveryAddress = cache["delivery_address1"] ?? "No Address";
+          deliveryCity = cache["delivery_city"] ?? "City N/A";
+          deliveryState = cache["delivery_state"] ?? "State N/A";
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: AppColors.pureWhite,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // HEADER
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.orange.withOpacity(0.14),
+                      Colors.orange.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(18),
+                  ),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text(
+                      "Delivery Location",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // BODY
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      children: [
+                        Container(
+                          width: 2,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppColors.mediumGray.withOpacity(0.25),
+                                AppColors.limeGreen.withOpacity(0.5),
+                              ],
+                            ),
+                          ),
+                        ),
+                        _dot(AppColors.limeGreen),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText(
+                            txt: deliveryAddress,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(height: 4),
+                          CustomText(
+                            txt: "$deliveryCity • $deliveryState",
+                            fontSize: 12,
+                            color: AppColors.mediumGray,
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 6),
+                              CustomText(
+                                txt: "$deliveryName • $deliveryPhone",
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mediumGray,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _dot(Color color) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+
+  /////////////////////////
 
   // DEBUG INFORMATION WIDGET
   Widget _buildDebugInfoSection() {
@@ -1950,164 +2662,164 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
 
   // pickup section
   // pickup section
-  Widget _buildPickupSection() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final cache = ref.watch(orderCacheProvider);
-        final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+  // Widget _buildPickupSection() {
+  //   return Consumer(
+  //     builder: (context, ref, child) {
+  //       final cache = ref.watch(orderCacheProvider);
+  //       final isMultiStop = cache["is_multi_stop_enabled"] == "true";
 
-        String pickupName;
-        String pickupPhone;
-        String pickupAddress;
-        String pickupCity;
-        String pickupState;
+  //       String pickupName;
+  //       String pickupPhone;
+  //       String pickupAddress;
+  //       String pickupCity;
+  //       String pickupState;
 
-        if (isMultiStop) {
-          pickupName =
-              cache["stop_1_contact_name"] ??
-              cache["pickup_name"] ??
-              "Name N/A";
-          pickupPhone =
-              cache["stop_1_contact_phone"] ??
-              cache["pickup_phone"] ??
-              "Phone N/A";
-          pickupAddress =
-              cache["stop_1_address"] ??
-              cache["pickup_address1"] ??
-              "No Address";
-          pickupCity =
-              cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
-          pickupState =
-              cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
-        } else {
-          pickupName = cache["pickup_name"] ?? "Name N/A";
-          pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
-          pickupAddress = cache["pickup_address1"] ?? "No Address";
-          pickupCity = cache["pickup_city"] ?? "City N/A";
-          pickupState = cache["pickup_state"] ?? "State N/A";
-        }
+  //       if (isMultiStop) {
+  //         pickupName =
+  //             cache["stop_1_contact_name"] ??
+  //             cache["pickup_name"] ??
+  //             "Name N/A";
+  //         pickupPhone =
+  //             cache["stop_1_contact_phone"] ??
+  //             cache["pickup_phone"] ??
+  //             "Phone N/A";
+  //         pickupAddress =
+  //             cache["stop_1_address"] ??
+  //             cache["pickup_address1"] ??
+  //             "No Address";
+  //         pickupCity =
+  //             cache["stop_1_city"] ?? cache["pickup_city"] ?? "City N/A";
+  //         pickupState =
+  //             cache["stop_1_state"] ?? cache["pickup_state"] ?? "State N/A";
+  //       } else {
+  //         pickupName = cache["pickup_name"] ?? "Name N/A";
+  //         pickupPhone = cache["pickup_phone"] ?? "Phone N/A";
+  //         pickupAddress = cache["pickup_address1"] ?? "No Address";
+  //         pickupCity = cache["pickup_city"] ?? "City N/A";
+  //         pickupState = cache["pickup_state"] ?? "State N/A";
+  //       }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: AppColors.pureWhite,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.07),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // HEADER
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.electricTeal.withOpacity(0.12),
-                      AppColors.electricTeal.withOpacity(0.04),
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(18),
-                  ),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(
-                      Icons.store_mall_directory,
-                      size: 18,
-                      color: AppColors.electricTeal,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      "Pickup Location",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+  //       return Container(
+  //         margin: const EdgeInsets.only(bottom: 16),
+  //         decoration: BoxDecoration(
+  //           color: AppColors.pureWhite,
+  //           borderRadius: BorderRadius.circular(18),
+  //           boxShadow: [
+  //             BoxShadow(
+  //               color: Colors.black.withOpacity(0.07),
+  //               blurRadius: 14,
+  //               offset: const Offset(0, 6),
+  //             ),
+  //           ],
+  //         ),
+  //         child: Column(
+  //           children: [
+  //             // HEADER
+  //             Container(
+  //               padding: const EdgeInsets.all(14),
+  //               decoration: BoxDecoration(
+  //                 gradient: LinearGradient(
+  //                   colors: [
+  //                     AppColors.electricTeal.withOpacity(0.12),
+  //                     AppColors.electricTeal.withOpacity(0.04),
+  //                   ],
+  //                 ),
+  //                 borderRadius: const BorderRadius.vertical(
+  //                   top: Radius.circular(18),
+  //                 ),
+  //               ),
+  //               child: Row(
+  //                 children: const [
+  //                   Icon(
+  //                     Icons.store_mall_directory,
+  //                     size: 18,
+  //                     color: AppColors.electricTeal,
+  //                   ),
+  //                   SizedBox(width: 8),
+  //                   Text(
+  //                     "Pickup Location",
+  //                     style: TextStyle(
+  //                       fontSize: 14,
+  //                       fontWeight: FontWeight.w700,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
 
-              // BODY
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // TIMELINE
-                    Column(
-                      children: [
-                        _dot(AppColors.electricTeal),
-                        Container(
-                          width: 2,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                AppColors.electricTeal.withOpacity(0.4),
-                                AppColors.mediumGray.withOpacity(0.2),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
+  //             // BODY
+  //             Padding(
+  //               padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+  //               child: Row(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   // TIMELINE
+  //                   Column(
+  //                     children: [
+  //                       _dot(AppColors.electricTeal),
+  //                       Container(
+  //                         width: 2,
+  //                         height: 46,
+  //                         decoration: BoxDecoration(
+  //                           gradient: LinearGradient(
+  //                             begin: Alignment.topCenter,
+  //                             end: Alignment.bottomCenter,
+  //                             colors: [
+  //                               AppColors.electricTeal.withOpacity(0.4),
+  //                               AppColors.mediumGray.withOpacity(0.2),
+  //                             ],
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                   const SizedBox(width: 14),
 
-                    // CONTENT
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText(
-                            txt: pickupAddress,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          const SizedBox(height: 4),
-                          CustomText(
-                            txt: "$pickupCity • $pickupState",
-                            fontSize: 12,
-                            color: AppColors.mediumGray,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.person_outline,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 6),
-                              CustomText(
-                                txt: "$pickupName • $pickupPhone",
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.mediumGray,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  //                   // CONTENT
+  //                   Expanded(
+  //                     child: Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         CustomText(
+  //                           txt: pickupAddress,
+  //                           fontSize: 16,
+  //                           fontWeight: FontWeight.w600,
+  //                         ),
+  //                         const SizedBox(height: 4),
+  //                         CustomText(
+  //                           txt: "$pickupCity • $pickupState",
+  //                           fontSize: 12,
+  //                           color: AppColors.mediumGray,
+  //                         ),
+  //                         const SizedBox(height: 12),
+  //                         Row(
+  //                           children: [
+  //                             const Icon(
+  //                               Icons.person_outline,
+  //                               size: 16,
+  //                               color: Colors.grey,
+  //                             ),
+  //                             const SizedBox(width: 6),
+  //                             CustomText(
+  //                               txt: "$pickupName • $pickupPhone",
+  //                               fontSize: 13,
+  //                               fontWeight: FontWeight.w600,
+  //                               color: AppColors.mediumGray,
+  //                             ),
+  //                           ],
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   // Widget _buildPickupSection() {
   //   return Consumer(
@@ -2187,166 +2899,166 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   // }
 
   // delivery section
-  Widget _buildDeliverySection() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final cache = ref.watch(orderCacheProvider);
+  // Widget _buildDeliverySection() {
+  //   return Consumer(
+  //     builder: (context, ref, child) {
+  //       final cache = ref.watch(orderCacheProvider);
 
-        final isMultiStop = cache["is_multi_stop_enabled"] == "true";
-        final stopsCount =
-            int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+  //       final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+  //       final stopsCount =
+  //           int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
 
-        String deliveryName;
-        String deliveryPhone;
-        String deliveryAddress;
-        String deliveryCity;
-        String deliveryState;
+  //       String deliveryName;
+  //       String deliveryPhone;
+  //       String deliveryAddress;
+  //       String deliveryCity;
+  //       String deliveryState;
 
-        if (isMultiStop && stopsCount > 0) {
-          final lastStopIndex = stopsCount;
-          deliveryName =
-              cache["stop_${lastStopIndex}_contact_name"] ??
-              cache["delivery_name"] ??
-              "Name N/A";
-          deliveryPhone =
-              cache["stop_${lastStopIndex}_contact_phone"] ??
-              cache["delivery_phone"] ??
-              "Phone N/A";
-          deliveryAddress =
-              cache["stop_${lastStopIndex}_address"] ??
-              cache["delivery_address1"] ??
-              "No Address";
-          deliveryCity =
-              cache["stop_${lastStopIndex}_city"] ??
-              cache["delivery_city"] ??
-              "City N/A";
-          deliveryState =
-              cache["stop_${lastStopIndex}_state"] ??
-              cache["delivery_state"] ??
-              "State N/A";
-        } else {
-          deliveryName = cache["delivery_name"] ?? "Name N/A";
-          deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
-          deliveryAddress = cache["delivery_address1"] ?? "No Address";
-          deliveryCity = cache["delivery_city"] ?? "City N/A";
-          deliveryState = cache["delivery_state"] ?? "State N/A";
-        }
+  //       if (isMultiStop && stopsCount > 0) {
+  //         final lastStopIndex = stopsCount;
+  //         deliveryName =
+  //             cache["stop_${lastStopIndex}_contact_name"] ??
+  //             cache["delivery_name"] ??
+  //             "Name N/A";
+  //         deliveryPhone =
+  //             cache["stop_${lastStopIndex}_contact_phone"] ??
+  //             cache["delivery_phone"] ??
+  //             "Phone N/A";
+  //         deliveryAddress =
+  //             cache["stop_${lastStopIndex}_address"] ??
+  //             cache["delivery_address1"] ??
+  //             "No Address";
+  //         deliveryCity =
+  //             cache["stop_${lastStopIndex}_city"] ??
+  //             cache["delivery_city"] ??
+  //             "City N/A";
+  //         deliveryState =
+  //             cache["stop_${lastStopIndex}_state"] ??
+  //             cache["delivery_state"] ??
+  //             "State N/A";
+  //       } else {
+  //         deliveryName = cache["delivery_name"] ?? "Name N/A";
+  //         deliveryPhone = cache["delivery_phone"] ?? "Phone N/A";
+  //         deliveryAddress = cache["delivery_address1"] ?? "No Address";
+  //         deliveryCity = cache["delivery_city"] ?? "City N/A";
+  //         deliveryState = cache["delivery_state"] ?? "State N/A";
+  //       }
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: AppColors.pureWhite,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.07),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // HEADER
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.orange.withOpacity(0.14),
-                      Colors.orange.withOpacity(0.05),
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(18),
-                  ),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
-                    SizedBox(width: 8),
-                    Text(
-                      "Delivery Location",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+  //       return Container(
+  //         margin: const EdgeInsets.only(bottom: 16),
+  //         decoration: BoxDecoration(
+  //           color: AppColors.pureWhite,
+  //           borderRadius: BorderRadius.circular(18),
+  //           boxShadow: [
+  //             BoxShadow(
+  //               color: Colors.black.withOpacity(0.07),
+  //               blurRadius: 14,
+  //               offset: const Offset(0, 6),
+  //             ),
+  //           ],
+  //         ),
+  //         child: Column(
+  //           children: [
+  //             // HEADER
+  //             Container(
+  //               padding: const EdgeInsets.all(14),
+  //               decoration: BoxDecoration(
+  //                 gradient: LinearGradient(
+  //                   colors: [
+  //                     Colors.orange.withOpacity(0.14),
+  //                     Colors.orange.withOpacity(0.05),
+  //                   ],
+  //                 ),
+  //                 borderRadius: const BorderRadius.vertical(
+  //                   top: Radius.circular(18),
+  //                 ),
+  //               ),
+  //               child: Row(
+  //                 children: const [
+  //                   Icon(Icons.flag_outlined, size: 18, color: Colors.orange),
+  //                   SizedBox(width: 8),
+  //                   Text(
+  //                     "Delivery Location",
+  //                     style: TextStyle(
+  //                       fontSize: 14,
+  //                       fontWeight: FontWeight.w700,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
 
-              // BODY
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 2,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                AppColors.mediumGray.withOpacity(0.25),
-                                AppColors.limeGreen.withOpacity(0.5),
-                              ],
-                            ),
-                          ),
-                        ),
-                        _dot(AppColors.limeGreen),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
+  //             // BODY
+  //             Padding(
+  //               padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+  //               child: Row(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   Column(
+  //                     children: [
+  //                       Container(
+  //                         width: 2,
+  //                         height: 46,
+  //                         decoration: BoxDecoration(
+  //                           gradient: LinearGradient(
+  //                             begin: Alignment.topCenter,
+  //                             end: Alignment.bottomCenter,
+  //                             colors: [
+  //                               AppColors.mediumGray.withOpacity(0.25),
+  //                               AppColors.limeGreen.withOpacity(0.5),
+  //                             ],
+  //                           ),
+  //                         ),
+  //                       ),
+  //                       _dot(AppColors.limeGreen),
+  //                     ],
+  //                   ),
+  //                   const SizedBox(width: 14),
 
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText(
-                            txt: deliveryAddress,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          const SizedBox(height: 4),
-                          CustomText(
-                            txt: "$deliveryCity • $deliveryState",
-                            fontSize: 12,
-                            color: AppColors.mediumGray,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.person_outline,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 6),
-                              CustomText(
-                                txt: "$deliveryName • $deliveryPhone",
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.mediumGray,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  //                   Expanded(
+  //                     child: Column(
+  //                       crossAxisAlignment: CrossAxisAlignment.start,
+  //                       children: [
+  //                         CustomText(
+  //                           txt: deliveryAddress,
+  //                           fontSize: 16,
+  //                           fontWeight: FontWeight.w600,
+  //                         ),
+  //                         const SizedBox(height: 4),
+  //                         CustomText(
+  //                           txt: "$deliveryCity • $deliveryState",
+  //                           fontSize: 12,
+  //                           color: AppColors.mediumGray,
+  //                         ),
+  //                         const SizedBox(height: 12),
+  //                         Row(
+  //                           children: [
+  //                             const Icon(
+  //                               Icons.person_outline,
+  //                               size: 16,
+  //                               color: Colors.grey,
+  //                             ),
+  //                             const SizedBox(width: 6),
+  //                             CustomText(
+  //                               txt: "$deliveryName • $deliveryPhone",
+  //                               fontSize: 13,
+  //                               fontWeight: FontWeight.w600,
+  //                               color: AppColors.mediumGray,
+  //                             ),
+  //                           ],
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   // Widget _buildDeliverySection() {
   //   return Consumer(
@@ -2432,13 +3144,13 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   //   );
   // }
 
-  Widget _dot(Color color) {
-    return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
-  }
+  // Widget _dot(Color color) {
+  //   return Container(
+  //     width: 10,
+  //     height: 10,
+  //     decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  //   );
+  // }
 
   Widget _serviceOption({
     required bool selected,

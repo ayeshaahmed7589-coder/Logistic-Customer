@@ -869,7 +869,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                       const SizedBox(width: 4),
                       CustomText(
-                        txt: "${user.city}, ${user.state}",
+                        txt: "${user.city} ${user.state}",
                         color: Colors.white,
                       ),
                     ],

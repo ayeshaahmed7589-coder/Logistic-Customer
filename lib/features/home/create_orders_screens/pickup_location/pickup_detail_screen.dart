@@ -1015,7 +1015,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
 
                                     // DIMENSIONS FIELDS - Only show if requiresDimensions is true
                                     if (showDimensionsFields) ...[
-                                      SizedBox(height: 16),
+                                      SizedBox(height: 6),
                                       Text(
                                         "Package Dimensions (cm)",
                                         style: TextStyle(
@@ -1024,7 +1024,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                           color: Colors.grey[700],
                                         ),
                                       ),
-                                      SizedBox(height: 8),
+                                      SizedBox(height: 16),
                                       Column(
                                         children: [
                                           Row(
@@ -1150,7 +1150,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                         ),
 
                         // END PACKAGING TYPE DROPDOWN
-                        gapH20,
+                        gapH16,
 
                         Row(
                           children: [

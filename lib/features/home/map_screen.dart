@@ -23,6 +23,7 @@ class _MapScreenState extends State<MapScreen> {
           "Track Order",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
+        automaticallyImplyLeading: false,
         centerTitle: true,
         elevation: 0,
         toolbarHeight: 45,

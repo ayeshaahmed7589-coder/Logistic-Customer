@@ -115,7 +115,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) =>
-                    const TripsBottomNavBarScreen(initialIndex: 3),
+                    const TripsBottomNavBarScreen(initialIndex: 4),
               ),
             );
           },

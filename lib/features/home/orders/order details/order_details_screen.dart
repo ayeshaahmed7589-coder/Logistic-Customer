@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../constants/colors.dart';
 import 'order_details_controller.dart';
 
@@ -57,7 +56,6 @@ class OrderDetailsScreen extends ConsumerWidget {
         ),
         data: (data) {
           final order = data!.order;
-
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.all(20),
@@ -72,7 +70,12 @@ class OrderDetailsScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 _buildVehicleDriverSection(order),
                 const SizedBox(height: 20),
+                _buildOrderItemsSection(order),
+                const SizedBox(height: 20),
                 _buildPricingSection(order),
+                const SizedBox(height: 20),
+                if (order.specialInstructions != null)
+                  _buildSpecialInstructions(order.specialInstructions!),
                 const SizedBox(height: 30),
               ],
             ),
@@ -82,6 +85,7 @@ class OrderDetailsScreen extends ConsumerWidget {
     );
   }
 
+  // -------------------- ORDER HEADER --------------------
   Widget _buildOrderHeader(order) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -171,8 +175,7 @@ class OrderDetailsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-
-          // ✅ HEADER CARDS STACKED VERTICALLY
+          // Header Cards
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -180,14 +183,14 @@ class OrderDetailsScreen extends ConsumerWidget {
                 icon: Icons.qr_code_rounded,
                 title: "Tracking Code",
                 value: order.trackingCode,
-                gradient: AppColors.pureWhite
+                gradient: AppColors.pureWhite,
               ),
-              const SizedBox(height: 16), // spacing
+              const SizedBox(height: 16),
               _buildHeaderCard(
                 icon: Icons.payment_rounded,
                 title: "Payment Status",
                 value: order.paymentStatus,
-                gradient: AppColors.pureWhite
+                gradient: AppColors.pureWhite,
               ),
             ],
           ),
@@ -196,7 +199,6 @@ class OrderDetailsScreen extends ConsumerWidget {
     );
   }
 
-  // -------------------- MODERN HEADER CARD --------------------
   Widget _buildHeaderCard({
     required IconData icon,
     required String title,
@@ -205,7 +207,6 @@ class OrderDetailsScreen extends ConsumerWidget {
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 0),
       decoration: BoxDecoration(
         color: gradient,
         borderRadius: BorderRadius.circular(16),
@@ -258,7 +259,7 @@ class OrderDetailsScreen extends ConsumerWidget {
     );
   }
 
-  // -------------------- ENHANCED ORDER PROGRESS --------------------
+  // -------------------- ORDER PROGRESS --------------------
   Widget _buildOrderProgress(String status, BuildContext context) {
     final statuses = [
       'pending',
@@ -390,7 +391,7 @@ class OrderDetailsScreen extends ConsumerWidget {
     );
   }
 
-  // -------------------- ENHANCED ROUTE SECTION --------------------
+  // -------------------- ROUTE SECTION --------------------
   Widget _buildRouteSection(order) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -440,95 +441,67 @@ class OrderDetailsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          ...order.stops.asMap().entries.map((entry) {
-            return Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: entry.key == 0
-                                ? AppColors.electricTeal
-                                : Colors.orange.withOpacity(0.9),
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: Icon(
-                            entry.key == 0
-                                ? Icons.my_location_rounded
-                                : Icons.location_on_rounded,
-                            color: Colors.white,
-                            size: 12,
-                          ),
-                        ),
-                        if (entry.key < order.stops.length - 1)
-                          Container(
-                            width: 2,
-                            height: 50,
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            color: Colors.grey[200],
-                          ),
-                      ],
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.value.type.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.electricTeal,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              entry.value.city,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              entry.value.address,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-            );
-          }),
+          _buildStopCard(
+            "Pickup",
+            order.pickup.contactName,
+            order.pickup.address,
+            order.pickup.city,
+            order.pickup.state,
+          ),
+          const SizedBox(height: 12),
+          _buildStopCard(
+            "Delivery",
+            order.delivery.contactName,
+            order.delivery.address,
+            order.delivery.city,
+            order.delivery.state,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStopCard(
+    String type,
+    String contactName,
+    String address,
+    String city,
+    String state,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            type.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              color: AppColors.electricTeal,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            contactName,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            "$address, $city, $state",
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
         ],
       ),
     );
@@ -602,19 +575,115 @@ class OrderDetailsScreen extends ConsumerWidget {
                 _buildDetailItem(
                   icon: Icons.fire_truck_rounded,
                   label: "Vehicle Type",
-                  value: order.vehicle.vehicleType,
+                  value:
+                      "${order.vehicle.make} ${order.vehicle.model} (${order.vehicle.registration})",
                   iconColor: Colors.orange,
                 ),
                 const Divider(height: 32, color: Colors.grey),
                 _buildDetailItem(
                   icon: Icons.person_rounded,
                   label: "Driver",
-                  value: order.driver.name,
+                  value:
+                      "${order.driver.name} (${order.driver.phone}) | Rating: ${order.driver.rating}",
                   iconColor: AppColors.electricTeal,
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // -------------------- ORDER ITEMS --------------------
+  Widget _buildOrderItemsSection(order) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.12),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.blue.withOpacity(0.9),
+                      Colors.blue.withOpacity(0.7),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.inventory_2_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                "Order Items",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ...order.items.map((item) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.productName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.description,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Weight: ${item.weight} kg | Quantity: ${item.quantity} | Value: ₹${item.declaredValue}",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ],
       ),
     );
@@ -686,18 +755,63 @@ class OrderDetailsScreen extends ConsumerWidget {
             child: Column(
               children: [
                 _buildPricingRow(
+                  label: "Distance (km)",
+                  value: order.pricing.distanceKm,
+                ),
+                _buildPricingRow(
+                  label: "Estimated Cost",
+                  value: order.pricing.estimatedCost,
+                ),
+                _buildPricingRow(
+                  label: "Add-Ons Cost",
+                  value: order.pricing.addOnsCost,
+                ),
+                _buildPricingRow(
+                  label: "System Service Fee",
+                  value: order.pricing.systemServiceFee,
+                ),
+                _buildPricingRow(
+                  label: "Discount",
+                  value: order.pricing.discount,
+                ),
+                const Divider(height: 32, color: Colors.grey),
+                _buildPricingRow(
                   label: "Final Cost",
                   value: order.pricing.finalCost,
-                  isTotal: false,
+                  isTotal: true,
                 ),
-                const SizedBox(height: 16),
-                _buildPricingRow(
-                  label: "Tax",
-                  value: order.pricing.tax,
-                  isTotal: false,
-                ),
+                _buildPricingRow(label: "Tax", value: order.pricing.taxAmount),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // -------------------- SPECIAL INSTRUCTIONS --------------------
+  Widget _buildSpecialInstructions(String instructions) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.orange[50],
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Special Instructions",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.orange[800],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            instructions,
+            style: TextStyle(fontSize: 14, color: Colors.orange[900]),
           ),
         ],
       ),
@@ -751,28 +865,31 @@ class OrderDetailsScreen extends ConsumerWidget {
   Widget _buildPricingRow({
     required String label,
     required dynamic value,
-    required bool isTotal,
+    bool isTotal = false,
   }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            color: isTotal ? Colors.black : Colors.grey[700],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isTotal ? 16 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+              color: isTotal ? Colors.black : Colors.grey[700],
+            ),
           ),
-        ),
-        Text(
-          "₹$value",
-          style: TextStyle(
-            fontSize: isTotal ? 20 : 16,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-            color: isTotal ? Colors.green : AppColors.electricTeal,
+          Text(
+            "₹$value",
+            style: TextStyle(
+              fontSize: isTotal ? 18 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+              color: isTotal ? Colors.green : AppColors.electricTeal,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

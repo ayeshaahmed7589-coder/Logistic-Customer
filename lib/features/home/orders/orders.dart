@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:logisticscustomer/common_widgets/custom_text.dart';
-import 'package:logisticscustomer/constants/colors.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/main_order_create_screen.dart';
 import 'package:logisticscustomer/features/home/orders/get_all_orders_modal.dart';
 import 'package:logisticscustomer/features/home/orders/orders_controller.dart';
 
@@ -17,11 +16,13 @@ class Orders extends ConsumerStatefulWidget {
 }
 
 class _OrdersState extends ConsumerState<Orders> {
+  late final ScrollController _scrollController;
+
   final List<String> _statusFilters = [
     'All',
     'Active',
     'Assigned',
-    'Pending',
+    'Confirmed',
     'Completed',
     'Cancelled',
   ];
@@ -30,7 +31,19 @@ class _OrdersState extends ConsumerState<Orders> {
   @override
   void initState() {
     super.initState();
-    // Load orders jab screen open ho
+
+    _scrollController = ScrollController()
+      ..addListener(() {
+        final state = ref.read(orderControllerProvider);
+
+        if (_scrollController.position.pixels >=
+                _scrollController.position.maxScrollExtent - 200 &&
+            !state.isLoadingMore &&
+            state.currentPage < state.meta.lastPage) {
+          ref.read(orderControllerProvider.notifier).loadMoreOrders();
+        }
+      });
+
     Future.microtask(() {
       ref.read(orderControllerProvider.notifier).loadOrders();
     });
@@ -38,6 +51,14 @@ class _OrdersState extends ConsumerState<Orders> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(orderControllerProvider, (previous, next) {
+    // Jab orders empty hon aur loading false ho
+    if (previous?.orders.isEmpty == true &&
+        next.orders.isEmpty &&
+        !next.isLoading) {
+      ref.read(orderControllerProvider.notifier).loadOrders();
+    }
+  });
     final orderState = ref.watch(orderControllerProvider);
 
     return Scaffold(
@@ -118,12 +139,29 @@ class _OrdersState extends ConsumerState<Orders> {
               ),
             ],
           ),
-          IconButton(
-            onPressed: _refreshOrders,
-            icon: const Icon(
-              Icons.refresh,
-              color: AppColors.pureWhite,
-              size: 28,
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainOrderCreateScreen(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.electricTeal,
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: AppColors.pureWhite, width: 1.5),
+                borderRadius: BorderRadius.circular(50),
+              ),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(width: 8),
+                Text("Create Order", style: TextStyle(color: Colors.white)),
+              ],
             ),
           ),
         ],
@@ -153,7 +191,7 @@ class _OrdersState extends ConsumerState<Orders> {
               ),
               selected: isSelected,
               selectedColor: AppColors.electricTeal,
-              backgroundColor: AppColors.pureWhite,
+              backgroundColor: AppColors.lightGrayBackground,
               onSelected: (selected) {
                 setState(() {
                   _selectedFilter = filter;
@@ -192,6 +230,7 @@ class _OrdersState extends ConsumerState<Orders> {
   // Loading State
   Widget _buildLoadingState() {
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(12),
       itemCount: 6, // Skeleton items
       itemBuilder: (context, index) {
@@ -340,35 +379,6 @@ class _OrdersState extends ConsumerState<Orders> {
               },
             ),
           ),
-
-          // Load more button
-          if (state.currentPage < state.meta.lastPage && !state.isLoadingMore)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton(
-                onPressed: () {
-                  ref.read(orderControllerProvider.notifier).loadMoreOrders();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.electricTeal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.add, size: 20, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text("Load More", style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -436,7 +446,7 @@ class _OrdersState extends ConsumerState<Orders> {
 
   // Order Card
   Widget _buildOrderCard(AlOrder order) {
-    final date = DateTime.parse(order.createdAt??"");
+    final date = DateTime.parse(order.createdAt ?? "");
     final formattedDate = DateFormat('dd MMM yyyy • hh:mm a').format(date);
 
     final statusColor = _getStatusColor(order.status);
@@ -479,7 +489,7 @@ class _OrdersState extends ConsumerState<Orders> {
                       color: AppColors.mediumGray,
                     ),
                     CustomText(
-                      txt: order.orderNumber??"",
+                      txt: order.orderNumber ?? "",
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
@@ -496,7 +506,7 @@ class _OrdersState extends ConsumerState<Orders> {
                             color: AppColors.mediumGray,
                           ),
                           CustomText(
-                            txt: order.trackingCode??"",
+                            txt: order.trackingCode ?? "",
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: AppColors.electricTeal,
@@ -505,7 +515,7 @@ class _OrdersState extends ConsumerState<Orders> {
                           GestureDetector(
                             onTap: () {
                               Clipboard.setData(
-                                ClipboardData(text: order.trackingCode??""),
+                                ClipboardData(text: order.trackingCode ?? ""),
                               );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -579,9 +589,9 @@ class _OrdersState extends ConsumerState<Orders> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _routeText("Pickup", order.pickupCity??""),
+                          _routeText("Pickup", order.pickupCity ?? ""),
                           const SizedBox(height: 12),
-                          _routeText("Delivery", order.deliveryCity??""),
+                          _routeText("Delivery", order.deliveryCity ?? ""),
                         ],
                       ),
                     ),
@@ -618,7 +628,7 @@ class _OrdersState extends ConsumerState<Orders> {
                   children: [
                     if (order.finalCost != null && order.finalCost!.isNotEmpty)
                       CustomText(
-                        txt: "₹${order.finalCost}",
+                        txt: "R ${order.finalCost}",
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.electricTeal,
@@ -676,7 +686,8 @@ class _OrdersState extends ConsumerState<Orders> {
                           MaterialPageRoute(
                             builder: (_) => OrderDetailsScreen(
                               orderId:
-                                  order.id??0, // ✅ REAL ORDER ID PASS HO RAHI HAI
+                                  order.id ??
+                                  0, // ✅ REAL ORDER ID PASS HO RAHI HAI
                             ),
                           ),
                         );
@@ -787,9 +798,5 @@ class _OrdersState extends ConsumerState<Orders> {
       default:
         return Icons.help_outline;
     }
-  }
-
-  void _refreshOrders() {
-    ref.read(orderControllerProvider.notifier).refreshOrders();
   }
 }

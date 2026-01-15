@@ -757,6 +757,7 @@ class OrderDetailsScreen extends ConsumerWidget {
                 _buildPricingRow(
                   label: "Distance (km)",
                   value: order.pricing.distanceKm,
+                  showCurrency: false,
                 ),
                 _buildPricingRow(
                   label: "Estimated Cost",
@@ -862,36 +863,37 @@ class OrderDetailsScreen extends ConsumerWidget {
   }
 
   // -------------------- PRICING ROW --------------------
-  Widget _buildPricingRow({
-    required String label,
-    required dynamic value,
-    bool isTotal = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-              color: isTotal ? Colors.black : Colors.grey[700],
-            ),
+ Widget _buildPricingRow({
+  required String label,
+  required dynamic value,
+  bool isTotal = false,
+  bool showCurrency = true, // 👈 NEW FLAG
+}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            color: isTotal ? Colors.black : Colors.grey[700],
           ),
-          Text(
-            "₹$value",
-            style: TextStyle(
-              fontSize: isTotal ? 18 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-              color: isTotal ? Colors.green : AppColors.electricTeal,
-            ),
+        ),
+        Text(
+          showCurrency ? "R $value" : "$value", // 👈 CONDITION
+          style: TextStyle(
+            fontSize: isTotal ? 18 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+            color: isTotal ? Colors.green : AppColors.electricTeal,
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {

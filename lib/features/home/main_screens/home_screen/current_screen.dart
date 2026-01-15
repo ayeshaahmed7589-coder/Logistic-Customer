@@ -310,59 +310,116 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.pureWhite,
-                              borderRadius: BorderRadius.circular(12),
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.electricTeal.withOpacity(0.12),
+                                  AppColors.pureWhite,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.mediumGray.withValues(
-                                    alpha: 0.10,
-                                  ),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 3),
+                                  color: Colors.black.withOpacity(0.06),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
                             child: Column(
                               children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        value: stats.totalOrders.toString(),
-                                        label: "Total Orders",
-                                      ),
-                                    ),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        value: stats.activeOrders.toString(),
-                                        label: "Active Orders",
-                                      ),
-                                    ),
-                                  ],
+                                _statRow(
+                                  left: StatCardData(
+                                    icon: Icons.receipt_long_rounded,
+                                    amount: stats.totalOrders.toString(),
+                                    label: "Total Orders",
+                                    color: AppColors.electricTeal,
+                                  ),
+                                  right: StatCardData(
+                                    icon: Icons.local_shipping_outlined,
+                                    amount: stats.activeOrders.toString(),
+                                    label: "Active",
+                                    color: Colors.orange,
+                                  ),
                                 ),
-                                SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        value: stats.completedOrders.toString(),
-                                        label: "Complete Orders",
-                                      ),
-                                    ),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: _buildStatItem(
-                                        value: "${stats.totalSpent}",
-                                        label: "Spent",
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(height: 14),
+                                _statRow(
+                                  left: StatCardData(
+                                    icon: Icons.check_circle_outline,
+                                    amount: stats.completedOrders.toString(),
+                                    label: "Completed",
+                                    color: Colors.green,
+                                  ),
+                                  right: StatCardData(
+                                    icon: Icons.currency_exchange,
+                                    // amount: "R :${stats.totalSpent}",
+                                    amount:
+                                        "R ${NumberFormat('#,###').format(stats.totalSpent)}",
+
+                                    label: "Spent",
+                                    color: Colors.purple,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
 
+                          // Container(
+                          //   padding: const EdgeInsets.all(16),
+                          //   decoration: BoxDecoration(
+                          //     color: AppColors.pureWhite,
+                          //     borderRadius: BorderRadius.circular(12),
+                          //     boxShadow: [
+                          //       BoxShadow(
+                          //         color: AppColors.mediumGray.withValues(
+                          //           alpha: 0.10,
+                          //         ),
+                          //         blurRadius: 6,
+                          //         offset: Offset(0, 3),
+                          //       ),
+                          //     ],
+                          //   ),
+                          //   child: Column(
+                          //     children: [
+                          //       Row(
+                          //         children: [
+                          //           Expanded(
+                          //             child: _buildStatItem(
+                          //               value: stats.totalOrders.toString(),
+                          //               label: "Total Orders",
+                          //             ),
+                          //           ),
+                          //           SizedBox(width: 16),
+                          //           Expanded(
+                          //             child: _buildStatItem(
+                          //               value: stats.activeOrders.toString(),
+                          //               label: "Active Orders",
+                          //             ),
+                          //           ),
+                          //         ],
+                          //       ),
+                          //       SizedBox(height: 16),
+                          //       Row(
+                          //         children: [
+                          //           Expanded(
+                          //             child: _buildStatItem(
+                          //               value: stats.completedOrders.toString(),
+                          //               label: "Complete Orders",
+                          //             ),
+                          //           ),
+                          //           SizedBox(width: 16),
+                          //           Expanded(
+                          //             child: _buildStatItem(
+                          //               value: "${stats.totalSpent}",
+                          //               label: "Spent",
+                          //             ),
+                          //           ),
+                          //         ],
+                          //       ),
+                          //     ],
+                          //   ),
+                          // ),
                           gapH24,
 
                           // ---- Active Orders ----
@@ -649,6 +706,76 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
     );
   }
 
+  Widget _statRow({required StatCardData left, required StatCardData right}) {
+    return Row(
+      children: [
+        Expanded(child: _statCard(left)),
+        const SizedBox(width: 12),
+        Expanded(child: _statCard(right)),
+      ],
+    );
+  }
+
+  Widget _statCard(StatCardData data) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: data.color.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 42,
+            width: 42,
+            decoration: BoxDecoration(
+              color: data.color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(data.icon, color: data.color, size: 22),
+          ),
+          const SizedBox(width: 12),
+
+          /// 🔥 FIX STARTS HERE
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  data.amount,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  data.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: AppColors.mediumGray),
+                ),
+              ],
+            ),
+          ),
+
+          /// 🔥 FIX ENDS HERE
+        ],
+      ),
+    );
+  }
+
   // Helper method for status colors
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
@@ -695,35 +822,35 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
   //   );
   // }
 
-  // Helper widget
-  Widget _buildStatItem({required String value, required String label}) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: AppColors.subtleGray,
-        // color: AppColors.mediumGray.withOpacity(0.1),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CustomText(
-            txt: value,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.darkText,
-          ),
-          gapH4,
-          CustomText(
-            txt: label,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.electricTeal,
-          ),
-        ],
-      ),
-    );
-  }
+  // // Helper widget
+  // Widget _buildStatItem({required String value, required String label}) {
+  //   return Container(
+  //     padding: EdgeInsets.symmetric(vertical: 12),
+  //     decoration: BoxDecoration(
+  //       borderRadius: BorderRadius.circular(8),
+  //       color: AppColors.subtleGray,
+  //       // color: AppColors.mediumGray.withOpacity(0.1),
+  //     ),
+  //     child: Column(
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: [
+  //         CustomText(
+  //           txt: value,
+  //           fontSize: 16,
+  //           fontWeight: FontWeight.bold,
+  //           color: AppColors.darkText,
+  //         ),
+  //         gapH4,
+  //         CustomText(
+  //           txt: label,
+  //           fontSize: 12,
+  //           fontWeight: FontWeight.w500,
+  //           color: AppColors.electricTeal,
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   // Helper widget for recent orders
   Widget buildOrderTile(String orderNumber, String status, String time) {
@@ -902,4 +1029,18 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
     );
   }
+}
+
+class StatCardData {
+  final IconData icon;
+  final String amount;
+  final String label;
+  final Color color;
+
+  const StatCardData({
+    required this.icon,
+    required this.amount,
+    required this.label,
+    required this.color,
+  });
 }

@@ -62,6 +62,8 @@ class _LoginState extends ConsumerState<Login> {
 
   @override
   Widget build(BuildContext context) {
+    final loginState = ref.watch(loginControllerProvider);
+
     final Color inactiveColor = AppColors.mediumGray;
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
@@ -168,37 +170,29 @@ class _LoginState extends ConsumerState<Login> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: CustomButton(
-                  isChecked: _isFormFilled,
-                  text: "Sign In",
-                  backgroundColor: _isFormFilled
+                  isChecked: _isFormFilled && !loginState.isLoading,
+
+                  text: loginState.isLoading ? "Processing..." : "Sign In",
+
+                  backgroundColor: (_isFormFilled && !loginState.isLoading)
                       ? AppColors.electricTeal
                       : inactiveColor,
+
                   borderColor: AppColors.electricTeal,
                   textColor: AppColors.lightGrayBackground,
-                  onPressed: _isFormFilled
+
+                  onPressed: (_isFormFilled && !loginState.isLoading)
                       ? () async {
                           final email = emailController.text.trim();
                           final password = PasswordController.text.trim();
 
-                          // FIRE LOGIN API
                           await ref
                               .read(loginControllerProvider.notifier)
                               .login(email, password);
 
-                          // READ STATE
                           final state = ref.read(loginControllerProvider);
 
                           if (state is AsyncData && state.value != null) {
-                            // final loginData = state.value!;
-
-                            // SAVE TOKEN HERE
-                            // final prefs = await SharedPreferences.getInstance();
-                            // await prefs.setString(
-                            //   "access_token",
-                            //   loginData.data.accessToken,
-                            // );
-
-                            // MOVE TO HOME
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
@@ -210,8 +204,8 @@ class _LoginState extends ConsumerState<Login> {
                             );
                           } else if (state is AsyncError) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text("Invalid email or password",),
+                              const SnackBar(
+                                content: Text("Invalid email or password"),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -221,6 +215,61 @@ class _LoginState extends ConsumerState<Login> {
                 ),
               ),
 
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 20),
+              //   child: CustomButton(
+              //     isChecked: _isFormFilled,
+              //     text: "Sign In",
+              //     backgroundColor: _isFormFilled
+              //         ? AppColors.electricTeal
+              //         : inactiveColor,
+              //     borderColor: AppColors.electricTeal,
+              //     textColor: AppColors.lightGrayBackground,
+              //     onPressed: _isFormFilled
+              //         ? () async {
+              //             final email = emailController.text.trim();
+              //             final password = PasswordController.text.trim();
+
+              //             // FIRE LOGIN API
+              //             await ref
+              //                 .read(loginControllerProvider.notifier)
+              //                 .login(email, password);
+
+              //             // READ STATE
+              //             final state = ref.read(loginControllerProvider);
+
+              //             if (state is AsyncData && state.value != null) {
+              //               // final loginData = state.value!;
+
+              //               // SAVE TOKEN HERE
+              //               // final prefs = await SharedPreferences.getInstance();
+              //               // await prefs.setString(
+              //               //   "access_token",
+              //               //   loginData.data.accessToken,
+              //               // );
+
+              //               // MOVE TO HOME
+              //               Navigator.pushAndRemoveUntil(
+              //                 context,
+              //                 MaterialPageRoute(
+              //                   builder: (_) => const TripsBottomNavBarScreen(
+              //                     initialIndex: 0,
+              //                   ),
+              //                 ),
+              //                 (route) => false,
+              //               );
+              //             } else if (state is AsyncError) {
+              //               ScaffoldMessenger.of(context).showSnackBar(
+              //                 SnackBar(
+              //                   content: Text("Invalid email or password",),
+              //                   backgroundColor: Colors.red,
+              //                 ),
+              //               );
+              //             }
+              //           }
+              //         : null,
+              //   ),
+              // ),
               gapH32,
 
               Column(

@@ -50,22 +50,22 @@ class AllOrderData {
 }
 
 class AlOrder {
-  final int id;
-  final String orderNumber;
-  final String trackingCode;
+  final int? id;
+  final String? orderNumber;
+  final String? trackingCode;
   final String status;
-  final int isMultiStop;
+  final int? isMultiStop;
   final String? productType;
   final String? packagingType;
   final String? totalWeightKg;
-  final String pickupCity;
-  final String deliveryCity;
+  final String? pickupCity;
+  final String? deliveryCity;
   final String? distanceKm;
   final String? finalCost;
   final int? matchingScore;
   final AlVehicle vehicle;
   final AlDriver driver;
-  final String createdAt;
+  final String? createdAt;
 
   AlOrder({
     required this.id,

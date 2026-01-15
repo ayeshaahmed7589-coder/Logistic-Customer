@@ -436,7 +436,7 @@ class _OrdersState extends ConsumerState<Orders> {
 
   // Order Card
   Widget _buildOrderCard(AlOrder order) {
-    final date = DateTime.parse(order.createdAt);
+    final date = DateTime.parse(order.createdAt??"");
     final formattedDate = DateFormat('dd MMM yyyy • hh:mm a').format(date);
 
     final statusColor = _getStatusColor(order.status);
@@ -479,13 +479,13 @@ class _OrdersState extends ConsumerState<Orders> {
                       color: AppColors.mediumGray,
                     ),
                     CustomText(
-                      txt: order.orderNumber,
+                      txt: order.orderNumber??"",
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
 
                     /// TRACKING CODE
-                    if (order.trackingCode.isNotEmpty) ...[
+                    if (order.trackingCode!.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -496,7 +496,7 @@ class _OrdersState extends ConsumerState<Orders> {
                             color: AppColors.mediumGray,
                           ),
                           CustomText(
-                            txt: order.trackingCode,
+                            txt: order.trackingCode??"",
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: AppColors.electricTeal,
@@ -505,7 +505,7 @@ class _OrdersState extends ConsumerState<Orders> {
                           GestureDetector(
                             onTap: () {
                               Clipboard.setData(
-                                ClipboardData(text: order.trackingCode),
+                                ClipboardData(text: order.trackingCode??""),
                               );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -579,9 +579,9 @@ class _OrdersState extends ConsumerState<Orders> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _routeText("Pickup", order.pickupCity),
+                          _routeText("Pickup", order.pickupCity??""),
                           const SizedBox(height: 12),
-                          _routeText("Delivery", order.deliveryCity),
+                          _routeText("Delivery", order.deliveryCity??""),
                         ],
                       ),
                     ),
@@ -676,7 +676,7 @@ class _OrdersState extends ConsumerState<Orders> {
                           MaterialPageRoute(
                             builder: (_) => OrderDetailsScreen(
                               orderId:
-                                  order.id, // ✅ REAL ORDER ID PASS HO RAHI HAI
+                                  order.id??0, // ✅ REAL ORDER ID PASS HO RAHI HAI
                             ),
                           ),
                         );

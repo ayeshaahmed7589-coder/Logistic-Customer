@@ -63,10 +63,27 @@ class _ForgotPasswordState extends State<ForgotPassword> {
       backgroundColor: AppColors.lightGrayBackground,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // 🔙 Back Text
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    "Back",
+                    style: TextStyle(
+                      color: AppColors.electricTeal,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
               Text(
                 "Drovvi",
                 style: TextStyle(
@@ -112,9 +129,9 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                   return null;
                 },
               ),
+              gapH64,
 
-              SizedBox(height: 300),
-
+              // SizedBox(height: 300),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: CustomButton(

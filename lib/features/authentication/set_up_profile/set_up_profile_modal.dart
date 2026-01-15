@@ -3,11 +3,7 @@ class SetUpProfileModel {
   final String message;
   final ProfileData? data;
 
-  SetUpProfileModel({
-    required this.success,
-    required this.message,
-    this.data,
-  });
+  SetUpProfileModel({required this.success, required this.message, this.data});
 
   factory SetUpProfileModel.fromJson(Map<String, dynamic> json) {
     return SetUpProfileModel(
@@ -71,4 +67,88 @@ class User {
       profilePhoto: json['profile_photo'],
     );
   }
+}
+
+// dropdown
+// company_model.dart
+class CompanyResponse {
+  final bool success;
+  final String message;
+  final CompanyData data;
+
+  CompanyResponse({
+    required this.success,
+    required this.message,
+    required this.data,
+  });
+
+  factory CompanyResponse.fromJson(Map<String, dynamic> json) {
+    return CompanyResponse(
+      success: json['success'] ?? false,
+      message: json['message'] ?? '',
+      data: CompanyData.fromJson(json['data']),
+    );
+  }
+}
+
+class CompanyData {
+  final List<CompanyItem> companies;
+  final int total;
+
+  CompanyData({required this.companies, required this.total});
+
+  factory CompanyData.fromJson(Map<String, dynamic> json) {
+    final companiesList = (json['companies'] as List)
+        .map((item) => CompanyItem.fromJson(item))
+        .toList();
+
+    return CompanyData(
+      companies: companiesList,
+      total: json['total'] ?? companiesList.length,
+    );
+  }
+
+  List<CompanyItem> getAllItems() => companies;
+
+  // Optional: Filter companies by type
+  List<CompanyItem> getCompaniesByType(String type) {
+    return companies.where((company) => company.type == type).toList();
+  }
+
+  // Optional: Search companies
+  List<CompanyItem> searchCompanies(String query) {
+    if (query.isEmpty) return companies;
+
+    return companies
+        .where(
+          (company) =>
+              company.name.toLowerCase().contains(query.toLowerCase()) ||
+              company.type.toLowerCase().contains(query.toLowerCase()),
+        )
+        .toList();
+  }
+}
+
+class CompanyItem {
+  final int id;
+  final String name;
+  final String type;
+
+  CompanyItem({required this.id, required this.name, required this.type});
+
+  factory CompanyItem.fromJson(Map<String, dynamic> json) {
+    return CompanyItem(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      type: json['type'] ?? '',
+    );
+  }
+
+  bool matchesSearch(String query) {
+    return name.toLowerCase().contains(query.toLowerCase()) ||
+        type.toLowerCase().contains(query.toLowerCase());
+  }
+
+  @override
+  String toString() => name;
 }

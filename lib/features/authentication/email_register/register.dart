@@ -77,7 +77,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   keyboardType: TextInputType.emailAddress,
                   validator: AppValidators.email,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
 
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -132,7 +132,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ],
                 ),
 
-                gapH64,
+                // gapH64,
                 gapH48,
 
                 Padding(
@@ -146,30 +146,68 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     backgroundColor: AppColors.electricTeal,
                     borderColor: AppColors.electricTeal,
                     textColor: AppColors.pureWhite,
+
                     onPressed: () async {
-                      // Form validate karo
-                      if (_formKey.currentState!.validate()) {
-                        // Agar form valid hai to process continue karo
-                        final email = emailController.text.trim();
+                      if (!_formKey.currentState!.validate()) return;
 
-                        await ref
-                            .read(authControllerProvider.notifier)
-                            .sendOtpToEmail(email);
+                      final email = emailController.text.trim();
 
-                        final state = ref.read(authControllerProvider);
+                      await ref
+                          .read(authControllerProvider.notifier)
+                          .sendOtpToEmail(email);
 
-                        if (state is AsyncData && state.value != null) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => VerificationScreen(
-                                emailRegisterModal: state.value!,
-                              ),
+                      final state = ref.read(authControllerProvider);
+
+                      // SUCCESS → navigate
+                      if (state is AsyncData && state.value != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => VerificationScreen(
+                              emailRegisterModal: state.value!,
                             ),
-                          );
-                        }
+                          ),
+                        );
+                      }
+
+                      if (state is AsyncError) {
+                        // final errorMessage = state.error
+                        // .toString()
+                        // .replaceFirst('Exception: ', '');
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Email Already Exist!"),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
                       }
                     },
+
+                    // onPressed: () async {
+                    //   // Form validate karo
+                    //   if (_formKey.currentState!.validate()) {
+                    //     // Agar form valid hai to process continue karo
+                    //     final email = emailController.text.trim();
+
+                    //     await ref
+                    //         .read(authControllerProvider.notifier)
+                    //         .sendOtpToEmail(email);
+
+                    //     final state = ref.read(authControllerProvider);
+
+                    //     if (state is AsyncData && state.value != null) {
+                    //       Navigator.push(
+                    //         context,
+                    //         MaterialPageRoute(
+                    //           builder: (context) => VerificationScreen(
+                    //             emailRegisterModal: state.value!,
+                    //           ),
+                    //         ),
+                    //       );
+                    //     }
+                    //   }
+                    // },
                   ),
                 ),
 

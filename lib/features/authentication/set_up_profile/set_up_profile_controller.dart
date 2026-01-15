@@ -53,3 +53,36 @@ final setUpProfileControllerProvider =
       final repo = ref.watch(setUpProfileRepositoryProvider);
       return SetUpProfileController(repo);
     });
+
+// dropdown
+
+// company_controller.dart
+class CompanyController extends StateNotifier<AsyncValue<CompanyData>> {
+  final CompanyRepository _repository;
+
+  CompanyController(this._repository) : super(const AsyncValue.loading()) {
+    loadCompanies();
+  }
+
+  Future<void> loadCompanies() async {
+    try {
+      state = const AsyncValue.loading();
+      final response = await _repository.getCompanies();
+      state = AsyncValue.data(response.data);
+    } catch (e, stackTrace) {
+      print("Error in CompanyController: $e");
+      print("Stack trace: $stackTrace");
+      state = AsyncValue.error(e, stackTrace);
+    }
+  }
+
+  void refresh() {
+    loadCompanies();
+  }
+}
+
+final companyControllerProvider =
+    StateNotifierProvider<CompanyController, AsyncValue<CompanyData>>((ref) {
+      final repository = ref.watch(companyRepositoryProvider);
+      return CompanyController(repository);
+    });

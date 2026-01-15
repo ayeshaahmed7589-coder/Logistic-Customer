@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../constants/validation_regx.dart';
 import '../../../export.dart';
@@ -109,7 +108,7 @@ class _LoginState extends ConsumerState<Login> {
                 keyboardType: TextInputType.emailAddress,
                 validator: AppValidators.email,
               ),
-              gapH24,
+              gapH20,
 
               /// New Password Field
               CustomAnimatedTextField(
@@ -140,7 +139,7 @@ class _LoginState extends ConsumerState<Login> {
                     : null,
               ),
 
-              gapH24,
+              gapH20,
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -163,7 +162,7 @@ class _LoginState extends ConsumerState<Login> {
                   ),
                 ],
               ),
-              gapH64,
+              // gapH64,
               gapH32,
 
               Padding(
@@ -190,14 +189,14 @@ class _LoginState extends ConsumerState<Login> {
                           final state = ref.read(loginControllerProvider);
 
                           if (state is AsyncData && state.value != null) {
-                            final loginData = state.value!;
+                            // final loginData = state.value!;
 
                             // SAVE TOKEN HERE
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setString(
-                              "access_token",
-                              loginData.data.accessToken,
-                            );
+                            // final prefs = await SharedPreferences.getInstance();
+                            // await prefs.setString(
+                            //   "access_token",
+                            //   loginData.data.accessToken,
+                            // );
 
                             // MOVE TO HOME
                             Navigator.pushAndRemoveUntil(
@@ -212,7 +211,8 @@ class _LoginState extends ConsumerState<Login> {
                           } else if (state is AsyncError) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text("Invalid email or password"),
+                                content: Text("Invalid email or password",),
+                                backgroundColor: Colors.red,
                               ),
                             );
                           }

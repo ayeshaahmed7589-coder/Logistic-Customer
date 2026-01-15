@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../constants/api_url.dart';
 import '../../../constants/dio.dart';
-import '../../../constants/local_storage.dart';
 import 'get_profile_model.dart';
 
 final getProfileRepositoryProvider = Provider<GetProfileRepository>((ref) {
@@ -23,23 +22,24 @@ class GetProfileRepository {
   });
 
   Future<GetProfileModel> getProfile() async {
-    final url = ApiUrls.getprofile;
+    // final url = ApiUrls.getprofile;
 
     // Token load from SharedPreferences / LocalStorage
-    final token = await LocalStorage.getToken() ?? "";
+    // final token = await LocalStorage.getToken() ?? "";
 
-    print("Bearer Token ==> $token");
+    // print("Bearer Token ==> $token");
 
     try {
-      final response = await dio.get(
-        url,
-        options: Options(
-          headers: {
-            "Authorization": "Bearer $token",
-            "Accept": "application/json",
-          },
-        ),
-      );
+      final response = await dio.get(ApiUrls.getprofile);
+      // final response = await dio.get(
+      //   url,
+      //   options: Options(
+      //     headers: {
+      //       "Authorization": "Bearer $token",
+      //       "Accept": "application/json",
+      //     },
+      //   ),
+      // );
 
       print("GET PROFILE RESPONSE => ${response.data}");
 

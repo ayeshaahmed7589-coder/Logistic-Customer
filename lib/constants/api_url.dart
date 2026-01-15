@@ -5,6 +5,9 @@ abstract class ApiUrls {
   // Login
   static String postLogin = "/api/v1/customer/auth/login";
 
+  // Refresh
+  static String postRefresh = "/api/v1/customer/auth/refresh";
+
   // Logout
   static String postLogOut = "/api/v1/customer/auth/logout";
 
@@ -76,4 +79,8 @@ abstract class ApiUrls {
 
   //order details
   static const String orderDetails = "/api/v1/customer/orders";
+
+
+    //Company Dropdown
+  static const String getCompany = "/api/master-data/all-companies";
 }

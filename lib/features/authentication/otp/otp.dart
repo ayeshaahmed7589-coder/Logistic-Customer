@@ -22,7 +22,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
   int _seconds = 59;
   Timer? _timer;
   bool _isOtpFilled = false;
-  String? _otpError; // ❌ For showing validation error
+  String? _otpError; //  For showing validation error
 
   @override
   void initState() {
@@ -61,10 +61,26 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
       body: SingleChildScrollView(
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                     Align(
+            alignment: Alignment.centerLeft,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.pop(context);
+              },
+              child: Text(
+                "Back",
+                style: TextStyle(
+                  color: AppColors.electricTeal,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
                 const SizedBox(height: 20),
                 CustomText(
                   txt: "DROVVI",
@@ -97,12 +113,12 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                       color: AppColors.darkText,
                       fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(width: 6),
-                    Icon(
-                      Icons.edit_outlined,
-                      color: AppColors.electricTeal,
-                      size: 18,
-                    ),
+                    // const SizedBox(width: 6),
+                    // Icon(
+                    //   Icons.edit_outlined,
+                    //   color: AppColors.electricTeal,
+                    //   size: 18,
+                    // ),
                   ],
                 ),
                 const SizedBox(height: 30),
@@ -118,7 +134,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-               
+
                 PinCodeTextField(
                   appContext: context,
                   length: 6,
@@ -139,7 +155,6 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                         ? Colors.red
                         : AppColors.electricTeal,
                     activeColor: _otpError != null
-               
                         ? Colors.red
                         : AppColors.electricTeal,
                     activeFillColor: AppColors.pureWhite,
@@ -159,7 +174,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                 ),
                 if (_otpError != null)
                   Align(
-                    alignment: Alignment.centerRight, // ❌ move to right
+                    alignment: Alignment.centerRight, //  move to right
                     child: Text(
                       _otpError!,
                       style: const TextStyle(color: Colors.red, fontSize: 14),
@@ -191,7 +206,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                             .verifyOtp(email, otp);
 
                         final state = ref.read(verifyOtpControllerProvider);
-                        if (!mounted) return; // ❌ Safe check
+                        if (!mounted) return; //  Safe check
 
                         if (state is AsyncData && state.value != null) {
                           Navigator.push(
@@ -204,14 +219,14 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                           );
                         } else if (state is AsyncError) {
                           setState(
-                            () => _otpError = "Galat OTP. Dobara try karo.",
+                            () => _otpError = "Worng OTP. please try again",
                           );
                           errorController?.add(ErrorAnimationType.shake);
                         }
                       } catch (_) {
                         if (mounted) {
                           setState(
-                            () => _otpError = "Galat OTP. Dobara try karo.",
+                            () => _otpError = "Worng OTP. please try again",
                           );
                           errorController?.add(ErrorAnimationType.shake);
                         }
@@ -236,11 +251,13 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
                         });
                         startTimer();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("OTP resend hogaya!")),
+                          const SnackBar(
+                            content: Text("OTP Resend Successfully"),
+                          ),
                         );
                       } else if (state is AsyncError) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("OTP resend nahi hua.")),
+                          const SnackBar(content: Text("Process")),
                         );
                       }
                     }

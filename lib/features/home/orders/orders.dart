@@ -269,15 +269,22 @@ class _OrdersState extends ConsumerState<Orders> {
             color: AppColors.darkText,
           ),
           const SizedBox(height: 8),
-          CustomText(
-            txt: error,
-            fontSize: 14,
-            color: AppColors.mediumGray,
-            align: TextAlign.center,
-          ),
+          // CustomText(
+          //   txt: error,
+          //   fontSize: 14,
+          //   color: AppColors.mediumGray,
+          //   align: TextAlign.center,
+          // ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _refreshOrders,
+            // onPressed: _refreshOrders,
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const Login()),
+                (route) => false,
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.electricTeal,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -288,9 +295,9 @@ class _OrdersState extends ConsumerState<Orders> {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.refresh, size: 20, color: Colors.white),
+                Icon(Icons.login_outlined, size: 20, color: Colors.white),
                 SizedBox(width: 8),
-                Text("Try Again", style: TextStyle(color: Colors.white)),
+                Text("Login Again", style: TextStyle(color: Colors.white)),
               ],
             ),
           ),

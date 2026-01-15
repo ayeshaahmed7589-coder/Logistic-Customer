@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/authentication/create_password/create_pass_controller.dart';
-
 import '../../../constants/validation_regx.dart';
 import '../../../export.dart';
 
@@ -168,7 +167,7 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: CustomButton(
-                    text: "Sign Up",
+                    text: "Next",
                     backgroundColor: AppColors.electricTeal,
                     borderColor: AppColors.electricTeal,
                     textColor: AppColors.pureWhite,
@@ -192,6 +191,11 @@ class _CreatePasswordScreenState extends ConsumerState<CreatePasswordScreen> {
                       final state = ref.read(createPasswordControllerProvider);
 
                       if (state is AsyncData && state.value != null) {
+                        // Navigator.push(
+                        //   // ignore: use_build_context_synchronously
+                        //   context,
+                        //   MaterialPageRoute(builder: (_) => Option()),
+                        // );
                         Navigator.push(
                           // ignore: use_build_context_synchronously
                           context,

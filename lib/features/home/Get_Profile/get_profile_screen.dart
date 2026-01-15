@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/constants/gap.dart';
 import 'package:logisticscustomer/constants/local_storage.dart';
+import 'package:logisticscustomer/constants/session_expired.dart';
 import 'package:logisticscustomer/features/authentication/login/login.dart';
 import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
 import 'package:logisticscustomer/features/home/Edit_Profile/edit_profile_screen.dart';
@@ -153,7 +154,16 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
     return profileState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => Center(child: Text(err.toString())),
+      // error: (err, _) => Center(child: Text(err.toString())),
+
+      error: (e, st) {
+        if (e.toString().contains("SESSION_EXPIRED")) {
+          return SessionExpiredScreen();
+        }
+        return Scaffold(body: Center(child: Text("Error: $e")));
+      },
+
+
       data: (profile) {
         if (profile == null) {
           return const Center(child: Text("No Profile Data"));

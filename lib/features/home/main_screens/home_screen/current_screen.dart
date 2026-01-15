@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:logisticscustomer/constants/session_expired.dart';
 
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/main_order_create_screen.dart';
@@ -213,7 +214,13 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
     return state.when(
       loading: () => const DashboardShimmer(),
-      error: (e, st) => Scaffold(body: Center(child: Text("Error: $e"))),
+      // error: (e, st) => Scaffold(body: Center(child: Text("Error: $e"))),
+      error: (e, st) {
+        if (e.toString().contains("SESSION_EXPIRED")) {
+          return SessionExpiredScreen();
+        }
+        return Scaffold(body: Center(child: Text("Error: $e")));
+      },
 
       data: (dashboard) {
         // if (dashboard == null) {

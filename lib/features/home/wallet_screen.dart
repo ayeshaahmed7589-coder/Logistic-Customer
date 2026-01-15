@@ -19,7 +19,7 @@ class WalletScreen extends StatelessWidget {
           children: [
             //appbar
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 30, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: AppColors.electricTeal,

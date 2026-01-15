@@ -1,6 +1,6 @@
 abstract class ApiUrls {
   //Base Url
-  static String baseurl = "https://drovvi.com/";
+  static String baseurl = "https://drovvi.com";
 
   // Login
   static String postLogin = "/api/v1/customer/auth/login";

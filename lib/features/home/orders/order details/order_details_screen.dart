@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
 import 'order_details_controller.dart';
 
@@ -14,7 +15,7 @@ class OrderDetailsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
       appBar: AppBar(
-        title: const Text("Order Details"),
+        title:  CustomText(txt:"Order Details"),
         centerTitle: true,
         elevation: 0,
         backgroundColor: AppColors.electricTeal,
@@ -677,7 +678,7 @@ class OrderDetailsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "Weight: ${item.weight} kg | Quantity: ${item.quantity} | Value: ₹${item.declaredValue}",
+                    "Weight: ${item.weight} kg | Quantity: ${item.quantity} | Value: R${item.declaredValue}",
                     style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                   ),
                 ],

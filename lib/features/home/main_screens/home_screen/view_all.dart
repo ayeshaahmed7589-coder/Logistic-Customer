@@ -360,7 +360,7 @@
 //                             color: AppColors.mediumGray,
 //                           ),
 //                           CustomText(
-//                             txt: "₹${order.finalCost}",
+//                             txt: "R${order.finalCost}",
 //                             fontSize: 16,
 //                             fontWeight: FontWeight.bold,
 //                             color: AppColors.electricTeal,
@@ -846,7 +846,7 @@
 //                               ),
 //                               SizedBox(width: 4),
 //                               CustomText(
-//                                 txt: "₹${order.finalCost}",
+//                                 txt: "R${order.finalCost}",
 //                                 fontSize: 11,
 //                                 color: AppColors.mediumGray,
 //                                 fontWeight: FontWeight.w600,
@@ -1258,7 +1258,7 @@ class OrderCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     CustomText(
-                      txt: "₹$cost",
+                      txt: "R$cost",
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.electricTeal,

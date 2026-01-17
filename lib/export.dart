@@ -8,7 +8,7 @@ export 'dart:ui';
 export 'package:logisticscustomer/common_widgets/cuntom_textfield.dart';
 export 'package:logisticscustomer/common_widgets/custom_button.dart';
 export 'package:logisticscustomer/constants/gap.dart';
-export 'package:logisticscustomer/features/authentication/forgot_password.dart';
+
 
 export 'package:image_picker/image_picker.dart';
 

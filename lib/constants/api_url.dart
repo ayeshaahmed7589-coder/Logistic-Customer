@@ -1,6 +1,6 @@
 abstract class ApiUrls {
   //Base Url
-  static String baseurl = "https://seedlink.skyguruu.com";
+  static String baseurl = "https://drovvi.com";
 
   // Login
   static String postLogin = "/api/v1/customer/auth/login";
@@ -10,6 +10,18 @@ abstract class ApiUrls {
 
   // Logout
   static String postLogOut = "/api/v1/customer/auth/logout";
+
+  // Forget password
+  static String forgotPassword = "/api/v1/customer/auth/forgot-password";
+
+  // Verify Rest OTP
+  static String verifyResetOtp = "/api/v1/customer/auth/verify-reset-otp";
+
+  // Resend Rest OTP
+  static String resendResetOtp = "/api/v1/customer/auth/resend-reset-otp";
+
+  // Reset Password
+  static String resetpassword = "/api/v1/customer/auth/reset-password";
 
   // Register Email
   static String postEmailRegister = "/api/v1/customer/auth/register/initiate";

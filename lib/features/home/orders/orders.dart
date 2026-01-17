@@ -22,6 +22,7 @@ class _OrdersState extends ConsumerState<Orders> {
     'All',
     'Active',
     'Assigned',
+    'Pending',
     'Confirmed',
     'Completed',
     'Cancelled',
@@ -52,13 +53,13 @@ class _OrdersState extends ConsumerState<Orders> {
   @override
   Widget build(BuildContext context) {
     ref.listen(orderControllerProvider, (previous, next) {
-    // Jab orders empty hon aur loading false ho
-    if (previous?.orders.isEmpty == true &&
-        next.orders.isEmpty &&
-        !next.isLoading) {
-      ref.read(orderControllerProvider.notifier).loadOrders();
-    }
-  });
+      // Jab orders empty hon aur loading false ho
+      if (previous?.orders.isEmpty == true &&
+          next.orders.isEmpty &&
+          !next.isLoading) {
+        ref.read(orderControllerProvider.notifier).loadOrders();
+      }
+    });
     final orderState = ref.watch(orderControllerProvider);
 
     return Scaffold(
@@ -159,7 +160,6 @@ class _OrdersState extends ConsumerState<Orders> {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(width: 8),
                 Text("Create Order", style: TextStyle(color: Colors.white)),
               ],
             ),
@@ -414,8 +414,12 @@ class _OrdersState extends ConsumerState<Orders> {
           if (_selectedFilter == 'All')
             ElevatedButton(
               onPressed: () {
-                // Navigate to create order screen
-                // Navigator.push(context, MaterialPageRoute(builder: (context) => CreateOrderScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MainOrderCreateScreen(),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.electricTeal,
@@ -446,8 +450,13 @@ class _OrdersState extends ConsumerState<Orders> {
 
   // Order Card
   Widget _buildOrderCard(AlOrder order) {
-    final date = DateTime.parse(order.createdAt ?? "");
-    final formattedDate = DateFormat('dd MMM yyyy • hh:mm a').format(date);
+    String formattedDate = "—";
+    if (order.createdAt != null && order.createdAt!.isNotEmpty) {
+      try {
+        final date = DateTime.parse(order.createdAt!);
+        formattedDate = DateFormat('dd MMM yyyy • hh:mm a').format(date);
+      } catch (_) {}
+    }
 
     final statusColor = _getStatusColor(order.status);
 
@@ -495,7 +504,7 @@ class _OrdersState extends ConsumerState<Orders> {
                     ),
 
                     /// TRACKING CODE
-                    if (order.trackingCode!.isNotEmpty) ...[
+                   if ((order.trackingCode ?? '').isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -548,13 +557,13 @@ class _OrdersState extends ConsumerState<Orders> {
                     children: [
                       Icon(
                         _getStatusIcon(order.status),
-                        size: 14,
+                        size: 12,
                         color: statusColor,
                       ),
                       const SizedBox(width: 6),
                       CustomText(
                         txt: order.statusText.toUpperCase(),
-                        fontSize: 12,
+                        fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: statusColor,
                       ),
@@ -678,39 +687,37 @@ class _OrdersState extends ConsumerState<Orders> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OrderDetailsScreen(
-                              orderId:
-                                  order.id ??
-                                  0, // ✅ REAL ORDER ID PASS HO RAHI HAI
-                            ),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => OrderDetailsScreen(
+                            orderId:
+                                order.id ??
+                                0, // ✅ REAL ORDER ID PASS HO RAHI HAI
                           ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.remove_red_eye_outlined,
-                        size: 16,
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.remove_red_eye_outlined,
+                      size: 16,
+                      color: AppColors.pureWhite,
+                    ),
+                    label: const Text(
+                      "Details",
+                      style: TextStyle(
                         color: AppColors.pureWhite,
+                        fontWeight: FontWeight.w600,
                       ),
-                      label: const Text(
-                        "Details",
-                        style: TextStyle(
-                          color: AppColors.pureWhite,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.electricTeal,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.electricTeal,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),

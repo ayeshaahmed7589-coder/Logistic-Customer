@@ -6,11 +6,13 @@ import 'package:logisticscustomer/constants/session_expired.dart';
 import 'package:logisticscustomer/export.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/main_order_create_screen.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/home_controller.dart';
-import 'package:logisticscustomer/features/home/main_screens/home_screen/home_modal.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/view_all.dart';
 import 'package:logisticscustomer/features/home/notification_screen.dart';
 
 import 'package:shimmer/shimmer.dart';
+
+import '../../../../constants/gps_location.dart';
+import '../../Get_Profile/get_profile_controller.dart';
 
 class DashboardShimmer extends StatelessWidget {
   const DashboardShimmer({super.key});
@@ -236,11 +238,7 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
         return Scaffold(
           backgroundColor: AppColors.lightGrayBackground,
-          appBar: DashboardAppBar(
-            user: user,
-            hasPhoto: hasPhoto,
-            profile: profile,
-          ),
+          appBar: DashboardAppBar(hasPhoto: hasPhoto, profile: profile),
 
           body: SingleChildScrollView(
             child: Column(
@@ -794,63 +792,6 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
     }
   }
 
-  // Helper Widget for detail items
-  // Widget _buildDetailItem({
-  //   required IconData icon,
-  //   required String label,
-  //   required String value,
-  // }) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Row(
-  //         children: [
-  //           Icon(icon, size: 14, color: AppColors.mediumGray),
-  //           SizedBox(width: 4),
-  //           CustomText(txt: label, fontSize: 10, color: AppColors.mediumGray),
-  //         ],
-  //       ),
-  //       SizedBox(height: 4),
-  //       CustomText(
-  //         txt: value,
-  //         fontSize: 13,
-  //         fontWeight: FontWeight.w600,
-  //         maxLines: 1,
-  //         overflow: TextOverflow.ellipsis,
-  //       ),
-  //     ],
-  //   );
-  // }
-
-  // // Helper widget
-  // Widget _buildStatItem({required String value, required String label}) {
-  //   return Container(
-  //     padding: EdgeInsets.symmetric(vertical: 12),
-  //     decoration: BoxDecoration(
-  //       borderRadius: BorderRadius.circular(8),
-  //       color: AppColors.subtleGray,
-  //       // color: AppColors.mediumGray.withOpacity(0.1),
-  //     ),
-  //     child: Column(
-  //       mainAxisAlignment: MainAxisAlignment.center,
-  //       children: [
-  //         CustomText(
-  //           txt: value,
-  //           fontSize: 16,
-  //           fontWeight: FontWeight.bold,
-  //           color: AppColors.darkText,
-  //         ),
-  //         gapH4,
-  //         CustomText(
-  //           txt: label,
-  //           fontSize: 12,
-  //           fontWeight: FontWeight.w500,
-  //           color: AppColors.electricTeal,
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   // Helper widget for recent orders
   Widget buildOrderTile(String orderNumber, String status, String time) {
@@ -947,86 +888,130 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 }
 
 // ================ SEPARATE APP BAR WIDGET ================
-class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final CustomerInfo user;
+class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final bool hasPhoto;
   final String profile;
 
   const DashboardAppBar({
     Key? key,
-    required this.user,
     required this.hasPhoto,
     required this.profile,
   }) : super(key: key);
 
   @override
-  Size get preferredSize => Size.fromHeight(70); // AppBar ki height
+  Size get preferredSize => Size.fromHeight(82); // AppBar ki height
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
-      width: double.infinity,
-      decoration: const BoxDecoration(color: AppColors.electricTeal),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileState = ref.watch(getProfileControllerProvider);
+
+    return profileState.when(
+      loading: () => const SizedBox(
+        height: 70,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) =>
+          const SizedBox(height: 70, child: Center(child: Text("Error"))),
+      data: (profile) {
+        final profileData = profile?.data;
+        final user = profileData?.user;
+        final customer = profileData?.customer;
+        final userName = (user?.name.isNotEmpty ?? false) ? user!.name : "N/A";
+        final profilePhoto = customer?.profilePhoto;
+
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
+          width: double.infinity,
+          decoration: const BoxDecoration(color: AppColors.electricTeal),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: AppColors.mediumGray.withValues(alpha: 0.4),
-                backgroundImage: hasPhoto ? NetworkImage(profile) : null,
-                child: hasPhoto
-                    ? null
-                    : const Icon(Icons.person, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Column(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CustomText(
-                    txt: "Hi, ${user.name}",
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.pureWhite,
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: AppColors.mediumGray.withValues(
+                      alpha: 0.4,
+                    ),
+                    backgroundImage:
+                        (profilePhoto != null && profilePhoto.isNotEmpty)
+                        ? NetworkImage(profilePhoto)
+                        : null,
+                    child: (profilePhoto == null || profilePhoto.isEmpty)
+                        ? const Icon(Icons.person, color: Colors.white)
+                        : null,
                   ),
-                  const SizedBox(height: 4),
-                  Row(
+
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.location_pin,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 4),
+                      /// ✅ USER NAME (SAFE)
                       CustomText(
-                        txt: "${user.city} ${user.state}",
-                        color: Colors.white,
+                        txt: "Hi, $userName",
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.pureWhite,
+                      ),
+                      const SizedBox(height: 4),
+                      // Row(
+                      //   children: [
+                      //     const Icon(
+                      //       Icons.location_pin,
+                      //       size: 16,
+                      //       color: Colors.white,
+                      //     ),
+                      //     const SizedBox(width: 4),
+                      //     CustomText(
+                      //       txt:
+                      //           "${customer != null ? '${customer.city}' : ''}",
+
+                      //       color: Colors.white,
+                      //     ),
+                      //   ],
+                      // ),
+                      FutureBuilder<String>(
+                        future: getCurrentCity(),
+                        builder: (context, snapshot) {
+                          final city = snapshot.data ?? "Loading...";
+                          return Row(
+                            children: [
+                              const Icon(
+                                Icons.location_pin,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 4),
+                              CustomText(txt: city, color: Colors.white),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
                 ],
               ),
+              IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NotificationScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(
+                  Icons.notifications_none,
+                  color: Colors.white,
+                  size: 25,
+                ),
+              ),
             ],
           ),
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => NotificationScreen()),
-              );
-            },
-            icon: const Icon(
-              Icons.notifications_none,
-              color: Colors.white,
-              size: 25,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -1,3 +1,10 @@
+bool parseBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is int) return value == 1;
+  if (value is String) return value == '1' || value.toLowerCase() == 'true';
+  return false;
+}
+
 class OrderDetailsModel {
   final bool success;
   final String message;
@@ -11,9 +18,9 @@ class OrderDetailsModel {
 
   factory OrderDetailsModel.fromJson(Map<String, dynamic> json) {
     return OrderDetailsModel(
-      success: json["success"] ?? false,
+      success: parseBool(json["success"]),
       message: json["message"] ?? "",
-      order: OrderDetails.fromJson(json["data"]["order"]),
+      order: OrderDetails.fromJson(json["data"] ?? {}),
     );
   }
 }
@@ -68,22 +75,24 @@ class OrderDetails {
       trackingCode: json["tracking_code"] ?? "",
       status: json["status"] ?? "",
       paymentStatus: json["payment_status"] ?? "",
-      productType: ProductType.fromJson(json["product_type"] ?? {}),
-      packagingType: PackagingType.fromJson(json["packaging_type"] ?? {}),
+      productType: ProductType.fromJson(json["product_type"]),
+      packagingType: PackagingType.fromJson(json["packaging_type"]),
       vehicle: Vehicle.fromJson(json["vehicle"] ?? {}),
-      driver: Driver.fromJson(json["driver"] ?? {}),
-      pricing: Pricing.fromJson(json["pricing"] ?? {}),
-      items: (json["items"] as List? ?? [])
+      driver: Driver.fromJson(json["driver"]),
+      pricing: Pricing.fromJson(json),
+
+      items: (json["order_items"] as List? ?? [])
           .map((e) => OrderItem.fromJson(e))
           .toList(),
+
       addOns: List<String>.from(json["add_ons"] ?? []),
       specialInstructions: json["special_instructions"],
       depot: Depot.fromJson(json["depot"] ?? {}),
-      pickup: Pickup.fromJson(json["pickup"] ?? {}),
-      delivery: Delivery.fromJson(json["delivery"] ?? {}),
+      pickup: Pickup.fromJson(json),
+      delivery: Delivery.fromJson(json),
       createdAt: json["created_at"] ?? "",
       updatedAt: json["updated_at"] ?? "",
-      isMultiStop: json["is_multi_stop"] ?? false,
+      isMultiStop: parseBool(json["is_multi_stop"]),
     );
   }
 }
@@ -94,15 +103,26 @@ class ProductType {
   final String name;
   final String category;
   ProductType({required this.name, required this.category});
-  factory ProductType.fromJson(Map<String, dynamic> json) =>
-      ProductType(name: json["name"] ?? "", category: json["category"] ?? "");
+  factory ProductType.fromJson(dynamic json) {
+    if (json == null || json is! Map<String, dynamic>) {
+      return ProductType(name: "", category: "");
+    }
+    return ProductType(
+      name: json["name"] ?? "",
+      category: json["category"] ?? "",
+    );
+  }
 }
 
 class PackagingType {
   final String name;
   PackagingType({required this.name});
-  factory PackagingType.fromJson(Map<String, dynamic> json) =>
-      PackagingType(name: json["name"] ?? "");
+  factory PackagingType.fromJson(dynamic json) {
+    if (json == null || json is! Map<String, dynamic>) {
+      return PackagingType(name: "");
+    }
+    return PackagingType(name: json["name"] ?? "");
+  }
 }
 
 class Vehicle {
@@ -139,11 +159,17 @@ class Driver {
 
   Driver({required this.name, required this.phone, required this.rating});
 
-  factory Driver.fromJson(Map<String, dynamic> json) => Driver(
-    name: json["name"] ?? "",
-    phone: json["phone"] ?? "",
-    rating: json["rating"] ?? "",
-  );
+  factory Driver.fromJson(dynamic json) {
+    if (json == null || json is! Map<String, dynamic>) {
+      return Driver(name: "", phone: "", rating: "");
+    }
+
+    return Driver(
+      name: json["user"]?["name"] ?? "",
+      phone: json["user"]?["phone"] ?? "",
+      rating: json["rating"]?.toString() ?? "",
+    );
+  }
 }
 
 class Pricing {
@@ -167,12 +193,12 @@ class Pricing {
 
   factory Pricing.fromJson(Map<String, dynamic> json) => Pricing(
     distanceKm: json["distance_km"]?.toString() ?? "0",
-    estimatedCost: json["estimated_cost"] ?? "0",
-    finalCost: json["final_cost"] ?? "0",
-    taxAmount: json["tax_amount"] ?? "0",
-    systemServiceFee: json["system_service_fee"] ?? "0",
-    addOnsCost: json["add_ons_cost"] ?? "0",
-    discount: json["discount"] ?? 0,
+    estimatedCost: json["estimated_cost"]?.toString() ?? "0",
+    finalCost: json["final_cost"]?.toString() ?? "0",
+    taxAmount: json["tax_amount"]?.toString() ?? "0",
+    systemServiceFee: json["system_service_fee"]?.toString() ?? "0",
+    addOnsCost: json["add_ons_cost"]?.toString() ?? "0",
+    discount: int.tryParse(json["discount"]?.toString() ?? "0") ?? 0,
   );
 }
 
@@ -234,13 +260,13 @@ class Pickup {
   });
 
   factory Pickup.fromJson(Map<String, dynamic> json) => Pickup(
-    contactName: json["contact_name"] ?? "",
-    contactPhone: json["contact_phone"] ?? "",
-    address: json["address"] ?? "",
-    city: json["city"] ?? "",
-    state: json["state"] ?? "",
-    latitude: json["latitude"]?.toString(),
-    longitude: json["longitude"]?.toString(),
+    contactName: json["pickup_contact_name"] ?? "",
+    contactPhone: json["pickup_contact_phone"] ?? "",
+    address: json["pickup_address"] ?? "",
+    city: json["pickup_city"] ?? "",
+    state: json["pickup_state"] ?? "",
+    latitude: json["pickup_latitude"]?.toString(),
+    longitude: json["pickup_longitude"]?.toString(),
   );
 }
 
@@ -264,12 +290,12 @@ class Delivery {
   });
 
   factory Delivery.fromJson(Map<String, dynamic> json) => Delivery(
-    contactName: json["contact_name"] ?? "",
-    contactPhone: json["contact_phone"] ?? "",
-    address: json["address"] ?? "",
-    city: json["city"] ?? "",
-    state: json["state"] ?? "",
-    latitude: json["latitude"]?.toString(),
-    longitude: json["longitude"]?.toString(),
+    contactName: json["delivery_contact_name"] ?? "",
+    contactPhone: json["delivery_contact_phone"] ?? "",
+    address: json["delivery_address"] ?? "",
+    city: json["delivery_city"] ?? "",
+    state: json["delivery_state"] ?? "",
+    latitude: json["delivery_latitude"]?.toString(),
+    longitude: json["delivery_longitude"]?.toString(),
   );
 }

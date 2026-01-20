@@ -1888,8 +1888,8 @@ class RouteStop {
   TextEditingController postalCode;
   TextEditingController contactEmail;
   TextEditingController notes;
-  TextEditingController quantity; // ✅ ADD THIS
-  TextEditingController weight; // ✅ ADD THIS
+  TextEditingController quantity; 
+  TextEditingController weight; 
 
   RouteStop({
     required this.id,

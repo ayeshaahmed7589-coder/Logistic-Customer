@@ -41,17 +41,6 @@ class SessionExpiredScreen extends StatelessWidget {
                 ],
               ),
             ),
-            // ElevatedButton(
-            //   onPressed: () {
-            //     // Navigator.pushReplacementNamed(context, "/login");
-            //     Navigator.pushAndRemoveUntil(
-            //       context,
-            //       MaterialPageRoute(builder: (_) => const Login()),
-            //       (route) => false,
-            //     );
-            //   },
-            //   child: Text("Login Again"),
-            // ),
           ],
         ),
       ),

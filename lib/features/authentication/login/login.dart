@@ -215,62 +215,6 @@ class _LoginState extends ConsumerState<Login> {
                       : null,
                 ),
               ),
-
-              // Padding(
-              //   padding: const EdgeInsets.symmetric(horizontal: 20),
-              //   child: CustomButton(
-              //     isChecked: _isFormFilled,
-              //     text: "Sign In",
-              //     backgroundColor: _isFormFilled
-              //         ? AppColors.electricTeal
-              //         : inactiveColor,
-              //     borderColor: AppColors.electricTeal,
-              //     textColor: AppColors.lightGrayBackground,
-              //     onPressed: _isFormFilled
-              //         ? () async {
-              //             final email = emailController.text.trim();
-              //             final password = PasswordController.text.trim();
-
-              //             // FIRE LOGIN API
-              //             await ref
-              //                 .read(loginControllerProvider.notifier)
-              //                 .login(email, password);
-
-              //             // READ STATE
-              //             final state = ref.read(loginControllerProvider);
-
-              //             if (state is AsyncData && state.value != null) {
-              //               // final loginData = state.value!;
-
-              //               // SAVE TOKEN HERE
-              //               // final prefs = await SharedPreferences.getInstance();
-              //               // await prefs.setString(
-              //               //   "access_token",
-              //               //   loginData.data.accessToken,
-              //               // );
-
-              //               // MOVE TO HOME
-              //               Navigator.pushAndRemoveUntil(
-              //                 context,
-              //                 MaterialPageRoute(
-              //                   builder: (_) => const TripsBottomNavBarScreen(
-              //                     initialIndex: 0,
-              //                   ),
-              //                 ),
-              //                 (route) => false,
-              //               );
-              //             } else if (state is AsyncError) {
-              //               ScaffoldMessenger.of(context).showSnackBar(
-              //                 SnackBar(
-              //                   content: Text("Invalid email or password",),
-              //                   backgroundColor: Colors.red,
-              //                 ),
-              //               );
-              //             }
-              //           }
-              //         : null,
-              //   ),
-              // ),
               gapH32,
 
               Column(

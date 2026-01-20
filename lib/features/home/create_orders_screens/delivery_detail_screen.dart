@@ -170,8 +170,6 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
     });
   }
 
-  
-
   void _loadRouteStopsFromCache(Map<String, dynamic> cache) {
     // Load route stops count
     final stopsCountStr = cache["route_stops_count"]?.toString() ?? "";
@@ -1021,15 +1019,15 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
           .saveValue("stop_${index}_contact_phone", stop.contactPhone.text);
       _checkFormFilled();
     });
-  stop.address.addListener(() {
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("stop_${index}_address", stop.address.text);
-    _checkFormFilled();
-    
-    // Auto-set coordinates based on address
-    _setStopCoordinates(stop.address.text, index);
-  });
+    stop.address.addListener(() {
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("stop_${index}_address", stop.address.text);
+      _checkFormFilled();
+
+      // Auto-set coordinates based on address
+      _setStopCoordinates(stop.address.text, index);
+    });
 
     stop.city.addListener(() {
       ref
@@ -1067,52 +1065,53 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
     });
   }
 
-void _setStopCoordinates(String address, int stopIndex) async {
-  if (address.length < 3) return;
-  
-  try {
-    final places = FlutterGooglePlacesSdk("AIzaSyBrF_4PwauOkQ_RS8iGYhAW1NIApp3IEf0");
-    final predictions = await places.findAutocompletePredictions(
-      address,
-      countries: ["ZA"],
-    );
+  void _setStopCoordinates(String address, int stopIndex) async {
+    if (address.length < 3) return;
 
-    if (predictions.predictions.isEmpty) return;
+    try {
+      final places = FlutterGooglePlacesSdk(
+        "AIzaSyBrF_4PwauOkQ_RS8iGYhAW1NIApp3IEf0",
+      );
+      final predictions = await places.findAutocompletePredictions(
+        address,
+        countries: ["ZA"],
+      );
 
-    final placeId = predictions.predictions.first.placeId;
-    final placeDetails = await places.fetchPlace(placeId, fields: []);
+      if (predictions.predictions.isEmpty) return;
 
-    double? lat;
-    double? lng;
+      final placeId = predictions.predictions.first.placeId;
+      final placeDetails = await places.fetchPlace(placeId, fields: []);
 
-    if (placeDetails.place?.latLng != null) {
-      lat = placeDetails.place!.latLng!.lat;
-      lng = placeDetails.place!.latLng!.lng;
+      double? lat;
+      double? lng;
+
+      if (placeDetails.place?.latLng != null) {
+        lat = placeDetails.place!.latLng!.lat;
+        lng = placeDetails.place!.latLng!.lng;
+      }
+
+      if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
+        // Use default coordinates
+        lat = -26.2041;
+        lng = 28.0473;
+      }
+
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("stop_${stopIndex}_latitude", lat.toString());
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("stop_${stopIndex}_longitude", lng.toString());
+    } catch (e) {
+      // Use default coordinates on error
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("stop_${stopIndex}_latitude", "-26.2041");
+      ref
+          .read(orderCacheProvider.notifier)
+          .saveValue("stop_${stopIndex}_longitude", "28.0473");
     }
-
-    if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
-      // Use default coordinates
-      lat = -26.2041;
-      lng = 28.0473;
-    }
-
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("stop_${stopIndex}_latitude", lat.toString());
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("stop_${stopIndex}_longitude", lng.toString());
-  } catch (e) {
-    // Use default coordinates on error
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("stop_${stopIndex}_latitude", "-26.2041");
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("stop_${stopIndex}_longitude", "28.0473");
   }
-}
-
 
   // Remove a route stop
   void _removeRouteStop(int index) {
@@ -1565,58 +1564,6 @@ void _setStopCoordinates(String address, int stopIndex) async {
     );
   }
 
-  // Multi-Stop Text Field - UPDATED with onChanged
-  // Widget _buildMultiStopTextField({
-  //   required TextEditingController controller,
-  //   required String label,
-  //   required IconData icon,
-  //   bool isNumber = false,
-  //   int maxLines = 1,
-  // }) {
-  //   return Column(
-  //     crossAxisAlignment: CrossAxisAlignment.start,
-  //     children: [
-  //       Text(
-  //         label,
-  //         style: TextStyle(
-  //           fontSize: 12,
-  //           color: AppColors.mediumGray,
-  //           fontWeight: FontWeight.w500,
-  //         ),
-  //       ),
-  //       const SizedBox(height: 4),
-  //       Container(
-  //         constraints: BoxConstraints(minHeight: maxLines > 1 ? 80 : 50),
-  //         decoration: BoxDecoration(
-  //           borderRadius: BorderRadius.circular(8),
-  //           border: Border.all(color: AppColors.lightBorder),
-  //           color: AppColors.pureWhite,
-  //         ),
-  //         child: TextField(
-  //           controller: controller,
-  //           keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-  //           maxLines: maxLines,
-  //           onChanged: (value) {
-  //             // Trigger form validation immediately when text changes
-  //             _checkFormFilled();
-  //           },
-  //           decoration: InputDecoration(
-  //             border: InputBorder.none,
-  //             contentPadding: const EdgeInsets.symmetric(
-  //               horizontal: 12,
-  //               vertical: 12,
-  //             ),
-  //             prefixIcon: Icon(icon, size: 20, color: AppColors.electricTeal),
-  //           ),
-  //           inputFormatters: isNumber
-  //               ? [FilteringTextInputFormatter.digitsOnly]
-  //               : [],
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
-
   void _addDimensionCacheListeners() {
     lengthController.addListener(() {
       ref
@@ -1888,8 +1835,8 @@ class RouteStop {
   TextEditingController postalCode;
   TextEditingController contactEmail;
   TextEditingController notes;
-  TextEditingController quantity; 
-  TextEditingController weight; 
+  TextEditingController quantity;
+  TextEditingController weight;
 
   RouteStop({
     required this.id,

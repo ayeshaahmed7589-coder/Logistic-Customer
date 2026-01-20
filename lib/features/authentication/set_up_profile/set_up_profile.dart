@@ -189,30 +189,6 @@ class _SetUpProfileState extends ConsumerState<SetUpProfile> {
                   });
                 },
               ),
-
-              // Profile Image
-              // GestureDetector(
-              //   onTap: pickProfileImage,
-              //   child: CircleAvatar(
-              //     radius: 75,
-              //     backgroundColor: AppColors.electricTeal.withOpacity(0.4),
-              //     backgroundImage: profileImage != null
-              //         ? FileImage(File(profileImage!.path))
-              //         : null,
-              //     child: profileImage == null
-              //         ? const Icon(
-              //             Icons.person_outline,
-              //             size: 50,
-              //             color: Colors.white,
-              //           )
-              //         : null,
-              //   ),
-              // ),
-              // const SizedBox(height: 10),
-              // const Text(
-              //   "Profile Picture",
-              //   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              // ),
               const SizedBox(height: 20),
 
               // Full Name
@@ -345,20 +321,6 @@ class _SetUpProfileState extends ConsumerState<SetUpProfile> {
                     );
                   },
                 ),
-
-              // DropDownContainer(
-              //   fw: FontWeight.normal,
-              //   text: "Select Company",
-              //   dialogueScreen: MaterialConditionPopupLeftIcon(
-              //     title: "Select Company",
-              //     conditions: licenseCategories,
-              //     initialSelectedIndex: 0,
-              //     onSelect: (index, value) {
-              //       print("Selected: $value");
-              //     },
-              //   ),
-              // ),
-              //
               const SizedBox(height: 20),
 
               // Mobile

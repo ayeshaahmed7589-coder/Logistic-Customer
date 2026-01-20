@@ -4,6 +4,7 @@ import 'package:logisticscustomer/features/home/create_orders_screens/search_scr
 import '../../../../common_widgets/custom_button.dart';
 import '../../../../common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
+
 class PackageItem {
   final String name;
   final String qty;
@@ -47,7 +48,6 @@ class PackageItem {
     );
   }
 }
-
 
 class SearchProductWidget extends ConsumerStatefulWidget {
   const SearchProductWidget({super.key});
@@ -221,60 +221,35 @@ class _SearchProductWidgetState extends ConsumerState<SearchProductWidget> {
                   ? AppColors.electricTeal
                   : AppColors.pureWhite,
 
-// SearchProductWidget mein "Add to your product" button ke onPressed ko update karein
+              // SearchProductWidget mein "Add to your product" button ke onPressed ko update karein
+              onPressed: selectedIndex == null
+                  ? null
+                  : () {
+                      final product = ref
+                          .read(shopifySearchControllerProvider)
+                          .value!
+                          .products[selectedIndex!];
 
-onPressed: selectedIndex == null
-    ? null
-    : () {
-        final product = ref
-            .read(shopifySearchControllerProvider)
-            .value!
-            .products[selectedIndex!];
+                      final variant = product.variants.first;
 
-        final variant = product.variants.first;
+                      // Create PackageItem with isFromShopify = true
+                      final shopifyItem = PackageItem(
+                        name: product.title,
+                        qty: "1", // Default quantity
+                        weight: "${variant.weight}",
+                        value: variant.price,
+                        note: product.productType, // Product type as note
+                        sku: variant.sku,
+                        isFromShopify: true, // Mark as from Shopify
+                      );
 
-        // Create PackageItem with isFromShopify = true
-        final shopifyItem = PackageItem(
-          name: product.title,
-          qty: "1", // Default quantity
-          weight: "${variant.weight}",
-          value: variant.price,
-          note: product.productType, // Product type as note
-          sku: variant.sku,
-          isFromShopify: true, // Mark as from Shopify
-        );
+                      // Add to provider
+                      ref
+                          .read(packageItemsProvider.notifier)
+                          .addItem(shopifyItem);
 
-        // Add to provider
-        ref.read(packageItemsProvider.notifier).addItem(shopifyItem);
-
-        Navigator.pop(context);
-      },
-              // onPressed: selectedIndex == null
-              //     ? null
-              //     : () {
-              //         final product = ref
-              //             .read(shopifySearchControllerProvider)
-              //             .value!
-              //             .products[selectedIndex!];
-
-              //         final variant = product.variants.first;
-
-              //         // PACKAGE ITEM ADD
-              //         ref
-              //             .read(packageItemsProvider.notifier)
-              //             .addItem(
-              //               PackageItem(
-              //                 name: product.title,
-              //                 qty: "1",
-              //                 weight: "${variant.weight}",
-              //                 value: variant.price,
-              //                 note: "",
-              //                 sku: "",
-              //               ),
-              //             );
-
-              //         Navigator.pop(context);
-              //       },
+                      Navigator.pop(context);
+                    },
             ),
           ),
         ],

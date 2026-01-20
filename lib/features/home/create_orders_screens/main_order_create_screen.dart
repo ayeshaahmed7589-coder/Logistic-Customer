@@ -17,15 +17,9 @@ class _MainOrderCreateScreenState extends State<MainOrderCreateScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final List<Tab> _tabs = [
-    Tab(text: "Step 1"),
-    Tab(text: "Step 2"),
-  ];
+  final List<Tab> _tabs = [Tab(text: "Step 1"), Tab(text: "Step 2")];
 
-  final List<Widget> _tabsBody = const [
-    Step1Screen(),
-    Step2Screen(),
-  ];
+  final List<Widget> _tabsBody = const [Step1Screen(), Step2Screen()];
 
   @override
   void initState() {
@@ -147,14 +141,6 @@ class _CustomTabBarState extends State<CustomTabBar> {
                       },
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 2.0),
-                  // decoration: BoxDecoration(
-                  //   color: isSelected
-                  //       ? AppColors.secondaryButtonColor
-                  //       : (isDisabled
-                  //           ? Colors.grey.shade300
-                  //           : Colors.transparent),
-                  //   borderRadius: BorderRadius.circular(8.0),
-                  // ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.electricTeal
@@ -170,10 +156,6 @@ class _CustomTabBarState extends State<CustomTabBar> {
 
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-
-                      // color: isSelected
-                      //     ? UtilsHelper.getWhiteTextColor(context)
-                      //     : (isDisabled ? Colors.grey.shade600 : color),
                       color: isSelected
                           ? UtilsHelper.getWhiteTextColor(context)
                           : (isDisabled ? Colors.grey.shade600 : widget.color),
@@ -232,9 +214,6 @@ class UtilsHelper {
   }
 
   static bool isDarkMode(BuildContext context) {
-    // final Brightness brightnessValue =
-    //     MediaQuery.of(context).platformBrightness;
-    // return brightnessValue == Brightness.dark;
     return false;
   }
 

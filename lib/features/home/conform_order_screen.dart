@@ -289,30 +289,6 @@ class _EnterOtpFinalScreenState extends State<EnterOtpFinalScreen> {
                   });
                 },
               ),
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          //   children: List.generate(6, (i) {
-          //     return Container(
-          //       width: 45,
-          //       height: 55,
-          //       decoration: BoxDecoration(
-          //         borderRadius: BorderRadius.circular(10),
-          //         border: Border.all(color: AppColors.electricTeal),
-          //       ),
-          //       child:
-          //        TextField(
-          //         controller: otp[i],
-          //         maxLength: 1,
-          //         textAlign: TextAlign.center,
-          //         decoration: const InputDecoration(
-          //           counterText: "",
-          //           border: InputBorder.none,
-          //         ),
-          //       ),
-          //     );
-          //   }),
-          // ),
-
           const SizedBox(height: 22),
 
           Container(

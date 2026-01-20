@@ -225,20 +225,11 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
       },
 
       data: (dashboard) {
-        // if (dashboard == null) {
-        //   return const Scaffold(
-        //     body: Center(child: Text("No Data")),
-        //   );
-        // }
-
-        final user = dashboard.data.customerInfo;
         final stats = dashboard.data.stats;
-        final profile = user.profilePhoto.trim();
-        final hasPhoto = profile.isNotEmpty && profile.toLowerCase() != "null";
 
         return Scaffold(
           backgroundColor: AppColors.lightGrayBackground,
-          appBar: DashboardAppBar(hasPhoto: hasPhoto, profile: profile),
+          appBar: DashboardAppBar(),
 
           body: SingleChildScrollView(
             child: Column(
@@ -362,62 +353,6 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
                               ],
                             ),
                           ),
-
-                          // Container(
-                          //   padding: const EdgeInsets.all(16),
-                          //   decoration: BoxDecoration(
-                          //     color: AppColors.pureWhite,
-                          //     borderRadius: BorderRadius.circular(12),
-                          //     boxShadow: [
-                          //       BoxShadow(
-                          //         color: AppColors.mediumGray.withValues(
-                          //           alpha: 0.10,
-                          //         ),
-                          //         blurRadius: 6,
-                          //         offset: Offset(0, 3),
-                          //       ),
-                          //     ],
-                          //   ),
-                          //   child: Column(
-                          //     children: [
-                          //       Row(
-                          //         children: [
-                          //           Expanded(
-                          //             child: _buildStatItem(
-                          //               value: stats.totalOrders.toString(),
-                          //               label: "Total Orders",
-                          //             ),
-                          //           ),
-                          //           SizedBox(width: 16),
-                          //           Expanded(
-                          //             child: _buildStatItem(
-                          //               value: stats.activeOrders.toString(),
-                          //               label: "Active Orders",
-                          //             ),
-                          //           ),
-                          //         ],
-                          //       ),
-                          //       SizedBox(height: 16),
-                          //       Row(
-                          //         children: [
-                          //           Expanded(
-                          //             child: _buildStatItem(
-                          //               value: stats.completedOrders.toString(),
-                          //               label: "Complete Orders",
-                          //             ),
-                          //           ),
-                          //           SizedBox(width: 16),
-                          //           Expanded(
-                          //             child: _buildStatItem(
-                          //               value: "${stats.totalSpent}",
-                          //               label: "Spent",
-                          //             ),
-                          //           ),
-                          //         ],
-                          //       ),
-                          //     ],
-                          //   ),
-                          // ),
                           gapH24,
 
                           // ---- Active Orders ----
@@ -792,7 +727,6 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
     }
   }
 
-
   // Helper widget for recent orders
   Widget buildOrderTile(String orderNumber, String status, String time) {
     Color statusColor = _getStatusColor(status);
@@ -889,129 +823,138 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
 
 // ================ SEPARATE APP BAR WIDGET ================
 class DashboardAppBar extends ConsumerWidget implements PreferredSizeWidget {
-  final bool hasPhoto;
-  final String profile;
-
-  const DashboardAppBar({
-    Key? key,
-    required this.hasPhoto,
-    required this.profile,
-  }) : super(key: key);
+  const DashboardAppBar({super.key});
 
   @override
-  Size get preferredSize => Size.fromHeight(82); // AppBar ki height
+  Size get preferredSize => const Size.fromHeight(82);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(getProfileControllerProvider);
 
-    return profileState.when(
-      loading: () => const SizedBox(
-        height: 70,
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (e, _) =>
-          const SizedBox(height: 70, child: Center(child: Text("Error"))),
-      data: (profile) {
-        final profileData = profile?.data;
-        final user = profileData?.user;
-        final customer = profileData?.customer;
-        final userName = (user?.name.isNotEmpty ?? false) ? user!.name : "N/A";
-        final profilePhoto = customer?.profilePhoto;
-
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
-          width: double.infinity,
-          decoration: const BoxDecoration(color: AppColors.electricTeal),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
+      width: double.infinity,
+      decoration: const BoxDecoration(color: AppColors.electricTeal),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          /// LEFT SIDE
+          Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppColors.mediumGray.withValues(
-                      alpha: 0.4,
-                    ),
-                    backgroundImage:
-                        (profilePhoto != null && profilePhoto.isNotEmpty)
-                        ? NetworkImage(profilePhoto)
-                        : null,
-                    child: (profilePhoto == null || profilePhoto.isEmpty)
-                        ? const Icon(Icons.person, color: Colors.white)
-                        : null,
-                  ),
-
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      /// ✅ USER NAME (SAFE)
-                      CustomText(
-                        txt: "Hi, $userName",
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.pureWhite,
-                      ),
-                      const SizedBox(height: 4),
-                      // Row(
-                      //   children: [
-                      //     const Icon(
-                      //       Icons.location_pin,
-                      //       size: 16,
-                      //       color: Colors.white,
-                      //     ),
-                      //     const SizedBox(width: 4),
-                      //     CustomText(
-                      //       txt:
-                      //           "${customer != null ? '${customer.city}' : ''}",
-
-                      //       color: Colors.white,
-                      //     ),
-                      //   ],
-                      // ),
-                      FutureBuilder<String>(
-                        future: getCurrentCity(),
-                        builder: (context, snapshot) {
-                          final city = snapshot.data ?? "Loading...";
-                          return Row(
-                            children: [
-                              const Icon(
-                                Icons.location_pin,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 4),
-                              CustomText(txt: city, color: Colors.white),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NotificationScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(
-                  Icons.notifications_none,
-                  color: Colors.white,
-                  size: 25,
-                ),
-              ),
+              _avatar(profileState),
+              const SizedBox(width: 12),
+              _userInfo(profileState),
             ],
           ),
+
+          /// NOTIFICATION ICON (ALWAYS VISIBLE)
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => NotificationScreen()),
+              );
+            },
+            icon: const Icon(
+              Icons.notifications_none,
+              color: Colors.white,
+              size: 25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ================= AVATAR =================
+  Widget _avatar(AsyncValue profileState) {
+    return profileState.when(
+      data: (profile) {
+        final photo = profile?.data?.customer?.profilePhoto;
+        return CircleAvatar(
+          radius: 22,
+          backgroundColor: AppColors.mediumGray.withOpacity(0.4),
+          backgroundImage: (photo != null && photo.isNotEmpty)
+              ? NetworkImage(photo)
+              : null,
+          child: (photo == null || photo.isEmpty)
+              ? const Icon(Icons.person, color: Colors.white)
+              : null,
         );
       },
+      loading: () => _defaultAvatar(),
+      error: (_, __) => _defaultAvatar(),
+    );
+  }
+
+  Widget _defaultAvatar() {
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: AppColors.mediumGray.withOpacity(0.4),
+      child: const Icon(Icons.person, color: Colors.white),
+    );
+  }
+
+  /// ================= USER INFO =================
+  Widget _userInfo(AsyncValue profileState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        /// NAME
+        profileState.when(
+          data: (profile) {
+            final name = profile?.data?.user?.name;
+            return CustomText(
+              txt: name?.isNotEmpty == true ? "Hi, $name" : "Hi, Loading...",
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.pureWhite,
+            );
+          },
+          loading: () => _loadingText(width: 110),
+          error: (_, __) => _loadingText(width: 110),
+        ),
+
+        const SizedBox(height: 4),
+
+        /// LOCATION
+        profileState.when(
+          data: (_) {
+            return FutureBuilder<String>(
+              future: getCurrentCity(),
+              builder: (_, snapshot) {
+                final city = snapshot.data ?? "Loading...";
+                return _locationRow(city);
+              },
+            );
+          },
+          loading: () => _loadingText(width: 90),
+          error: (_, __) => _loadingText(width: 90),
+        ),
+      ],
+    );
+  }
+
+  /// ================= HELPERS =================
+  Widget _locationRow(String city) {
+    return Row(
+      children: [
+        const Icon(Icons.location_pin, size: 16, color: Colors.white),
+        const SizedBox(width: 4),
+        CustomText(txt: city, color: Colors.white),
+      ],
+    );
+  }
+
+  Widget _loadingText({double width = 100}) {
+    return Container(
+      width: width,
+      height: 14,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(6),
+      ),
     );
   }
 }

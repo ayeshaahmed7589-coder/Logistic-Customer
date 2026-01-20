@@ -3,9 +3,6 @@ import 'package:logisticscustomer/constants/dio.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_repo.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/common_modal.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/place_order_controller.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/place_order_modal.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
 
 
 

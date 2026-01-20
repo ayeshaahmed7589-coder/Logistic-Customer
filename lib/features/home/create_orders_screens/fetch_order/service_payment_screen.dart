@@ -6557,33 +6557,33 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     setState(() {});
   }
 
-  void _printMultiStopDebugInfo() {
-    final cache = ref.read(orderCacheProvider);
-    print("🔍 DEBUG MULTI-STOP DATA:");
+  // void _printMultiStopDebugInfo() {
+  //   final cache = ref.read(orderCacheProvider);
+  //   print("🔍 DEBUG MULTI-STOP DATA:");
 
-    // Check if multi-stop enabled
-    print("is_multi_stop_enabled: ${cache["is_multi_stop_enabled"]}");
+  //   // Check if multi-stop enabled
+  //   print("is_multi_stop_enabled: ${cache["is_multi_stop_enabled"]}");
 
-    // Check stops count
-    final stopsCount =
-        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
-    print("Stops Count: $stopsCount");
+  //   // Check stops count
+  //   final stopsCount =
+  //       int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+  //   print("Stops Count: $stopsCount");
 
-    // Print each stop data
-    for (int i = 1; i <= stopsCount; i++) {
-      print("\nStop $i:");
-      print("  Type: ${cache["stop_${i}_type"]}");
-      print("  Contact Name: ${cache["stop_${i}_contact_name"]}");
-      print("  Phone: ${cache["stop_${i}_contact_phone"]}");
-      print("  Address: ${cache["stop_${i}_address"]}");
-      print("  City: ${cache["stop_${i}_city"]}");
-      print("  State: ${cache["stop_${i}_state"]}");
-      print("  Latitude: ${cache["stop_${i}_latitude"]}");
-      print("  Longitude: ${cache["stop_${i}_longitude"]}");
-      print("  Quantity: ${cache["stop_${i}_quantity"]}");
-      print("  Weight: ${cache["stop_${i}_weight"]}");
-    }
-  }
+  //   // Print each stop data
+  //   for (int i = 1; i <= stopsCount; i++) {
+  //     print("\nStop $i:");
+  //     print("  Type: ${cache["stop_${i}_type"]}");
+  //     print("  Contact Name: ${cache["stop_${i}_contact_name"]}");
+  //     print("  Phone: ${cache["stop_${i}_contact_phone"]}");
+  //     print("  Address: ${cache["stop_${i}_address"]}");
+  //     print("  City: ${cache["stop_${i}_city"]}");
+  //     print("  State: ${cache["stop_${i}_state"]}");
+  //     print("  Latitude: ${cache["stop_${i}_latitude"]}");
+  //     print("  Longitude: ${cache["stop_${i}_longitude"]}");
+  //     print("  Quantity: ${cache["stop_${i}_quantity"]}");
+  //     print("  Weight: ${cache["stop_${i}_weight"]}");
+  //   }
+  // }
 
   // ServicePaymentScreen class ke andar, _printMultiStopDebugInfo() ke baad ye functions add karo:
 

@@ -1,5 +1,4 @@
 // ✅ STANDARD ORDER REQUEST BODY
-import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/common_modal.dart';
 
 class StandardOrderRequestBody {

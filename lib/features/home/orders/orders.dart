@@ -454,25 +454,25 @@ class _OrdersState extends ConsumerState<Orders> {
     String formattedDate = "—";
     if (order.createdAt != null && order.createdAt!.isNotEmpty) {
       try {
-        final date = DateTime.parse(order.createdAt!);
-        formattedDate = DateFormat('dd MMM yyyy • hh:mm a').format(date);
+        formattedDate = DateFormat(
+          'dd MMM yyyy • hh:mm a',
+        ).format(DateTime.parse(order.createdAt!));
       } catch (_) {}
     }
 
     final statusColor = _getStatusColor(order.status);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.electricTeal),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.electricTeal.withOpacity(0.35)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -480,96 +480,73 @@ class _OrdersState extends ConsumerState<Orders> {
         children: [
           /// ================= HEADER =================
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
             decoration: BoxDecoration(
-              color: AppColors.electricTeal.withOpacity(0.06),
+              color: AppColors.electricTeal.withOpacity(0.05),
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
+                top: Radius.circular(14),
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText(
-                      txt: "Order #",
-                      fontSize: 12,
-                      color: AppColors.mediumGray,
-                    ),
-                    CustomText(
-                      txt: order.orderNumber ?? "",
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-
-                    /// TRACKING CODE
-                    if ((order.trackingCode ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          CustomText(
-                            txt: "Track Order : ",
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.mediumGray,
-                          ),
-                          CustomText(
-                            txt: order.trackingCode ?? "",
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.electricTeal,
-                          ),
-                          const SizedBox(width: 6),
-                          GestureDetector(
-                            onTap: () {
-                              Clipboard.setData(
-                                ClipboardData(text: order.trackingCode ?? ""),
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Tracking code copied"),
-                                  duration: Duration(seconds: 1),
-                                ),
-                              );
-                            },
-                            child: const Icon(
-                              Icons.copy, // 📄📄 double page icon
-                              size: 14,
-                              color: AppColors.electricTeal,
-                            ),
-                          ),
-                        ],
+                /// LEFT
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.orderNumber ?? "",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
+
+                      if ((order.trackingCode ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              order.trackingCode!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.electricTeal,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: () {
+                                Clipboard.setData(
+                                  ClipboardData(text: order.trackingCode!),
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Tracking code copied"),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                              child: const Icon(Icons.copy, size: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                /// RIGHT
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _statusChip(order.statusText, statusColor),
+                    if (order.isMultiStop == 1) ...[
+                      const SizedBox(height: 6),
+                      _miniChip("${order.stopsCount} Stops"),
                     ],
                   ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _getStatusIcon(order.status),
-                        size: 12,
-                        color: statusColor,
-                      ),
-                      const SizedBox(width: 6),
-                      CustomText(
-                        txt: order.statusText.toUpperCase(),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -577,40 +554,24 @@ class _OrdersState extends ConsumerState<Orders> {
 
           /// ================= BODY =================
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
             child: Column(
               children: [
-                /// Route
-                Row(
-                  children: [
-                    Column(
-                      children: [
-                        _dot(AppColors.electricTeal),
-                        Container(
-                          width: 2,
-                          height: 28,
-                          color: AppColors.mediumGray.withOpacity(0.3),
-                        ),
-                        _dot(AppColors.limeGreen),
-                      ],
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _routeText("Pickup", order.pickupCity ?? ""),
-                          const SizedBox(height: 12),
-                          _routeText("Delivery", order.deliveryCity ?? ""),
-                        ],
-                      ),
-                    ),
-                  ],
+                /// ROUTE
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.electricTeal.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: order.isMultiStop == 1 && order.stops.isNotEmpty
+                      ? _multiStopTimeline(order.stops)
+                      : _singleTimeline(order),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                /// Meta info
+                /// META
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -630,23 +591,26 @@ class _OrdersState extends ConsumerState<Orders> {
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
 
-                /// Cost & Time
+                /// PRICE + DATE
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (order.finalCost != null && order.finalCost!.isNotEmpty)
-                      CustomText(
-                        txt: "R ${order.finalCost}",
+                    Text(
+                      "R ${order.finalCost ?? '--'}",
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.electricTeal,
                       ),
-                    CustomText(
-                      txt: formattedDate,
-                      fontSize: 12,
-                      color: AppColors.mediumGray,
+                    ),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
@@ -656,7 +620,7 @@ class _OrdersState extends ConsumerState<Orders> {
 
           /// ================= FOOTER =================
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             child: Row(
               children: [
                 Expanded(
@@ -671,31 +635,18 @@ class _OrdersState extends ConsumerState<Orders> {
                         ),
                       );
                     },
-                    icon: const Icon(
-                      Icons.map_outlined,
-                      size: 16,
-                      color: AppColors.electricTeal,
-                    ),
-                    label: const Text(
-                      "Track",
-                      style: TextStyle(
-                        color: AppColors.electricTeal,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    icon: const Icon(Icons.map_outlined, size: 16),
+                    label: const Text("Track"),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                        color: AppColors.electricTeal,
-                        width: 1.5,
-                      ),
+                      foregroundColor: AppColors.electricTeal,
+                      side: BorderSide(color: AppColors.electricTeal),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
@@ -703,32 +654,19 @@ class _OrdersState extends ConsumerState<Orders> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => OrderDetailsScreen(
-                            orderId:
-                                order.id ??
-                                0, // ✅ REAL ORDER ID PASS HO RAHI HAI
-                          ),
+                          builder: (_) =>
+                              OrderDetailsScreen(orderId: order.id ?? 0),
                         ),
                       );
                     },
-                    icon: const Icon(
-                      Icons.remove_red_eye_outlined,
-                      size: 16,
-                      color: AppColors.pureWhite,
-                    ),
-                    label: const Text(
-                      "Details",
-                      style: TextStyle(
-                        color: AppColors.pureWhite,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    icon: const Icon(Icons.remove_red_eye_outlined, size: 16,color: AppColors.pureWhite,),
+                    label: const Text("Details",style: TextStyle(color: AppColors.pureWhite,),),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.electricTeal,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                   ),
                 ),
@@ -740,20 +678,158 @@ class _OrdersState extends ConsumerState<Orders> {
     );
   }
 
-  Widget _dot(Color color) {
-    return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  Widget _singleTimeline(AlOrder order) {
+    return Column(
+      children: [
+        _timelineItem(
+          title: "Pickup",
+          value: order.pickupCity ?? "",
+          icon: Icons.upload,
+          color: AppColors.electricTeal,
+          isLast: false,
+        ),
+        _timelineItem(
+          title: "Delivery",
+          value: order.deliveryCity ?? "",
+          icon: Icons.download,
+          color: AppColors.limeGreen,
+          isLast: true,
+        ),
+      ],
     );
   }
 
-  Widget _routeText(String label, String value) {
+  Widget _multiStopTimeline(List<OrderStop> stops) {
     return Column(
+      children: List.generate(stops.length, (i) {
+        final stop = stops[i];
+        final isLast = i == stops.length - 1;
+
+        Color color;
+        IconData icon;
+
+        switch (stop.type) {
+          case 'pickup':
+            color = AppColors.electricTeal;
+            icon = Icons.upload;
+            break;
+          case 'drop_off':
+            color = Colors.red;
+            icon = Icons.download;
+            break;
+          default:
+            color = Colors.orange;
+            icon = Icons.location_on;
+        }
+
+        return _timelineItem(
+          title: stop.type.replaceAll('_', ' ').toUpperCase(),
+          value: stop.city,
+          subtitle: stop.address,
+          icon: icon,
+          color: color,
+          isLast: isLast,
+        );
+      }),
+    );
+  }
+
+  Widget _statusChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _miniChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: Colors.deepPurple,
+        ),
+      ),
+    );
+  }
+
+  Widget _timelineItem({
+    required String title,
+    required String value,
+    String? subtitle,
+    required IconData icon,
+    required Color color,
+    required bool isLast,
+  }) {
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CustomText(txt: label, fontSize: 12, color: AppColors.mediumGray),
-        CustomText(txt: value, fontSize: 15, fontWeight: FontWeight.w600),
+        Column(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 12, color: color),
+            ),
+            if (!isLast)
+              Container(width: 2, height: 26, color: color.withOpacity(0.25)),
+          ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (subtitle != null && subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -798,23 +874,6 @@ class _OrdersState extends ConsumerState<Orders> {
         return Colors.red;
       default:
         return AppColors.mediumGray;
-    }
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return Icons.check_circle;
-      case 'assigned':
-        return Icons.local_shipping;
-      case 'pending':
-        return Icons.pending;
-      case 'in_transit':
-        return Icons.directions_car;
-      case 'cancelled':
-        return Icons.cancel;
-      default:
-        return Icons.help_outline;
     }
   }
 }

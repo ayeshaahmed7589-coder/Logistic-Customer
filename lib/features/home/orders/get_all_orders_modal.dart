@@ -53,10 +53,50 @@ class AllOrderData {
   }
 }
 
+class OrderStop {
+  final int sequence;
+  final String type;
+  final String address;
+  final String city;
+  final String contactName;
+  final String contactPhone;
+  final int quantity;
+  final String weightKg;
+  final String status;
+
+  OrderStop({
+    required this.sequence,
+    required this.type,
+    required this.address,
+    required this.city,
+    required this.contactName,
+    required this.contactPhone,
+    required this.quantity,
+    required this.weightKg,
+    required this.status,
+  });
+
+  factory OrderStop.fromJson(Map<String, dynamic> json) {
+    return OrderStop(
+      sequence: json['sequence_number'] ?? 0,
+      type: json['stop_type'] ?? '',
+      address: json['address'] ?? '',
+      city: json['city'] ?? '',
+      contactName: json['contact_name'] ?? '',
+      contactPhone: json['contact_phone'] ?? '',
+      quantity: json['quantity'] ?? 0,
+      weightKg: json['weight_kg'] ?? '',
+      status: json['status'] ?? '',
+    );
+  }
+}
+
 class AlOrder {
   final int? id;
   final String? orderNumber;
   final String? trackingCode;
+  final int stopsCount;
+  final List<OrderStop> stops;
   final String status;
   final int? isMultiStop;
   final String? productType;
@@ -77,6 +117,8 @@ class AlOrder {
     required this.trackingCode,
     required this.status,
     required this.isMultiStop,
+    required this.stopsCount,
+    required this.stops,
     this.productType,
     this.packagingType,
     this.totalWeightKg,
@@ -97,6 +139,12 @@ class AlOrder {
       trackingCode: json['tracking_code'],
       status: json['status'] ?? '',
       isMultiStop: json['is_multi_stop'] ?? 0,
+      stopsCount: json['stops_count'] ?? 0,
+
+      stops: (json['stops'] as List? ?? [])
+          .map((e) => OrderStop.fromJson(e))
+          .toList(),
+
       productType: parseString(json['product_type']),
       packagingType: parseString(json['packaging_type']),
       totalWeightKg: json['total_weight_kg'],
@@ -105,11 +153,12 @@ class AlOrder {
       distanceKm: parseString(json['distance_km']),
       finalCost: parseString(json['final_cost']),
       matchingScore: json['matching_score'],
-      vehicle: AlVehicle(
-        registrationNumber: '',
-        vehicleType: parseString(json['vehicle_type']),
-      ),
-      driver: AlDriver.empty(),
+
+      vehicle: AlVehicle.fromJson(json['vehicle'] ?? {}),
+      driver: json['driver'] != null
+          ? AlDriver.fromJson(json['driver'])
+          : AlDriver.empty(),
+
       createdAt: json['created_at'],
     );
   }

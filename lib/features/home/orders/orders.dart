@@ -7,6 +7,7 @@ import 'package:logisticscustomer/features/home/orders/orders_controller.dart';
 
 import '../../../export.dart';
 import 'order details/order_details_screen.dart';
+import 'ordr_tracking/order_tracking_screen.dart';
 
 class Orders extends ConsumerStatefulWidget {
   const Orders({super.key});
@@ -504,7 +505,7 @@ class _OrdersState extends ConsumerState<Orders> {
                     ),
 
                     /// TRACKING CODE
-                   if ((order.trackingCode ?? '').isNotEmpty) ...[
+                    if ((order.trackingCode ?? '').isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Row(
                         children: [
@@ -660,7 +661,16 @@ class _OrdersState extends ConsumerState<Orders> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => OrderTrackingScreen(
+                            trackingCode: order.trackingCode ?? "",
+                          ),
+                        ),
+                      );
+                    },
                     icon: const Icon(
                       Icons.map_outlined,
                       size: 16,
@@ -685,6 +695,7 @@ class _OrdersState extends ConsumerState<Orders> {
                     ),
                   ),
                 ),
+
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(

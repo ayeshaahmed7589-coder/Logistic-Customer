@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
 import 'order_details_controller.dart';
+import 'order_details_modal.dart';
 
 class OrderDetailsScreen extends ConsumerWidget {
   final int orderId;
@@ -15,7 +16,7 @@ class OrderDetailsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
       appBar: AppBar(
-        title:  CustomText(txt:"Order Details"),
+        title: CustomText(txt: "Order Details"),
         centerTitle: true,
         elevation: 0,
         backgroundColor: AppColors.electricTeal,
@@ -424,11 +425,7 @@ class OrderDetailsScreen extends ConsumerWidget {
                   ),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(
-                  Icons.route_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: const Icon(Icons.route_rounded, color: Colors.white),
               ),
               const SizedBox(width: 12),
               Text(
@@ -442,20 +439,191 @@ class OrderDetailsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _buildStopCard(
-            "Pickup",
-            order.pickup.contactName,
-            order.pickup.address,
-            order.pickup.city,
-            order.pickup.state,
+
+          /// 👇 CONDITION
+          order.isMultiStop
+              ? _buildMultiStops(order.stops)
+              : _buildSingleRoute(order),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleRoute(order) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildStopCard(
+          "Pickup",
+          order.pickup.contactName,
+          order.pickup.address,
+          order.pickup.city,
+          order.pickup.state,
+          order.pickup.contactPhone,
+        ),
+        const SizedBox(height: 12),
+        _buildStopCard(
+          "Delivery",
+          order.delivery.contactName,
+          order.delivery.address,
+          order.delivery.city,
+          order.delivery.state,
+          order.delivery.contactPhone,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMultiStops(List<OrderStop> stops) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: stops.map((stop) {
+        final statusColor = _stopStatusColor(stop.status);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withOpacity(0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          _buildStopCard(
-            "Delivery",
-            order.delivery.contactName,
-            order.delivery.address,
-            order.delivery.city,
-            order.delivery.state,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// HEADER
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      _stopTypeIcon(stop.type),
+                      color: statusColor,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "${stop.sequence}. ${stop.type.toUpperCase()}",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      stop.status.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              /// CONTACT
+              Text(
+                stop.contactName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              /// ADDRESS
+              Text(
+                "${stop.address}, ${stop.city}, ${stop.state}",
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+
+              const SizedBox(height: 10),
+
+              /// META INFO
+              Wrap(
+                spacing: 14,
+                runSpacing: 6,
+                children: [
+                  _infoChip(Icons.phone, stop.contactPhone),
+                  if (stop.quantity != null)
+                    _infoChip(Icons.inventory, "Qty: ${stop.quantity}"),
+                  if (stop.weightKg != null)
+                    _infoChip(Icons.scale, "${stop.weightKg} kg"),
+                ],
+              ),
+
+              if (stop.arrivalTime != null || stop.departureTime != null)
+                const SizedBox(height: 10),
+
+              /// TIME INFO
+              if (stop.arrivalTime != null)
+                _timeRow("Arrival", stop.arrivalTime!),
+              if (stop.departureTime != null)
+                _timeRow("Departure", stop.departureTime!),
+
+              if (stop.notes != null && stop.notes!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    "📝 ${stop.notes}",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _infoChip(IconData icon, String text) {
+    return Chip(
+      avatar: Icon(icon, size: 16, color: AppColors.electricTeal),
+      label: Text(text, style: const TextStyle(fontSize: 12)),
+      backgroundColor: AppColors.electricTeal.withOpacity(0.08),
+    );
+  }
+
+  Widget _timeRow(String label, String time) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.access_time, size: 14, color: Colors.grey),
+          const SizedBox(width: 6),
+          Text(
+            "$label: $time",
+            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
           ),
         ],
       ),
@@ -468,6 +636,7 @@ class OrderDetailsScreen extends ConsumerWidget {
     String address,
     String city,
     String state,
+    String contactPhone
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -502,6 +671,11 @@ class OrderDetailsScreen extends ConsumerWidget {
           Text(
             "$address, $city, $state",
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            contactPhone,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -864,37 +1038,65 @@ class OrderDetailsScreen extends ConsumerWidget {
   }
 
   // -------------------- PRICING ROW --------------------
- Widget _buildPricingRow({
-  required String label,
-  required dynamic value,
-  bool isTotal = false,
-  bool showCurrency = true, // 👈 NEW FLAG
-}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            color: isTotal ? Colors.black : Colors.grey[700],
+  Widget _buildPricingRow({
+    required String label,
+    required dynamic value,
+    bool isTotal = false,
+    bool showCurrency = true, // 👈 NEW FLAG
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isTotal ? 16 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+              color: isTotal ? Colors.black : Colors.grey[700],
+            ),
           ),
-        ),
-        Text(
-          showCurrency ? "R $value" : "$value", // 👈 CONDITION
-          style: TextStyle(
-            fontSize: isTotal ? 18 : 14,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-            color: isTotal ? Colors.green : AppColors.electricTeal,
+          Text(
+            showCurrency ? "R $value" : "$value", // 👈 CONDITION
+            style: TextStyle(
+              fontSize: isTotal ? 18 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+              color: isTotal ? Colors.green : AppColors.electricTeal,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
+
+  Color _stopStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return Colors.green;
+      case "arrived":
+        return Colors.blue;
+      case "pending":
+        return Colors.orange;
+      case "skipped":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _stopTypeIcon(String type) {
+    switch (type) {
+      case "pickup":
+        return Icons.upload_rounded;
+      case "drop_off":
+        return Icons.download_rounded;
+      case "waypoint":
+        return Icons.more_horiz_rounded;
+      default:
+        return Icons.location_on_rounded;
+    }
+  }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {

@@ -25,6 +25,56 @@ class OrderDetailsModel {
   }
 }
 
+class OrderStop {
+  final int sequence;
+  final String type; // pickup, waypoint, drop_off
+  final String address;
+  final String city;
+  final String state;
+  final String contactName;
+  final String contactPhone;
+  final int? quantity;
+  final String? weightKg;
+  final String status;
+  final String? arrivalTime;
+  final String? departureTime;
+  final String? notes;
+
+  OrderStop({
+    required this.sequence,
+    required this.type,
+    required this.address,
+    required this.city,
+    required this.state,
+    required this.contactName,
+    required this.contactPhone,
+    this.quantity,
+    this.weightKg,
+    required this.status,
+    this.arrivalTime,
+    this.departureTime,
+    this.notes,
+  });
+
+  factory OrderStop.fromJson(Map<String, dynamic> json) {
+    return OrderStop(
+      sequence: json["sequence_number"] ?? 0,
+      type: json["stop_type"] ?? "",
+      address: json["address"] ?? "",
+      city: json["city"] ?? "",
+      state: json["state"] ?? "",
+      contactName: json["contact_name"] ?? "",
+      contactPhone: json["contact_phone"] ?? "",
+      quantity: json["quantity"],
+      weightKg: json["weight_kg"]?.toString(),
+      status: json["status"] ?? "",
+      arrivalTime: json["arrival_time"],
+      departureTime: json["departure_time"],
+      notes: json["notes"],
+    );
+  }
+}
+
 class OrderDetails {
   final int id;
   final String orderNumber;
@@ -45,6 +95,7 @@ class OrderDetails {
   final String createdAt;
   final String updatedAt;
   final bool isMultiStop;
+  final List<OrderStop> stops;
 
   OrderDetails({
     required this.id,
@@ -66,6 +117,7 @@ class OrderDetails {
     required this.createdAt,
     required this.updatedAt,
     required this.isMultiStop,
+    required this.stops,
   });
 
   factory OrderDetails.fromJson(Map<String, dynamic> json) {
@@ -80,19 +132,23 @@ class OrderDetails {
       vehicle: Vehicle.fromJson(json["vehicle"] ?? {}),
       driver: Driver.fromJson(json["driver"]),
       pricing: Pricing.fromJson(json),
-
-      items: (json["order_items"] as List? ?? [])
+      items: (json["items"] as List? ?? [])
           .map((e) => OrderItem.fromJson(e))
           .toList(),
 
-      addOns: List<String>.from(json["add_ons"] ?? []),
+      isMultiStop: parseBool(json["is_multi_stop"]),
+
+      stops: (json["stops"] as List? ?? [])
+          .map((e) => OrderStop.fromJson(e))
+          .toList(),
+
+      addOns: const [],
       specialInstructions: json["special_instructions"],
       depot: Depot.fromJson(json["depot"] ?? {}),
       pickup: Pickup.fromJson(json),
       delivery: Delivery.fromJson(json),
       createdAt: json["created_at"] ?? "",
       updatedAt: json["updated_at"] ?? "",
-      isMultiStop: parseBool(json["is_multi_stop"]),
     );
   }
 }

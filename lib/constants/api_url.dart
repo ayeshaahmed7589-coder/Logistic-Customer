@@ -92,7 +92,9 @@ abstract class ApiUrls {
   //order details
   static const String orderDetails = "/api/v1/customer/orders";
 
-
-    //Company Dropdown
+  //Company Dropdown
   static const String getCompany = "/api/master-data/all-companies";
+
+  //Order Tracking
+  static const String trackOrder = "/api/v1/customer/orders/track";
 }

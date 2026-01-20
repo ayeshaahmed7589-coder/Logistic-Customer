@@ -268,7 +268,7 @@ class OrderDetailsScreen extends ConsumerWidget {
       'confirmed',
       'picked',
       'in-transit',
-      'delivered',
+      'completed',
     ];
     final currentIndex = statuses.indexOf(status.toLowerCase());
 

@@ -1,7 +1,8 @@
+// product type model
 class ProductTypeResponse {
   final bool success;
   final String message;
-  final ProductTypeData data;
+  final List<ProductTypeCategory> data;
 
   ProductTypeResponse({
     required this.success,
@@ -10,84 +11,54 @@ class ProductTypeResponse {
   });
 
   factory ProductTypeResponse.fromJson(Map<String, dynamic> json) {
+    final dataList = json['data'] as List<dynamic>? ?? [];
+
     return ProductTypeResponse(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
-      data: ProductTypeData.fromJson(json['data'] ?? {}),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'success': success, 'message': message, 'data': data.toJson()};
-  }
-}
-
-class ProductTypeData {
-  final List<ProductTypeCategory> productTypes;
-  final int total;
-
-  ProductTypeData({required this.productTypes, required this.total});
-
-  factory ProductTypeData.fromJson(Map<String, dynamic> json) {
-    final productTypesList = json['product_types'] as List<dynamic>? ?? [];
-    return ProductTypeData(
-      productTypes: productTypesList
-          .map((category) => ProductTypeCategory.fromJson(category))
+      data: dataList
+          .map((categoryJson) => ProductTypeCategory.fromJson(categoryJson))
           .toList(),
-      total: json['total'] ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'product_types': productTypes
-          .map((category) => category.toJson())
-          .toList(),
-      'total': total,
+      'success': success,
+      'message': message,
+      'data': data.map((category) => category.toJson()).toList(),
     };
-  }
-
-  // Helper method to get all items flattened
-  List<ProductTypeItem> getAllItems() {
-    return productTypes.expand((category) => category.items).toList();
-  }
-
-  // Helper method to get items by category
-  List<ProductTypeItem> getItemsByCategory(String category) {
-    final foundCategory = productTypes.firstWhere(
-      (cat) => cat.category == category,
-      orElse: () =>
-          ProductTypeCategory(category: '', categoryName: '', items: []),
-    );
-    return foundCategory.items;
   }
 }
 
 class ProductTypeCategory {
   final String category;
-  final String categoryName;
-  final List<ProductTypeItem> items;
+  final String categoryLabel;
+  final List<ProductTypeItem> products;
 
   ProductTypeCategory({
     required this.category,
-    required this.categoryName,
-    required this.items,
+    required this.categoryLabel,
+    required this.products,
   });
 
   factory ProductTypeCategory.fromJson(Map<String, dynamic> json) {
-    final itemsList = json['items'] as List<dynamic>? ?? [];
+    final productsList = json['products'] as List<dynamic>? ?? [];
+
     return ProductTypeCategory(
       category: json['category'] ?? '',
-      categoryName: json['category_name'] ?? '',
-      items: itemsList.map((item) => ProductTypeItem.fromJson(item)).toList(),
+      categoryLabel: json['category_label'] ?? '',
+      products: productsList
+          .map((item) => ProductTypeItem.fromJson(item))
+          .toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'category': category,
-      'category_name': categoryName,
-      'items': items.map((item) => item.toJson()).toList(),
+      'category_label': categoryLabel,
+      'products': products.map((item) => item.toJson()).toList(),
     };
   }
 }
@@ -97,27 +68,38 @@ class ProductTypeItem {
   final String name;
   final String category;
   final String description;
-  final double valueMultiplier;
-  final String? icon;
+  final double baseValueMultiplier;
+  final String icon;
+  final String categoryLabel;
 
   ProductTypeItem({
     required this.id,
     required this.name,
     required this.category,
     required this.description,
-    required this.valueMultiplier,
-    this.icon,
+    required this.baseValueMultiplier,
+    required this.icon,
+    required this.categoryLabel,
   });
 
   factory ProductTypeItem.fromJson(Map<String, dynamic> json) {
     return ProductTypeItem(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      category: json['category'] ?? '',
-      description: json['description'] ?? '',
-      valueMultiplier: (json['value_multiplier'] as num?)?.toDouble() ?? 1.0,
-      icon: json['icon'],
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      baseValueMultiplier: _parseDouble(json['base_value_multiplier']),
+      icon: json['icon']?.toString() ?? 'box',
+      categoryLabel: json['category_label']?.toString() ?? '',
     );
+  }
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 1.0;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    return double.tryParse(value.toString()) ?? 1.0;
   }
 
   Map<String, dynamic> toJson() {
@@ -126,29 +108,33 @@ class ProductTypeItem {
       'name': name,
       'category': category,
       'description': description,
-      'value_multiplier': valueMultiplier,
+      'base_value_multiplier': baseValueMultiplier,
       'icon': icon,
+      'category_label': categoryLabel,
     };
   }
 
-  // For dropdown display
+  // Display name with category
+  String get displayName => '$name ($categoryLabel)';
+
   @override
   String toString() => name;
 
-  // Helper to check if item matches search
   bool matchesSearch(String query) {
     final lowercaseQuery = query.toLowerCase();
     return name.toLowerCase().contains(lowercaseQuery) ||
         description.toLowerCase().contains(lowercaseQuery) ||
-        category.toLowerCase().contains(lowercaseQuery);
+        category.toLowerCase().contains(lowercaseQuery) ||
+        categoryLabel.toLowerCase().contains(lowercaseQuery);
   }
 }
 
+/////////////////////////////
 // Packageing Type
 class PackagingTypeResponse {
   final bool success;
   final String message;
-  final PackagingTypeData data;
+  final List<PackagingTypeItem> data;
 
   PackagingTypeResponse({
     required this.success,
@@ -157,58 +143,21 @@ class PackagingTypeResponse {
   });
 
   factory PackagingTypeResponse.fromJson(Map<String, dynamic> json) {
+    final dataList = json['data'] as List<dynamic>? ?? [];
+
     return PackagingTypeResponse(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
-      data: PackagingTypeData.fromJson(json['data'] ?? {}),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'success': success, 'message': message, 'data': data.toJson()};
-  }
-}
-
-class PackagingTypeData {
-  final List<PackagingTypeItem> packagingTypes;
-  final int total;
-
-  PackagingTypeData({required this.packagingTypes, required this.total});
-
-  factory PackagingTypeData.fromJson(Map<String, dynamic> json) {
-    final packagingTypesList = json['packaging_types'] as List<dynamic>? ?? [];
-    return PackagingTypeData(
-      packagingTypes: packagingTypesList
-          .map((item) => PackagingTypeItem.fromJson(item))
-          .toList(),
-      total: json['total'] ?? 0,
+      data: dataList.map((item) => PackagingTypeItem.fromJson(item)).toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'packaging_types': packagingTypes.map((item) => item.toJson()).toList(),
-      'total': total,
+      'success': success,
+      'message': message,
+      'data': data.map((item) => item.toJson()).toList(),
     };
-  }
-
-  // Helper method to get all items
-  List<PackagingTypeItem> getAllItems() {
-    return packagingTypes;
-  }
-
-  // Helper to check if item matches search
-  List<PackagingTypeItem> searchItems(String query) {
-    if (query.isEmpty) return packagingTypes;
-
-    final lowercaseQuery = query.toLowerCase();
-    return packagingTypes
-        .where(
-          (item) =>
-              item.name.toLowerCase().contains(lowercaseQuery) ||
-              item.description.toLowerCase().contains(lowercaseQuery),
-        )
-        .toList();
   }
 }
 
@@ -216,29 +165,53 @@ class PackagingTypeItem {
   final int id;
   final String name;
   final String description;
-  final double handlingMultiplier;
+  final double? fixedWeightKg;
   final bool requiresDimensions;
-  final String? icon;
+  final double? typicalCapacityKg;
+  final double handlingMultiplier;
+  final String icon;
 
   PackagingTypeItem({
     required this.id,
     required this.name,
     required this.description,
-    required this.handlingMultiplier,
+    required this.fixedWeightKg,
     required this.requiresDimensions,
-    this.icon,
+    required this.typicalCapacityKg,
+    required this.handlingMultiplier,
+    required this.icon,
   });
 
   factory PackagingTypeItem.fromJson(Map<String, dynamic> json) {
     return PackagingTypeItem(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
-      handlingMultiplier:
-          (json['handling_multiplier'] as num?)?.toDouble() ?? 1.0,
-      requiresDimensions: json['requires_dimensions'] ?? false,
-      icon: json['icon'],
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      fixedWeightKg: _parseNullableDouble(json['fixed_weight_kg']),
+      requiresDimensions: json['requires_dimensions'] is bool
+          ? json['requires_dimensions']
+          : (json['requires_dimensions']?.toString() == 'true'),
+      typicalCapacityKg: _parseNullableDouble(json['typical_capacity_kg']),
+      handlingMultiplier: _parseDouble(json['handling_multiplier']),
+      icon: json['icon']?.toString() ?? 'box',
     );
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 1.0;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    return double.tryParse(value.toString()) ?? 1.0;
+  }
+
+  static double? _parseNullableDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value.toDouble();
+    if (value is double) return value;
+    final parsed = double.tryParse(value.toString());
+    return parsed;
   }
 
   Map<String, dynamic> toJson() {
@@ -246,17 +219,17 @@ class PackagingTypeItem {
       'id': id,
       'name': name,
       'description': description,
-      'handling_multiplier': handlingMultiplier,
+      'fixed_weight_kg': fixedWeightKg,
       'requires_dimensions': requiresDimensions,
+      'typical_capacity_kg': typicalCapacityKg,
+      'handling_multiplier': handlingMultiplier,
       'icon': icon,
     };
   }
 
-  // For dropdown display
   @override
   String toString() => name;
 
-  // Helper to check if item matches search
   bool matchesSearch(String query) {
     final lowercaseQuery = query.toLowerCase();
     return name.toLowerCase().contains(lowercaseQuery) ||

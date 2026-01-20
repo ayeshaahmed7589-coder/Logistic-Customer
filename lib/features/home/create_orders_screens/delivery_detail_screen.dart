@@ -146,6 +146,8 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
           postalCode: TextEditingController(),
           contactEmail: TextEditingController(),
           notes: TextEditingController(),
+          weight: TextEditingController(),
+          quantity: TextEditingController(),
         ),
         RouteStop(
           id: 2,
@@ -158,6 +160,8 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
           postalCode: TextEditingController(),
           contactEmail: TextEditingController(),
           notes: TextEditingController(),
+          weight: TextEditingController(),
+          quantity: TextEditingController(),
         ),
       ];
 
@@ -165,6 +169,8 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
       _addMultiStopListeners();
     });
   }
+
+  
 
   void _loadRouteStopsFromCache(Map<String, dynamic> cache) {
     // Load route stops count
@@ -212,6 +218,13 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
           ),
           notes: TextEditingController(
             text: cache["stop_${i}_notes"]?.toString() ?? "",
+          ),
+
+          quantity: TextEditingController(
+            text: cache["stop_${i}_quantity"]?.toString() ?? "",
+          ),
+          weight: TextEditingController(
+            text: cache["stop_${i}_total_weight"]?.toString() ?? "",
           ),
         );
         loadedStops.add(stop);
@@ -750,6 +763,9 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
             stop.contactPhone.text.trim().isEmpty ||
             stop.address.text.trim().isEmpty ||
             stop.city.text.trim().isEmpty ||
+            stop.postalCode.text.trim().isEmpty ||
+            stop.contactEmail.text.trim().isEmpty ||
+            stop.notes.text.trim().isEmpty ||
             stop.state.text.trim().isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -770,9 +786,20 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
       print("   pickup_name: ${allCache["pickup_name"]}");
       print("   pickup_phone: ${allCache["pickup_phone"]}");
       print("   pickup_address1: ${allCache["pickup_address1"]}");
+      print("   pickup_city: ${allCache["pickup_city"]}");
+      print("   pickup_state: ${allCache["pickup_state"]}");
+      print("   pickup_postal: ${allCache["pickup_postal"]}");
+      print("   pickup_email: ${allCache["pickup_email"]}");
+      print("   pickup_notes: ${allCache["pickup_notes"]}");
+      //
       print("   delivery_name: ${allCache["delivery_name"]}");
       print("   delivery_phone: ${allCache["delivery_phone"]}");
       print("   delivery_address1: ${allCache["delivery_address1"]}");
+      print("   delivery_city: ${allCache["delivery_city"]}");
+      print("   delivery_state: ${allCache["delivery_state"]}");
+      print("   delivery_postal: ${allCache["delivery_postal"]}");
+      print("   delivery_email: ${allCache["delivery_email"]}");
+      print("   delivery_notes: ${allCache["delivery_notes"]}");
     } else {
       // Validate single-stop
       if (!_isFormFilled) {
@@ -806,7 +833,6 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
     for (int i = 0; i < routeStops.length; i++) {
       final stop = routeStops[i];
       final stopIndex = i + 1;
-
       cache.saveValue("stop_${stopIndex}_type", stop.stopType.toString());
       cache.saveValue("stop_${stopIndex}_contact_name", stop.contactName.text);
       cache.saveValue(
@@ -822,6 +848,45 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
         stop.contactEmail.text,
       );
       cache.saveValue("stop_${stopIndex}_notes", stop.notes.text);
+      cache.saveValue("stop_${stopIndex}_quantity", stop.quantity.text);
+      cache.saveValue("stop_${stopIndex}_weight", stop.weight.text);
+
+      // ✅ ADD COORDINATES FOR EACH STOP
+      // Yeh default coordinates hain, aap inhe dynamic bana sakte hain
+      String lat = "-26.2041";
+      String lng = "28.0473";
+
+      // Agar city ke hisaab se different coordinates chahiye
+      final city = stop.city.text.toLowerCase();
+      if (city.contains("cape town")) {
+        lat = "-33.9249";
+        lng = "18.4241";
+      } else if (city.contains("durban")) {
+        lat = "-29.8587";
+        lng = "31.0218";
+      } else if (city.contains("pretoria")) {
+        lat = "-25.7479";
+        lng = "28.2293";
+      }
+
+      cache.saveValue("stop_${stopIndex}_latitude", lat);
+      cache.saveValue("stop_${stopIndex}_longitude", lng);
+
+      // cache.saveValue("stop_${stopIndex}_type", stop.stopType.toString());
+      // cache.saveValue("stop_${stopIndex}_contact_name", stop.contactName.text);
+      // cache.saveValue(
+      //   "stop_${stopIndex}_contact_phone",
+      //   stop.contactPhone.text,
+      // );
+      // cache.saveValue("stop_${stopIndex}_address", stop.address.text);
+      // cache.saveValue("stop_${stopIndex}_city", stop.city.text);
+      // cache.saveValue("stop_${stopIndex}_state", stop.state.text);
+      // cache.saveValue("stop_${stopIndex}_postal_code", stop.postalCode.text);
+      // cache.saveValue(
+      //   "stop_${stopIndex}_contact_email",
+      //   stop.contactEmail.text,
+      // );
+      // cache.saveValue("stop_${stopIndex}_notes", stop.notes.text);
 
       // ✅ IMPORTANT: Save to pickup/delivery cache for ServicePaymentScreen
       if (stop.stopType == StopType.pickup) {
@@ -921,6 +986,8 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
         postalCode: TextEditingController(),
         contactEmail: TextEditingController(),
         notes: TextEditingController(),
+        quantity: TextEditingController(),
+        weight: TextEditingController(),
       );
 
       routeStops.add(newStop);
@@ -954,13 +1021,15 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
           .saveValue("stop_${index}_contact_phone", stop.contactPhone.text);
       _checkFormFilled();
     });
-
-    stop.address.addListener(() {
-      ref
-          .read(orderCacheProvider.notifier)
-          .saveValue("stop_${index}_address", stop.address.text);
-      _checkFormFilled();
-    });
+  stop.address.addListener(() {
+    ref
+        .read(orderCacheProvider.notifier)
+        .saveValue("stop_${index}_address", stop.address.text);
+    _checkFormFilled();
+    
+    // Auto-set coordinates based on address
+    _setStopCoordinates(stop.address.text, index);
+  });
 
     stop.city.addListener(() {
       ref
@@ -997,6 +1066,53 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
       _checkFormFilled();
     });
   }
+
+void _setStopCoordinates(String address, int stopIndex) async {
+  if (address.length < 3) return;
+  
+  try {
+    final places = FlutterGooglePlacesSdk("AIzaSyBrF_4PwauOkQ_RS8iGYhAW1NIApp3IEf0");
+    final predictions = await places.findAutocompletePredictions(
+      address,
+      countries: ["ZA"],
+    );
+
+    if (predictions.predictions.isEmpty) return;
+
+    final placeId = predictions.predictions.first.placeId;
+    final placeDetails = await places.fetchPlace(placeId, fields: []);
+
+    double? lat;
+    double? lng;
+
+    if (placeDetails.place?.latLng != null) {
+      lat = placeDetails.place!.latLng!.lat;
+      lng = placeDetails.place!.latLng!.lng;
+    }
+
+    if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
+      // Use default coordinates
+      lat = -26.2041;
+      lng = 28.0473;
+    }
+
+    ref
+        .read(orderCacheProvider.notifier)
+        .saveValue("stop_${stopIndex}_latitude", lat.toString());
+    ref
+        .read(orderCacheProvider.notifier)
+        .saveValue("stop_${stopIndex}_longitude", lng.toString());
+  } catch (e) {
+    // Use default coordinates on error
+    ref
+        .read(orderCacheProvider.notifier)
+        .saveValue("stop_${stopIndex}_latitude", "-26.2041");
+    ref
+        .read(orderCacheProvider.notifier)
+        .saveValue("stop_${stopIndex}_longitude", "28.0473");
+  }
+}
+
 
   // Remove a route stop
   void _removeRouteStop(int index) {
@@ -1772,6 +1888,8 @@ class RouteStop {
   TextEditingController postalCode;
   TextEditingController contactEmail;
   TextEditingController notes;
+  TextEditingController quantity; // ✅ ADD THIS
+  TextEditingController weight; // ✅ ADD THIS
 
   RouteStop({
     required this.id,
@@ -1784,6 +1902,8 @@ class RouteStop {
     required this.postalCode,
     required this.contactEmail,
     required this.notes,
+    required this.quantity,
+    required this.weight,
   });
 }
 

@@ -16,7 +16,7 @@ class AddOnsRepository {
       final url = ApiUrls.getAddOns;
       final token = await LocalStorage.getToken() ?? "";
 
-      print("Fetching add-ons with token: ${token.isNotEmpty ? "Yes" : "No"}");
+      print("🔍 Fetching add-ons...");
 
       final response = await dio.get(
         url,
@@ -28,42 +28,41 @@ class AddOnsRepository {
         ),
       );
 
-      print("Add-ons API Response Status: ${response.statusCode}");
-      print("Add-ons API Response Data: ${response.data}");
+      print("✅ Add-ons API Response Status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
+        print("✅ Add-ons loaded successfully");
         return AddOnsResponse.fromJson(response.data);
       } else {
+        print("❌ Failed to load add-ons: ${response.statusCode}");
         throw Exception("Failed to load add-ons: ${response.statusCode}");
       }
     } on DioException catch (e) {
-      print("Dio Error: ${e.message}");
-      print("Response: ${e.response?.data}");
+      print("❌ Dio Error: ${e.message}");
+      print("❌ Response: ${e.response?.data}");
       throw Exception("Network error: ${e.message}");
     } catch (e) {
-      print("Error loading add-ons: $e");
+      print("❌ Error loading add-ons: $e");
       throw Exception("Failed to load add-ons");
     }
   }
 
-  // Get add-on by ID
-  Future<AddOnItem?> getAddOnById(String id) async {
+  // ✅ Get add-on by value
+  Future<AddOnItem?> getAddOnByValue(String value) async {
     try {
       final response = await getAddOns();
-      return response.data.addOns.firstWhere(
-        (item) => item.id == id,
-        orElse: () => throw Exception("Add-on not found"),
-      );
+      try {
+        return response.data.firstWhere((item) => item.value == value);
+      } catch (e) {
+        return null;
+      }
     } catch (e) {
-      print("Error getting add-on by ID: $e");
+      print("❌ Error getting add-on by value: $e");
       return null;
     }
   }
 }
 
 final addOnsRepositoryProvider = Provider<AddOnsRepository>((ref) {
-  return AddOnsRepository(
-    dio: ref.watch(dioProvider),
-    ref: ref,
-  );
+  return AddOnsRepository(dio: ref.watch(dioProvider), ref: ref);
 });

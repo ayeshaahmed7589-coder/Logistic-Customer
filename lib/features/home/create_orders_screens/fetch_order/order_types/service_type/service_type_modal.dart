@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class ServiceTypeResponse {
   final bool success;
   final String message;
-  final ServiceTypeData data;
+  final List<ServiceTypeItem>
+  data; // ✅ Changed from ServiceTypeData to List<ServiceTypeItem>
 
   ServiceTypeResponse({
     required this.success,
@@ -12,10 +13,12 @@ class ServiceTypeResponse {
   });
 
   factory ServiceTypeResponse.fromJson(Map<String, dynamic> json) {
+    final dataList = json['data'] as List<dynamic>? ?? [];
+
     return ServiceTypeResponse(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
-      data: ServiceTypeData.fromJson(json['data'] ?? {}),
+      data: dataList.map((item) => ServiceTypeItem.fromJson(item)).toList(),
     );
   }
 
@@ -23,80 +26,43 @@ class ServiceTypeResponse {
     return {
       'success': success,
       'message': message,
-      'data': data.toJson(),
+      'data': data.map((item) => item.toJson()).toList(),
     };
-  }
-}
-
-class ServiceTypeData {
-  final List<ServiceTypeItem> serviceTypes;
-
-  ServiceTypeData({
-    required this.serviceTypes,
-  });
-
-  factory ServiceTypeData.fromJson(Map<String, dynamic> json) {
-    final serviceTypesList = json['service_types'] as List<dynamic>? ?? [];
-    return ServiceTypeData(
-      serviceTypes: serviceTypesList
-          .map((item) => ServiceTypeItem.fromJson(item))
-          .toList(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'service_types': serviceTypes.map((item) => item.toJson()).toList(),
-    };
-  }
-
-  // Helper method to get all items
-  List<ServiceTypeItem> getAllItems() {
-    return serviceTypes;
-  }
-
-  // Helper to get item by ID
-  ServiceTypeItem? getItemById(String id) {
-    try {
-      return serviceTypes.firstWhere((item) => item.id == id);
-    } catch (e) {
-      return null;
-    }
   }
 }
 
 class ServiceTypeItem {
-  final String id;
-  final String name;
+  final String value; // ✅ Changed from id to value
+  final String label; // ✅ Changed from name to label
   final String description;
   final String? icon;
-  final double multiplier;
+  final double priceMultiplier; // ✅ Changed from multiplier to priceMultiplier
 
   ServiceTypeItem({
-    required this.id,
-    required this.name,
+    required this.value,
+    required this.label,
     required this.description,
     this.icon,
-    required this.multiplier,
+    required this.priceMultiplier,
   });
 
   factory ServiceTypeItem.fromJson(Map<String, dynamic> json) {
     return ServiceTypeItem(
-      id: json['id']?.toString() ?? '',
-      name: json['name'] ?? '',
+      value: json['value']?.toString() ?? '',
+      label: json['label'] ?? '',
       description: json['description'] ?? '',
       icon: json['icon'],
-      multiplier: (json['multiplier'] as num?)?.toDouble() ?? 1.0,
+      priceMultiplier: (json['price_multiplier'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
+      'value': value,
+      'label': label,
       'description': description,
       'icon': icon,
-      'multiplier': multiplier,
+      'price_multiplier': priceMultiplier,
     };
   }
 
@@ -107,6 +73,8 @@ class ServiceTypeItem {
         return Icons.local_shipping;
       case 'zap':
         return Icons.flash_on;
+      case 'clock':
+        return Icons.access_time;
       case 'calendar':
         return Icons.calendar_today;
       case 'rocket':
@@ -118,5 +86,10 @@ class ServiceTypeItem {
 
   // For display
   @override
-  String toString() => name;
+  String toString() => label;
+
+  // Backward compatibility getters
+  String get id => value;
+  String get name => label;
+  double get multiplier => priceMultiplier;
 }

@@ -16,7 +16,7 @@ class ServiceTypeRepository {
       final url = ApiUrls.getServiceType;
       final token = await LocalStorage.getToken() ?? "";
 
-      print("Fetching service types with token: ${token.isNotEmpty ? "Yes" : "No"}");
+      print("🔍 Fetching service types...");
 
       final response = await dio.get(
         url,
@@ -28,42 +28,43 @@ class ServiceTypeRepository {
         ),
       );
 
-      print("Service Types API Response Status: ${response.statusCode}");
-      print("Service Types API Response Data: ${response.data}");
+      print("✅ Service Types API Response Status: ${response.statusCode}");
+      print("✅ Service Types API Response Status: ${response.data}");
+
 
       if (response.statusCode == 200) {
+        print("✅ Service Types loaded successfully");
         return ServiceTypeResponse.fromJson(response.data);
       } else {
+        print("❌ Failed to load service types: ${response.statusCode}");
         throw Exception("Failed to load service types: ${response.statusCode}");
       }
     } on DioException catch (e) {
-      print("Dio Error: ${e.message}");
-      print("Response: ${e.response?.data}");
+      print("❌ Dio Error: ${e.message}");
+      print("❌ Response: ${e.response?.data}");
       throw Exception("Network error: ${e.message}");
     } catch (e) {
-      print("Error loading service types: $e");
+      print("❌ Error loading service types: $e");
       throw Exception("Failed to load service types");
     }
   }
 
-  // Get service type by ID
-  Future<ServiceTypeItem?> getServiceTypeById(String id) async {
+  // Get service type by value
+  Future<ServiceTypeItem?> getServiceTypeByValue(String value) async {
     try {
       final response = await getServiceTypes();
-      return response.data.serviceTypes.firstWhere(
-        (item) => item.id == id,
-        orElse: () => throw Exception("Service type not found"),
-      );
+      try {
+        return response.data.firstWhere((item) => item.value == value);
+      } catch (e) {
+        return null;
+      }
     } catch (e) {
-      print("Error getting service type by ID: $e");
+      print("❌ Error getting service type by value: $e");
       return null;
     }
   }
 }
 
 final serviceTypeRepositoryProvider = Provider<ServiceTypeRepository>((ref) {
-  return ServiceTypeRepository(
-    dio: ref.watch(dioProvider),
-    ref: ref,
-  );
+  return ServiceTypeRepository(dio: ref.watch(dioProvider), ref: ref);
 });

@@ -5,6 +5,7 @@ import 'package:logisticscustomer/constants/dio.dart';
 import 'package:logisticscustomer/constants/local_storage.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/dropdown/product_type_modal.dart';
 
+// product Type Repository
 class ProductTypeRepository {
   final Dio dio;
   final Ref ref;
@@ -31,7 +32,6 @@ class ProductTypeRepository {
       );
 
       print("Product Types API Response Status: ${response.statusCode}");
-      print("Product Types API Response Data: ${response.data}");
 
       if (response.statusCode == 200) {
         return ProductTypeResponse.fromJson(response.data);
@@ -48,11 +48,12 @@ class ProductTypeRepository {
     }
   }
 
-  // Get filtered product types (by search query)
   Future<List<ProductTypeItem>> searchProductTypes(String query) async {
     try {
       final response = await getProductTypes();
-      final allItems = response.data.getAllItems();
+      final allItems = response.data
+          .expand((category) => category.products)
+          .toList();
 
       if (query.isEmpty) {
         return allItems;
@@ -65,13 +66,17 @@ class ProductTypeRepository {
     }
   }
 
-  // Get product types by category
   Future<List<ProductTypeItem>> getProductTypesByCategory(
     String category,
   ) async {
     try {
       final response = await getProductTypes();
-      return response.data.getItemsByCategory(category);
+      final categoryData = response.data.firstWhere(
+        (cat) => cat.category == category,
+        orElse: () =>
+            ProductTypeCategory(category: '', categoryLabel: '', products: []),
+      );
+      return categoryData.products;
     } catch (e) {
       print("Error getting product types by category: $e");
       return [];
@@ -83,8 +88,7 @@ final productTypeRepositoryProvider = Provider<ProductTypeRepository>((ref) {
   return ProductTypeRepository(dio: ref.watch(dioProvider), ref: ref);
 });
 
-
-//PACKAGEINF Type Repository 
+//PACKAGEINF Type Repository
 class PackagingTypeRepository {
   final Dio dio;
   final Ref ref;
@@ -111,7 +115,6 @@ class PackagingTypeRepository {
       );
 
       print("Packaging Types API Response Status: ${response.statusCode}");
-      print("Packaging Types API Response Data: ${response.data}");
 
       if (response.statusCode == 200) {
         return PackagingTypeResponse.fromJson(response.data);
@@ -130,11 +133,10 @@ class PackagingTypeRepository {
     }
   }
 
-  // Search packaging types
   Future<List<PackagingTypeItem>> searchPackagingTypes(String query) async {
     try {
       final response = await getPackagingTypes();
-      final allItems = response.data.packagingTypes;
+      final allItems = response.data;
 
       if (query.isEmpty) {
         return allItems;
@@ -148,8 +150,6 @@ class PackagingTypeRepository {
   }
 }
 
-final packagingTypeRepositoryProvider = Provider<PackagingTypeRepository>((
-  ref,
-) {
+final packagingTypeRepositoryProvider = Provider<PackagingTypeRepository>((ref) {
   return PackagingTypeRepository(dio: ref.watch(dioProvider), ref: ref);
 });

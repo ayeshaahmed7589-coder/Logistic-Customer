@@ -2,177 +2,129 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/dropdown/product_type_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/dropdown/product_type_repo.dart';
 
-class ProductTypeController extends StateNotifier<AsyncValue<ProductTypeData>> {
+// product Type Controller
+class ProductTypeController
+    extends StateNotifier<AsyncValue<List<ProductTypeCategory>>> {
   final ProductTypeRepository repository;
 
   ProductTypeController(this.repository) : super(const AsyncValue.loading());
 
-  // Load product types
   Future<void> loadProductTypes() async {
     state = const AsyncValue.loading();
     try {
       final response = await repository.getProductTypes();
-      state = AsyncValue.data(response.data);
+
+      // Set categoryLabel for each product
+      final updatedCategories = response.data.map((category) {
+        return ProductTypeCategory(
+          category: category.category,
+          categoryLabel: category.categoryLabel,
+          products: category.products.map((product) {
+            return ProductTypeItem(
+              id: product.id,
+              name: product.name,
+              category: product.category,
+              description: product.description,
+              baseValueMultiplier: product.baseValueMultiplier,
+              icon: product.icon,
+              categoryLabel: category.categoryLabel, // Set category label
+            );
+          }).toList(),
+        );
+      }).toList();
+
+      state = AsyncValue.data(updatedCategories);
     } catch (e, stackTrace) {
       state = AsyncValue.error(e, stackTrace);
     }
   }
 
-  // Search product types
-  Future<List<ProductTypeItem>> searchProductTypes(String query) async {
-    try {
-      final response = await repository.getProductTypes();
-      final allItems = response.data.getAllItems();
+  // Get all items from all categories
+  List<ProductTypeItem> getAllItems() {
+    return state.when(
+      data: (categories) {
+        final allItems = <ProductTypeItem>[];
+        for (final category in categories) {
+          // Add category label as header
+          final headerItem = ProductTypeItem(
+            id: -1, // Special ID for header
+            name: category.categoryLabel,
+            category: category.category,
+            description: 'Category: ${category.categoryLabel}',
+            baseValueMultiplier: 0.0,
+            icon: 'category',
+            categoryLabel: category.categoryLabel,
+          );
 
-      if (query.isEmpty) {
+          allItems.add(headerItem);
+          allItems.addAll(category.products);
+        }
         return allItems;
-      }
-
-      return allItems.where((item) => item.matchesSearch(query)).toList();
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // Filter by category
-  Future<List<ProductTypeItem>> getProductTypesByCategory(
-    String category,
-  ) async {
-    try {
-      final response = await repository.getProductTypes();
-      return response.data.getItemsByCategory(category);
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // Get item by ID
-  ProductTypeItem? getItemById(int id) {
-    return state.when(
-      data: (data) => data.getAllItems().firstWhere(
-        (item) => item.id == id,
-        orElse: () => throw Exception("Item not found"),
-      ),
-      loading: () => null,
-      error: (error, stackTrace) => null,
+      },
+      loading: () => [],
+      error: (error, stackTrace) => [],
     );
   }
 
-  // Get item by name
-  ProductTypeItem? getItemByName(String name) {
+  // Get items for dropdown (without headers)
+  List<ProductTypeItem> getItemsForDropdown() {
     return state.when(
-      data: (data) => data.getAllItems().firstWhere(
-        (item) => item.name == name,
-        orElse: () => throw Exception("Item not found"),
-      ),
-      loading: () => null,
-      error: (error, stackTrace) => null,
+      data: (categories) =>
+          categories.expand((category) => category.products).toList(),
+      loading: () => [],
+      error: (error, stackTrace) => [],
     );
   }
 
-  // Refresh
-  Future<void> refresh() async {
-    return loadProductTypes();
+  // Get items grouped by category
+  Map<String, List<ProductTypeItem>> getItemsGroupedByCategory() {
+    return state.when(
+      data: (categories) {
+        final map = <String, List<ProductTypeItem>>{};
+        for (final category in categories) {
+          map[category.categoryLabel] = category.products;
+        }
+        return map;
+      },
+      loading: () => {},
+      error: (error, stackTrace) => {},
+    );
   }
 }
 
 // Update providers
 final productTypeControllerProvider =
-    StateNotifierProvider<ProductTypeController, AsyncValue<ProductTypeData>>((
-      ref,
-    ) {
+    StateNotifierProvider<
+      ProductTypeController,
+      AsyncValue<List<ProductTypeCategory>>
+    >((ref) {
       final repo = ref.watch(productTypeRepositoryProvider);
       return ProductTypeController(repo);
     });
 
-// Provider for product type items (for dropdown)
 final productTypeItemsProvider = Provider<List<ProductTypeItem>>((ref) {
-  final state = ref.watch(productTypeControllerProvider);
-  return state.when(
-    data: (data) => data.getAllItems(),
-    loading: () => [],
-    error: (error, stackTrace) => [],
-  );
+  final controller = ref.watch(productTypeControllerProvider.notifier);
+  return controller.getAllItems();
 });
 
-// Provider for categories
 final productTypeCategoriesProvider = Provider<List<String>>((ref) {
   final state = ref.watch(productTypeControllerProvider);
   return state.when(
-    data: (data) =>
-        data.productTypes.map((category) => category.categoryName).toList(),
+    data: (categories) =>
+        categories.map((category) => category.categoryLabel).toList(),
     loading: () => [],
     error: (error, stackTrace) => [],
   );
 });
-
-// Product Type State
-class ProductTypeState {
-  final List<ProductTypeCategory> categories;
-  final List<ProductTypeItem> allItems;
-  final List<ProductTypeItem> filteredItems;
-  final bool isLoading;
-  final bool isSearching;
-  final String? error;
-  final String searchQuery;
-  final String? selectedCategory;
-
-  ProductTypeState({
-    this.categories = const [],
-    this.allItems = const [],
-    this.filteredItems = const [],
-    this.isLoading = false,
-    this.isSearching = false,
-    this.error,
-    this.searchQuery = '',
-    this.selectedCategory,
-  });
-
-  ProductTypeState copyWith({
-    List<ProductTypeCategory>? categories,
-    List<ProductTypeItem>? allItems,
-    List<ProductTypeItem>? filteredItems,
-    bool? isLoading,
-    bool? isSearching,
-    String? error,
-    String? searchQuery,
-    String? selectedCategory,
-  }) {
-    return ProductTypeState(
-      categories: categories ?? this.categories,
-      allItems: allItems ?? this.allItems,
-      filteredItems: filteredItems ?? this.filteredItems,
-      isLoading: isLoading ?? this.isLoading,
-      isSearching: isSearching ?? this.isSearching,
-      error: error ?? this.error,
-      searchQuery: searchQuery ?? this.searchQuery,
-      selectedCategory: selectedCategory ?? this.selectedCategory,
-    );
-  }
-
-  // Get display items (filtered if search active, otherwise all)
-  List<ProductTypeItem> get displayItems {
-    return searchQuery.isNotEmpty || selectedCategory != null
-        ? filteredItems
-        : allItems;
-  }
-
-  // Get categories for dropdown
-  List<String> get categoryNames {
-    return categories.map((category) => category.categoryName).toList();
-  }
-}
 
 ///////////////////////////////////////
 // package Type Controller
 
-class PackagingTypeController
-    extends StateNotifier<AsyncValue<PackagingTypeData>> {
+class PackagingTypeController extends StateNotifier<AsyncValue<List<PackagingTypeItem>>> {
   final PackagingTypeRepository repository;
 
   PackagingTypeController(this.repository) : super(const AsyncValue.loading());
 
-  // Load packaging types
   Future<void> loadPackagingTypes() async {
     state = const AsyncValue.loading();
     try {
@@ -187,7 +139,7 @@ class PackagingTypeController
   Future<List<PackagingTypeItem>> searchPackagingTypes(String query) async {
     try {
       final response = await repository.getPackagingTypes();
-      final allItems = response.data.packagingTypes;
+      final allItems = response.data;
 
       if (query.isEmpty) {
         return allItems;
@@ -202,7 +154,7 @@ class PackagingTypeController
   // Get item by ID
   PackagingTypeItem? getItemById(int id) {
     return state.when(
-      data: (data) => data.packagingTypes.firstWhere(
+      data: (items) => items.firstWhere(
         (item) => item.id == id,
         orElse: () => throw Exception("Item not found"),
       ),
@@ -214,7 +166,7 @@ class PackagingTypeController
   // Get item by name
   PackagingTypeItem? getItemByName(String name) {
     return state.when(
-      data: (data) => data.packagingTypes.firstWhere(
+      data: (items) => items.firstWhere(
         (item) => item.name == name,
         orElse: () => throw Exception("Item not found"),
       ),
@@ -229,21 +181,19 @@ class PackagingTypeController
   }
 }
 
-// Providers
-final packagingTypeControllerProvider =
-    StateNotifierProvider<
-      PackagingTypeController,
-      AsyncValue<PackagingTypeData>
-    >((ref) {
-      final repo = ref.watch(packagingTypeRepositoryProvider);
-      return PackagingTypeController(repo);
-    });
+// Update providers
+final packagingTypeControllerProvider = StateNotifierProvider<
+  PackagingTypeController,
+  AsyncValue<List<PackagingTypeItem>>
+>((ref) {
+  final repo = ref.watch(packagingTypeRepositoryProvider);
+  return PackagingTypeController(repo);
+});
 
-// Provider for packaging type items (for dropdown)
 final packagingTypeItemsProvider = Provider<List<PackagingTypeItem>>((ref) {
   final state = ref.watch(packagingTypeControllerProvider);
   return state.when(
-    data: (data) => data.packagingTypes,
+    data: (items) => items,
     loading: () => [],
     error: (error, stackTrace) => [],
   );

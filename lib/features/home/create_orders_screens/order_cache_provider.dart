@@ -16,6 +16,12 @@ class OrderCacheController extends StateNotifier<Map<String, dynamic>> {
   }
 
   void clearAll() {
-    state = {};
+    // state = {};
+    clearCache();
+  }
+
+  void clearCache() {
+      state = {};  // puri cache khali karo
+    print("🗑️ Order cache cleared!");
   }
 }

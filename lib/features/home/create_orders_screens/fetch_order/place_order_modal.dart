@@ -1,98 +1,266 @@
-// Order Request Models
-class OrderRequestBody {
+// ✅ STANDARD ORDER REQUEST BODY
+import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
+import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/common_modal.dart';
+
+class StandardOrderRequestBody {
   final int productTypeId;
   final int packagingTypeId;
-  final double totalWeightKg;
-  final int itemQuantity;
-  final String pickupContactName;
-  final String pickupContactPhone;
+  final int quantity;
+  final double weightPerItem;
+  final SelectedQuote selectedQuote;
   final String pickupAddress;
+  final double pickupLatitude;
+  final double pickupLongitude;
   final String pickupCity;
   final String pickupState;
-  final String pickupPostalCode;
-  final String deliveryContactName;
-  final String deliveryContactPhone;
+  final String? pickupPostalCode;
+  final String pickupContactName;
+  final String pickupContactPhone;
   final String deliveryAddress;
+  final double deliveryLatitude;
+  final double deliveryLongitude;
   final String deliveryCity;
   final String deliveryState;
-  final String deliveryPostalCode;
+  final String? deliveryPostalCode;
+  final String deliveryContactName;
+  final String deliveryContactPhone;
   final String serviceType;
-  final String? specialInstructions;
-  final SelectedQuote selectedQuote;
-  final double estimatedCost;
+  final String priority;
+  final String paymentMethod;
   final List<String> addOns;
+  final String? specialInstructions;
   final double declaredValue;
-  final List<OrderItemRequest> items;
+  final double? length;
+  final double? width;
+  final double? height;
 
-  OrderRequestBody({
+  StandardOrderRequestBody({
     required this.productTypeId,
     required this.packagingTypeId,
-    required this.totalWeightKg,
-    required this.itemQuantity,
-    required this.pickupContactName,
-    required this.pickupContactPhone,
+    required this.quantity,
+    required this.weightPerItem,
+    required this.selectedQuote,
     required this.pickupAddress,
+    required this.pickupLatitude,
+    required this.pickupLongitude,
     required this.pickupCity,
     required this.pickupState,
-    required this.pickupPostalCode,
-    required this.deliveryContactName,
-    required this.deliveryContactPhone,
+    this.pickupPostalCode,
+    required this.pickupContactName,
+    required this.pickupContactPhone,
     required this.deliveryAddress,
+    required this.deliveryLatitude,
+    required this.deliveryLongitude,
     required this.deliveryCity,
     required this.deliveryState,
-    required this.deliveryPostalCode,
-    required this.serviceType,
+    this.deliveryPostalCode,
+    required this.deliveryContactName,
+    required this.deliveryContactPhone,
+    this.serviceType = 'standard',
+    this.priority = 'medium',
+    this.paymentMethod = 'wallet',
+    this.addOns = const [],
     this.specialInstructions,
-    required this.selectedQuote,
-    required this.estimatedCost,
-    required this.addOns,
-    required this.declaredValue,
-    required this.items,
+    this.declaredValue = 0.0,
+    this.length,
+    this.width,
+    this.height,
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'product_type_id': productTypeId,
       'packaging_type_id': packagingTypeId,
-      'total_weight_kg': totalWeightKg,
-      'item_quantity': itemQuantity,
-      'pickup_contact_name': pickupContactName,
-      'pickup_contact_phone': pickupContactPhone,
+      'quantity': quantity,
+      'weight_per_item': weightPerItem,
+      'selected_quote': selectedQuote.toJson(),
       'pickup_address': pickupAddress,
+      'pickup_latitude': pickupLatitude,
+      'pickup_longitude': pickupLongitude,
       'pickup_city': pickupCity,
       'pickup_state': pickupState,
-      'pickup_postal_code': pickupPostalCode,
-      'delivery_contact_name': deliveryContactName,
-      'delivery_contact_phone': deliveryContactPhone,
+      'pickup_contact_name': pickupContactName,
+      'pickup_contact_phone': pickupContactPhone,
       'delivery_address': deliveryAddress,
+      'delivery_latitude': deliveryLatitude,
+      'delivery_longitude': deliveryLongitude,
       'delivery_city': deliveryCity,
       'delivery_state': deliveryState,
-      'delivery_postal_code': deliveryPostalCode,
+      'delivery_contact_name': deliveryContactName,
+      'delivery_contact_phone': deliveryContactPhone,
       'service_type': serviceType,
-      'special_instructions': specialInstructions,
-      'selected_quote': selectedQuote.toJson(),
-      'estimated_cost': estimatedCost,
+      'priority': priority,
+      'payment_method': paymentMethod,
       'add_ons': addOns,
       'declared_value': declaredValue,
-      'items': items.map((item) => item.toJson()).toList(),
     };
+
+    if (pickupPostalCode != null && pickupPostalCode!.isNotEmpty) {
+      map['pickup_postal_code'] = pickupPostalCode;
+    }
+    
+    if (deliveryPostalCode != null && deliveryPostalCode!.isNotEmpty) {
+      map['delivery_postal_code'] = deliveryPostalCode;
+    }
+    
+    if (specialInstructions != null && specialInstructions!.isNotEmpty) {
+      map['special_instructions'] = specialInstructions;
+    }
+    
+    if (length != null) map['length'] = length;
+    if (width != null) map['width'] = width;
+    if (height != null) map['height'] = height;
+
+    return map;
   }
 }
 
+// ✅ MULTI-STOP ORDER REQUEST BODY
+class MultiStopOrderRequestBody {
+  final int productTypeId;
+  final int packagingTypeId;
+  final int quantity;
+  final double weightPerItem;
+  final bool isMultiStop;
+  final SelectedQuote selectedQuote;
+  final List<OrderStop> stops;
+  final String serviceType;
+  final String priority;
+  final String paymentMethod;
+  final List<String> addOns;
+  final String? specialInstructions;
+  final double declaredValue;
+
+  MultiStopOrderRequestBody({
+    required this.productTypeId,
+    required this.packagingTypeId,
+    required this.quantity,
+    required this.weightPerItem,
+    this.isMultiStop = true,
+    required this.selectedQuote,
+    required this.stops,
+    this.serviceType = 'standard',
+    this.priority = 'medium',
+    this.paymentMethod = 'wallet',
+    this.addOns = const [],
+    this.specialInstructions,
+    this.declaredValue = 0.0,
+  });
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'product_type_id': productTypeId,
+      'packaging_type_id': packagingTypeId,
+      'quantity': quantity,
+      'weight_per_item': weightPerItem,
+      'is_multi_stop': isMultiStop,
+      'selected_quote': selectedQuote.toJson(),
+      'stops': stops.map((stop) => stop.toJson()).toList(),
+      'service_type': serviceType,
+      'priority': priority,
+      'payment_method': paymentMethod,
+      'add_ons': addOns,
+      'declared_value': declaredValue,
+    };
+
+    if (specialInstructions != null && specialInstructions!.isNotEmpty) {
+      map['special_instructions'] = specialInstructions;
+    }
+
+    return map;
+  }
+}
+
+// ✅ ORDER STOP (for multi-stop)
+class OrderStop {
+  final int sequenceNumber;
+  final String stopType; // 'pickup', 'waypoint', 'drop_off'
+  final String address;
+  final String city;
+  final String state;
+  final double latitude;
+  final double longitude;
+  final String contactName;
+  final String contactPhone;
+  final int quantity;
+  final double weight;
+  final String? notes;
+
+  OrderStop({
+    required this.sequenceNumber,
+    required this.stopType,
+    required this.address,
+    required this.city,
+    required this.state,
+    required this.latitude,
+    required this.longitude,
+    required this.contactName,
+    required this.contactPhone,
+    required this.quantity,
+    required this.weight,
+    this.notes,
+  });
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      'sequence_number': sequenceNumber,
+      'stop_type': stopType,
+      'address': address,
+      'city': city,
+      'state': state,
+      'latitude': latitude,
+      'longitude': longitude,
+      'contact_name': contactName,
+      'contact_phone': contactPhone,
+      'quantity': quantity,
+      'weight_kg': weight,
+    };
+
+    if (notes != null && notes!.isNotEmpty) {
+      map['notes'] = notes;
+    }
+
+    return map;
+  }
+}
+
+// ✅ SELECTED QUOTE
 class SelectedQuote {
   final int vehicleId;
-  final int driverId;
+  final int vehicleTypeId;
+  final String vehicleTypeName;
+  final String registrationNumber;
+  final String make;
+  final String model;
+  final double capacityKg;
+  final double capacityVolumeM3;
+  final double totalScore;
   final double matchingScore;
-  final double depotScore;
-  final double distanceScore;
-  final double priceScore;
-  final double suitabilityScore;
-  final double driverScore;
+  final int depotScore;
+  final int distanceScore;
+  final int priceScore;
+  final int suitabilityScore;
+  final int driverScore;
   final int depotId;
+  final String depotName;
+  final String depotCity;
+  final double depotDistanceKm;
+  final bool isExclusive;
+  final double utilizationPercent;
+  final VehiclePricing pricing;
+  final VehicleCompany company;
+  final VehicleDriver? driver;
 
   SelectedQuote({
     required this.vehicleId,
-    required this.driverId,
+    required this.vehicleTypeId,
+    required this.vehicleTypeName,
+    required this.registrationNumber,
+    required this.make,
+    required this.model,
+    required this.capacityKg,
+    required this.capacityVolumeM3,
+    required this.totalScore,
     required this.matchingScore,
     required this.depotScore,
     required this.distanceScore,
@@ -100,12 +268,27 @@ class SelectedQuote {
     required this.suitabilityScore,
     required this.driverScore,
     required this.depotId,
+    required this.depotName,
+    required this.depotCity,
+    required this.depotDistanceKm,
+    required this.isExclusive,
+    required this.utilizationPercent,
+    required this.pricing,
+    required this.company,
+    this.driver,
   });
 
   Map<String, dynamic> toJson() {
-    return {
+    final map = <String, dynamic>{
       'vehicle_id': vehicleId,
-      'driver_id': driverId,
+      'vehicle_type_id': vehicleTypeId,
+      'vehicle_type_name': vehicleTypeName,
+      'registration_number': registrationNumber,
+      'make': make,
+      'model': model,
+      'capacity_kg': capacityKg,
+      'capacity_volume_m3': capacityVolumeM3,
+      'total_score': totalScore,
       'matching_score': matchingScore,
       'depot_score': depotScore,
       'distance_score': distanceScore,
@@ -113,47 +296,34 @@ class SelectedQuote {
       'suitability_score': suitabilityScore,
       'driver_score': driverScore,
       'depot_id': depotId,
+      'depot_name': depotName,
+      'depot_city': depotCity,
+      'depot_distance_km': depotDistanceKm,
+      'is_exclusive': isExclusive,
+      'utilization_percent': utilizationPercent,
+      'pricing': pricing,
+      'company': company,
     };
+
+    if (driver != null) {
+      map['driver'] = {
+        'id': driver!.id,
+        'name': driver!.name,
+        'rating': driver!.rating,
+      };
+    } else {
+      map['driver'] = null;
+    }
+
+    return map;
   }
 }
 
-class OrderItemRequest {
-  final String name;
-  final int quantity;
-  final double weight;
-  final double value;
-  final String? description;
-  final String? shopifyProductId;
-  final String? productSku;
-
-  OrderItemRequest({
-    required this.name,
-    required this.quantity,
-    required this.weight,
-    required this.value,
-    this.description,
-    this.shopifyProductId,
-    this.productSku,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'quantity': quantity,
-      'weight': weight,
-      'value': value,
-      'description': description ?? 'No description',
-      'shopify_product_id': shopifyProductId,
-      'product_sku': productSku ?? 'N/A',
-    };
-  }
-}
-
-// Order Response Models
+// ✅ ORDER RESPONSE
 class OrderResponse {
   final bool success;
   final String message;
-  final OrderResponseData data;
+  final OrderData data;
 
   OrderResponse({
     required this.success,
@@ -163,214 +333,206 @@ class OrderResponse {
 
   factory OrderResponse.fromJson(Map<String, dynamic> json) {
     return OrderResponse(
-      success: json['success'] as bool,
-      message: json['message'] as String,
-      data: OrderResponseData.fromJson(json['data'] as Map<String, dynamic>),
+      success: json['success'] ?? false,
+      message: json['message'] ?? '',
+      data: OrderData.fromJson(json['data']),
     );
   }
 }
 
-class OrderResponseData {
+class OrderData {
   final Order order;
-  final Vehicle vehicle;
-  final Driver driver;
-  final Depot depot;
 
-  OrderResponseData({
+  OrderData({
     required this.order,
-    required this.vehicle,
-    required this.driver,
-    required this.depot,
   });
 
-  factory OrderResponseData.fromJson(Map<String, dynamic> json) {
-    return OrderResponseData(
-      order: Order.fromJson(json['order'] as Map<String, dynamic>),
-      vehicle: Vehicle.fromJson(json['vehicle'] as Map<String, dynamic>),
-      driver: Driver.fromJson(json['driver'] as Map<String, dynamic>),
-      depot: Depot.fromJson(json['depot'] as Map<String, dynamic>),
+  factory OrderData.fromJson(Map<String, dynamic> json) {
+    return OrderData(
+      order: Order.fromJson(json['order']),
     );
   }
-
-  // Convenience getters
-  String get orderNumber => order.orderNumber;
-  String get trackingCode => order.trackingCode;
-  double get finalCost => order.finalCost;
 }
 
 class Order {
   final int id;
   final String orderNumber;
   final String trackingCode;
-  final int customerId;
-  final int driverId;
-  final int vehicleId;
-  final int depotId;
-  final int productTypeId;
-  final int packagingTypeId;
-  final double totalWeightKg;
-  final int itemQuantity;
   final String status;
   final String paymentStatus;
-  final String serviceType;
-  final double? distanceKm;
-  final double estimatedCost;
-  final double finalCost;
-  final double taxAmount;
-  final double systemServiceFee;
-  final double ssfPercentage;
-  final double matchingScore;
-  final double vehicleScore;
-  final bool autoMatched;
-  final String? specialInstructions;
-  final List<String> addOns;
-  final double addOnsCost;
   final bool isMultiStop;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final String pickupCity;
-  final String pickupState;
-  final String deliveryCity;
-  final String deliveryState;
+  final int? stopsCount;
+  final double totalWeightKg;
+  final double distanceKm;
+  final double finalCost;
+  final String createdAt;
 
   Order({
     required this.id,
     required this.orderNumber,
     required this.trackingCode,
-    required this.customerId,
-    required this.driverId,
-    required this.vehicleId,
-    required this.depotId,
-    required this.productTypeId,
-    required this.packagingTypeId,
-    required this.totalWeightKg,
-    required this.itemQuantity,
     required this.status,
     required this.paymentStatus,
-    required this.serviceType,
-    this.distanceKm,
-    required this.estimatedCost,
-    required this.finalCost,
-    required this.taxAmount,
-    required this.systemServiceFee,
-    required this.ssfPercentage,
-    required this.matchingScore,
-    required this.vehicleScore,
-    required this.autoMatched,
-    this.specialInstructions,
-    required this.addOns,
-    required this.addOnsCost,
     required this.isMultiStop,
+    this.stopsCount,
+    required this.totalWeightKg,
+    required this.distanceKm,
+    required this.finalCost,
     required this.createdAt,
-    required this.updatedAt,
-    required this.pickupCity,
-    required this.pickupState,
-    required this.deliveryCity,
-    required this.deliveryState,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'] as int,
-      orderNumber: json['order_number'] as String,
-      trackingCode: json['tracking_code'] as String,
-      customerId: json['customer_id'] as int,
-      driverId: json['driver_id'] as int,
-      vehicleId: json['vehicle_id'] as int,
-      depotId: json['depot_id'] as int,
-      productTypeId: json['product_type_id'] as int,
-      packagingTypeId: json['packaging_type_id'] as int,
-      totalWeightKg: double.parse(json['total_weight_kg'].toString()),
-      itemQuantity: json['item_quantity'] as int,
-      status: json['status'] as String,
-      paymentStatus: json['payment_status'] as String,
-      serviceType: json['service_type'] as String,
-      distanceKm: json['distance_km'] != null
-          ? double.parse(json['distance_km'].toString())
-          : null,
-      estimatedCost: double.parse(json['estimated_cost'].toString()),
+      id: json['id'],
+      orderNumber: json['order_number'],
+      trackingCode: json['tracking_code'],
+      status: json['status'],
+      paymentStatus: json['payment_status'],
+      isMultiStop: json['is_multi_stop'] ?? false,
+      stopsCount: json['stops_count'],
+      totalWeightKg: (json['total_weight_kg'] ?? 0).toDouble(),
+      distanceKm: (json['distance_km'] ?? 0).toDouble(),
       finalCost: double.parse(json['final_cost'].toString()),
-      taxAmount: double.parse(json['tax_amount'].toString()),
-      systemServiceFee: double.parse(json['system_service_fee'].toString()),
-      ssfPercentage: double.parse(json['ssf_percentage'].toString()),
-      matchingScore: double.parse(json['matching_score'].toString()),
-      vehicleScore: double.parse(json['vehicle_score'].toString()),
-      autoMatched: json['auto_matched'] as bool,
-      specialInstructions: json['special_instructions'] as String?,
-      addOns: List<String>.from(json['add_ons'] as List),
-      addOnsCost: double.parse(json['add_ons_cost'].toString()),
-      isMultiStop: json['is_multi_stop'] as bool,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      pickupCity: json['pickup_city'] as String,
-      pickupState: json['pickup_state'] as String,
-      deliveryCity: json['delivery_city'] as String,
-      deliveryState: json['delivery_state'] as String,
+      createdAt: json['created_at'],
     );
   }
 }
 
-class Vehicle {
-  final int id;
-  final String registrationNumber;
-  final String vehicleType;
-  final String make;
-  final String model;
 
-  Vehicle({
-    required this.id,
-    required this.registrationNumber,
-    required this.vehicleType,
-    required this.make,
-    required this.model,
-  });
+// // ✅ VEHICLE PRICING CLASS (UPDATE THIS)
+// class VehiclePricing {
+//   final double baseFare;
+//   final double distanceKm;
+//   final double distanceCost;
+//   final double weightCharge;
+//   final double addOnsTotal;
+//   final double subtotalA;
+//   final double systemServiceFee;
+//   final double ssfPercentage;
+//   final double subtotalB;
+//   final double serviceFee;
+//   final double serviceFeePercentage;
+//   final double tax;
+//   final double total;
+//   final double vehicleMultiplier;
+//   final double productMultiplier;
+//   final double packagingMultiplier;
 
-  factory Vehicle.fromJson(Map<String, dynamic> json) {
-    return Vehicle(
-      id: json['id'] as int,
-      registrationNumber: json['registration_number'] as String,
-      vehicleType: json['vehicle_type'] as String,
-      make: json['make'] as String,
-      model: json['model'] as String,
-    );
-  }
-}
+//   VehiclePricing({
+//     required this.baseFare,
+//     required this.distanceKm,
+//     required this.distanceCost,
+//     required this.weightCharge,
+//     required this.addOnsTotal,
+//     required this.subtotalA,
+//     required this.systemServiceFee,
+//     required this.ssfPercentage,
+//     required this.subtotalB,
+//     required this.serviceFee,
+//     required this.serviceFeePercentage,
+//     required this.tax,
+//     required this.total,
+//     required this.vehicleMultiplier,
+//     required this.productMultiplier,
+//     required this.packagingMultiplier,
+//   });
 
-class Driver {
-  final int id;
-  final String name;
-  final String phone;
-  final double rating;
+//   factory VehiclePricing.fromJson(Map<String, dynamic> json) {
+//     return VehiclePricing(
+//       baseFare: (json['base_fare'] ?? 0).toDouble(),
+//       distanceKm: (json['distance_km'] ?? 0).toDouble(),
+//       distanceCost: (json['distance_cost'] ?? 0).toDouble(),
+//       weightCharge: (json['weight_charge'] ?? 0).toDouble(),
+//       addOnsTotal: (json['add_ons_total'] ?? 0).toDouble(),
+//       subtotalA: (json['subtotal_a'] ?? 0).toDouble(),
+//       systemServiceFee: (json['system_service_fee'] ?? 0).toDouble(),
+//       ssfPercentage: (json['ssf_percentage'] ?? 0).toDouble(),
+//       subtotalB: (json['subtotal_b'] ?? 0).toDouble(),
+//       serviceFee: (json['service_fee'] ?? 0).toDouble(),
+//       serviceFeePercentage: (json['service_fee_percentage'] ?? 0).toDouble(),
+//       tax: (json['tax'] ?? 0).toDouble(),
+//       total: (json['total'] ?? 0).toDouble(),
+//       vehicleMultiplier: double.parse(json['vehicle_multiplier'].toString()),
+//       productMultiplier: double.parse(json['product_multiplier'].toString()),
+//       packagingMultiplier: double.parse(json['packaging_multiplier'].toString()),
+//     );
+//   }
 
-  Driver({
-    required this.id,
-    required this.name,
-    required this.phone,
-    required this.rating,
-  });
+//   // ✅ ADD THIS toJson() METHOD
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'base_fare': baseFare,
+//       'distance_km': distanceKm,
+//       'distance_cost': distanceCost,
+//       'weight_charge': weightCharge,
+//       'add_ons_total': addOnsTotal,
+//       'subtotal_a': subtotalA,
+//       'system_service_fee': systemServiceFee,
+//       'ssf_percentage': ssfPercentage,
+//       'subtotal_b': subtotalB,
+//       'service_fee': serviceFee,
+//       'service_fee_percentage': serviceFeePercentage,
+//       'tax': tax,
+//       'total': total,
+//       'vehicle_multiplier': vehicleMultiplier,
+//       'product_multiplier': productMultiplier,
+//       'packaging_multiplier': packagingMultiplier,
+//     };
+//   }
+// }
 
-  factory Driver.fromJson(Map<String, dynamic> json) {
-    return Driver(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      phone: json['phone'] as String,
-      rating: double.parse(json['rating'].toString()),
-    );
-  }
-}
 
-class Depot {
-  final int id;
-  final String name;
-  final String city;
+// class VehicleCompany {
+//   final int id;
+//   final String name;
 
-  Depot({required this.id, required this.name, required this.city});
+//   VehicleCompany({
+//     required this.id,
+//     required this.name,
+//   });
 
-  factory Depot.fromJson(Map<String, dynamic> json) {
-    return Depot(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      city: json['city'] as String,
-    );
-  }
-}
+//   factory VehicleCompany.fromJson(Map<String, dynamic> json) {
+//     return VehicleCompany(
+//       id: json['id'],
+//       name: json['name'],
+//     );
+//   }
+
+//   // ✅ ADD THIS
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id,
+//       'name': name,
+//     };
+//   }
+// }
+
+
+// class VehicleDriver {
+//   final int id;
+//   final String name;
+//   final double rating;
+
+//   VehicleDriver({
+//     required this.id,
+//     required this.name,
+//     required this.rating,
+//   });
+
+//   factory VehicleDriver.fromJson(Map<String, dynamic> json) {
+//     return VehicleDriver(
+//       id: json['id'],
+//       name: json['name'],
+//       rating: double.parse(json['rating'].toString()),
+//     );
+//   }
+
+//   // ✅ ADD THIS
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id,
+//       'name': name,
+//       'rating': rating,
+//     };
+//   }
+// }

@@ -352,6 +352,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
           .saveValue("total_weight", weightController.text);
       _checkFormFilled();
       _calculatePriceWithWeight(weightController.text);
+      _updateTotalWeightBasedOnQuantity(); // ADDED THIS
     });
 
     quantityController.addListener(() {
@@ -359,6 +360,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
           .read(orderCacheProvider.notifier)
           .saveValue("quantity", quantityController.text);
       _checkFormFilled();
+      _updateTotalWeightBasedOnQuantity(); // ADDED THIS
     });
 
     declaredValueController.addListener(() {
@@ -541,6 +543,26 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
         .saveValue("calculated_price", calculatedPrice.toStringAsFixed(2));
   }
 
+  // NEW METHOD: Update total weight based on quantity
+  void _updateTotalWeightBasedOnQuantity() {
+    final weightText = weightController.text;
+    final quantityText = quantityController.text;
+
+    if (weightText.isNotEmpty && quantityText.isNotEmpty) {
+      // ignore: unused_local_variable
+      final weight = double.tryParse(weightText) ?? 0;
+      final quantity = int.tryParse(quantityText) ?? 1;
+
+      // Auto-calculate only if packaging type has fixed weight
+      if (selectedPackagingTypeId != null &&
+          selectedPackagingTypeId! > 0 &&
+          quantity > 0) {
+        // We'll update the calculation card via setState
+        setState(() {});
+      }
+    }
+  }
+
   @override
   void dispose() {
     editlocationFocus.dispose();
@@ -629,16 +651,47 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                             );
 
                             return productTypeState.when(
-                              data: (data) {
-                                // ✅ CORRECT: Use getAllItems()
-                                final productItems = data.getAllItems();
+                              data: (categories) {
+                                // Create lists for dialog with headers
+                                final dialogItems = <String>[];
+                                final isHeaderList = <bool>[];
+                                final productItems =
+                                    <
+                                      ProductTypeItem
+                                    >[]; // Only products (no headers)
 
-                                int? selectedIndex;
-                                if (selectedProductTypeId != null) {
-                                  selectedIndex = productItems.indexWhere(
-                                    (item) => item.id == selectedProductTypeId,
-                                  );
-                                  if (selectedIndex < 0) selectedIndex = 0;
+                                for (final category in categories) {
+                                  // Add category header
+                                  dialogItems.add(category.categoryLabel);
+                                  isHeaderList.add(true);
+
+                                  // Add products
+                                  for (final product in category.products) {
+                                    dialogItems.add(product.name);
+                                    isHeaderList.add(false);
+                                    productItems.add(product);
+                                  }
+                                }
+
+                                // Find initial selected index in dialog items
+                                int? initialSelectedIndexInDialog;
+                                if (selectedProductTypeId != null &&
+                                    productItems.isNotEmpty) {
+                                  final selectedProduct = productItems
+                                      .firstWhere(
+                                        (item) =>
+                                            item.id == selectedProductTypeId,
+                                        orElse: () => productItems.first,
+                                      );
+
+                                  // Find index in dialog items (need to consider headers)
+                                  for (int i = 0; i < dialogItems.length; i++) {
+                                    if (dialogItems[i] ==
+                                        selectedProduct.name) {
+                                      initialSelectedIndexInDialog = i;
+                                      break;
+                                    }
+                                  }
                                 }
 
                                 return Column(
@@ -648,15 +701,23 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                       fw: FontWeight.normal,
                                       dialogueScreen:
                                           MaterialConditionPopupLeftIcon(
-                                            title: productItems.isNotEmpty
-                                                ? productItems[selectedIndex ??
-                                                          0]
+                                            title:
+                                                selectedProductTypeId != null &&
+                                                    productItems.isNotEmpty
+                                                ? productItems
+                                                      .firstWhere(
+                                                        (item) =>
+                                                            item.id ==
+                                                            selectedProductTypeId,
+                                                        orElse: () =>
+                                                            productItems.first,
+                                                      )
                                                       .name
                                                 : '',
-                                            conditions: productItems
-                                                .map((e) => e.name)
-                                                .toList(),
-                                            initialSelectedIndex: selectedIndex,
+                                            conditions: dialogItems,
+                                            isHeaderList: isHeaderList,
+                                            initialSelectedIndex:
+                                                initialSelectedIndexInDialog,
                                             enableSearch: true,
                                           ),
                                       text:
@@ -673,44 +734,50 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                                 .name
                                           : 'Select Product Type',
                                       onItemSelected: (value) {
-                                        final selectedItem = productItems
-                                            .firstWhere(
-                                              (element) =>
-                                                  element.name == value,
-                                            );
+                                        // Make sure we're not selecting a header
+                                        final indexInDialog = dialogItems
+                                            .indexOf(value);
+                                        if (indexInDialog != -1 &&
+                                            !isHeaderList[indexInDialog]) {
+                                          final selectedItem = productItems
+                                              .firstWhere(
+                                                (element) =>
+                                                    element.name == value,
+                                              );
 
-                                        setState(() {
-                                          selectedProductTypeId =
-                                              selectedItem.id;
-                                          selectedProductTypeName =
-                                              selectedItem.name;
-                                          productTypeError = null;
-                                        });
+                                          setState(() {
+                                            selectedProductTypeId =
+                                                selectedItem.id;
+                                            selectedProductTypeName =
+                                                selectedItem.name;
+                                            productTypeError = null;
+                                          });
 
-                                        ref
-                                            .read(orderCacheProvider.notifier)
-                                            .saveValue(
-                                              "selected_product_type_id",
-                                              selectedItem.id.toString(),
-                                            );
-                                        ref
-                                            .read(orderCacheProvider.notifier)
-                                            .saveValue(
-                                              "selected_product_type_name",
-                                              selectedItem.name,
-                                            );
-                                        ref
-                                            .read(orderCacheProvider.notifier)
-                                            .saveValue(
-                                              "selected_product_value_multiplier",
-                                              selectedItem.valueMultiplier
-                                                  .toString(),
-                                            );
+                                          ref
+                                              .read(orderCacheProvider.notifier)
+                                              .saveValue(
+                                                "selected_product_type_id",
+                                                selectedItem.id.toString(),
+                                              );
+                                          ref
+                                              .read(orderCacheProvider.notifier)
+                                              .saveValue(
+                                                "selected_product_type_name",
+                                                selectedItem.name,
+                                              );
+                                          ref
+                                              .read(orderCacheProvider.notifier)
+                                              .saveValue(
+                                                "selected_product_value_multiplier",
+                                                selectedItem.baseValueMultiplier
+                                                    .toString(),
+                                              );
 
-                                        _validateFields();
-                                        _calculatePrice(
-                                          selectedItem.valueMultiplier,
-                                        );
+                                          _validateFields();
+                                          _calculatePrice(
+                                            selectedItem.baseValueMultiplier,
+                                          );
+                                        }
                                       },
                                     ),
                                     if (productTypeError != null)
@@ -822,9 +889,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                             );
 
                             return packagingTypeState.when(
-                              data: (data) {
-                                final packagingItems = data.packagingTypes;
-
+                              data: (packagingItems) {
                                 int? selectedIndex;
                                 if (selectedPackagingTypeId != null) {
                                   selectedIndex = packagingItems.indexWhere(
@@ -840,7 +905,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                     DropDownContainer(
                                       fw: FontWeight.normal,
                                       dialogueScreen:
-                                          MaterialConditionPopupLeftIcon(
+                                          MaterialConditionPopupLeftIcon2(
                                             title: packagingItems.isNotEmpty
                                                 ? packagingItems[selectedIndex ??
                                                           0]
@@ -849,6 +914,8 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                             conditions: packagingItems
                                                 .map((e) => e.name)
                                                 .toList(),
+                                            items:
+                                                packagingItems, // Pass items for search
                                             initialSelectedIndex: selectedIndex,
                                             enableSearch: true,
                                           ),
@@ -878,8 +945,16 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                           selectedPackagingTypeName =
                                               selectedItem.name;
                                           packagingTypeError = null;
-                                          showDimensionsFields = selectedItem
-                                              .requiresDimensions; // FIXED ISSUE 3
+                                          showDimensionsFields =
+                                              selectedItem.requiresDimensions;
+
+                                          // AUTOMATIC WEIGHT FILL - FIXED ISSUE
+                                          if (selectedItem.fixedWeightKg !=
+                                              null) {
+                                            weightController.text = selectedItem
+                                                .fixedWeightKg!
+                                                .toStringAsFixed(2);
+                                          }
                                         });
 
                                         // Save to cache
@@ -910,7 +985,28 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                                   .toString(),
                                             );
 
-                                        // Clear dimensions if not required
+                                        if (selectedItem.fixedWeightKg !=
+                                            null) {
+                                          ref
+                                              .read(orderCacheProvider.notifier)
+                                              .saveValue(
+                                                "selected_packaging_fixed_weight_kg",
+                                                selectedItem.fixedWeightKg
+                                                    .toString(),
+                                              );
+                                        }
+
+                                        if (selectedItem.typicalCapacityKg !=
+                                            null) {
+                                          ref
+                                              .read(orderCacheProvider.notifier)
+                                              .saveValue(
+                                                "selected_packaging_typical_capacity_kg",
+                                                selectedItem.typicalCapacityKg
+                                                    .toString(),
+                                              );
+                                        }
+
                                         if (!selectedItem.requiresDimensions) {
                                           lengthController.clear();
                                           widthController.clear();
@@ -918,6 +1014,9 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                         }
 
                                         _validateFields();
+                                        _calculatePriceWithWeight(
+                                          weightController.text,
+                                        ); // Calculate price
                                       },
                                     ),
 
@@ -935,133 +1034,6 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                           ),
                                         ),
                                       ),
-
-                                    // Show packaging type details if selected
-                                    if (selectedPackagingTypeName != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Consumer(
-                                          builder: (context, ref, child) {
-                                            final state = ref.watch(
-                                              packagingTypeControllerProvider,
-                                            );
-                                            final selectedItem = state.when(
-                                              data: (data) => data
-                                                  .packagingTypes
-                                                  .firstWhere(
-                                                    (item) =>
-                                                        item.id ==
-                                                        selectedPackagingTypeId,
-                                                    orElse: () =>
-                                                        PackagingTypeItem(
-                                                          id: 0,
-                                                          name: '',
-                                                          description: '',
-                                                          handlingMultiplier:
-                                                              1.0,
-                                                          requiresDimensions:
-                                                              false,
-                                                        ),
-                                                  ),
-                                              loading: () => PackagingTypeItem(
-                                                id: 0,
-                                                name: '',
-                                                description: '',
-                                                handlingMultiplier: 1.0,
-                                                requiresDimensions: false,
-                                              ),
-                                              error: (error, stackTrace) =>
-                                                  PackagingTypeItem(
-                                                    id: 0,
-                                                    name: '',
-                                                    description: '',
-                                                    handlingMultiplier: 1.0,
-                                                    requiresDimensions: false,
-                                                  ),
-                                            );
-
-                                            return Column(
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.info_outline,
-                                                      size: 14,
-                                                      color: Colors.blue,
-                                                    ),
-                                                    SizedBox(width: 4),
-                                                    Expanded(
-                                                      child: Text(
-                                                        selectedItem
-                                                            .description,
-                                                        style: TextStyle(
-                                                          fontSize: 11,
-                                                          color:
-                                                              Colors.grey[600],
-                                                        ),
-                                                        maxLines: 2,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                SizedBox(height: 2),
-                                              ],
-                                            );
-                                          },
-                                        ),
-                                      ),
-
-                                    // DIMENSIONS FIELDS - Only show if requiresDimensions is true
-                                    if (showDimensionsFields) ...[
-                                      SizedBox(height: 6),
-                                      Text(
-                                        "Package Dimensions (cm)",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
-                                      SizedBox(height: 16),
-                                      Column(
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: _buildTextField(
-                                                  controller: lengthController,
-                                                  label: "Length (cm)",
-                                                  icon: Icons.straighten,
-                                                ),
-                                              ),
-                                              SizedBox(width: 8),
-                                              Expanded(
-                                                child: _buildTextField(
-                                                  controller: widthController,
-                                                  label: "Width (cm)",
-                                                  icon: Icons.width_normal,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          SizedBox(height: 8),
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: _buildTextField(
-                                                  controller: heightController,
-                                                  label: "Height (cm)",
-                                                  icon: Icons.height,
-                                                ),
-                                              ),
-                                              // Expanded(child: Container()), // Empty space for alignment
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ],
                                   ],
                                 );
                               },
@@ -1149,35 +1121,90 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                           },
                         ),
 
-                        // END PACKAGING TYPE DROPDOWN
-                        gapH16,
+                        gapH24,
 
+                        gapH4,
                         Row(
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                controller: weightController, // FIXED ISSUE 4
+                                controller: weightController,
                                 label: "Total Weight (kg)",
-                                icon: Icons.scale, // Correct icon
+                                icon: Icons.scale,
                               ),
                             ),
                             gapW8,
                             Expanded(
                               child: _buildTextField(
-                                controller: quantityController, // FIXED ISSUE 4
+                                controller: quantityController,
                                 label: "Quantity",
-                                icon: Icons.numbers, // Correct icon
+                                icon: Icons.numbers,
                               ),
                             ),
                           ],
                         ),
 
-                        // gapH8,
                         _buildTextField(
-                          controller: declaredValueController, // FIXED
+                          controller: declaredValueController,
                           label: "Declared Value (R)",
-                          icon: Icons.attach_money, // Correct icon
+                          icon: Icons.attach_money,
                         ),
+
+                        // DIMENSIONS FIELDS
+                        if (showDimensionsFields) ...[
+                          // SizedBox(height: 6),
+                          Text(
+                            "Package Dimensions (cm)",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: lengthController,
+                                      label: "Length (cm)",
+                                      icon: Icons.straighten,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: widthController,
+                                      label: "Width (cm)",
+                                      icon: Icons.width_normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildTextField(
+                                      controller: heightController,
+                                      label: "Height (cm)",
+                                      icon: Icons.height,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        gapH8,
+
+                        // CALCULATION CARD
+                        _buildCalculationCard(),
+
+                        gapH16,
                       ],
                     ),
                   ),
@@ -1186,13 +1213,312 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                   // Default Address
                   // _defaultAddressSection(),
 
-                  // Defult address end
+                  // Default address end
                   gapH16,
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // CALCULATION CARD WIDGET
+  Widget _buildCalculationCard() {
+    // Get item weight from controller or fixed packaging weight
+    double itemWeight = double.tryParse(weightController.text) ?? 0;
+
+    // If packaging type has fixed weight, use that
+    if (selectedPackagingTypeId != null && selectedPackagingTypeId! > 0) {
+      final packagingState = ref.watch(packagingTypeControllerProvider);
+      packagingState.when(
+        data: (items) {
+          final selectedItem = items.firstWhere(
+            (item) => item.id == selectedPackagingTypeId,
+            orElse: () => PackagingTypeItem(
+              id: 0,
+              name: '',
+              description: '',
+              fixedWeightKg: null,
+              requiresDimensions: false,
+              typicalCapacityKg: null,
+              handlingMultiplier: 1.0,
+              icon: 'box',
+            ),
+          );
+
+          if (selectedItem.fixedWeightKg != null) {
+            itemWeight = selectedItem.fixedWeightKg!;
+          }
+        },
+        loading: () {},
+        error: (error, stackTrace) {},
+      );
+    }
+
+    final quantityText = quantityController.text;
+    int quantity = int.tryParse(quantityText) ?? 1;
+
+    // Calculate total weight
+    double totalWeight = itemWeight * quantity;
+
+    // Determine load type
+    String loadType = "Light Load";
+    Color loadColor = Colors.green;
+
+    if (totalWeight >= 100) {
+      loadType = "Heavy Load";
+      loadColor = Colors.red;
+    } else if (totalWeight >= 50) {
+      loadType = "Medium Load";
+      loadColor = Colors.orange;
+    }
+
+    // Calculate estimated price
+    double baseRatePerKg = 50.0;
+    double productMultiplier = 1.0;
+    double packagingMultiplier = 1.0;
+
+    // Get product multiplier if selected
+    if (selectedProductTypeId != null) {
+      final productState = ref.watch(productTypeControllerProvider);
+      productState.when(
+        data: (categories) {
+          for (final category in categories) {
+            final product = category.products.firstWhere(
+              (p) => p.id == selectedProductTypeId,
+              orElse: () => ProductTypeItem(
+                id: 0,
+                name: '',
+                category: '',
+                description: '',
+                baseValueMultiplier: 1.0,
+                icon: '',
+                categoryLabel: '',
+              ),
+            );
+            if (product.id > 0) {
+              productMultiplier = product.baseValueMultiplier;
+            }
+          }
+        },
+        loading: () {},
+        error: (error, stackTrace) {},
+      );
+    }
+
+    // Get packaging multiplier if selected
+    if (selectedPackagingTypeId != null) {
+      final packagingState = ref.watch(packagingTypeControllerProvider);
+      packagingState.when(
+        data: (items) {
+          final selectedItem = items.firstWhere(
+            (item) => item.id == selectedPackagingTypeId,
+            orElse: () => PackagingTypeItem(
+              id: 0,
+              name: '',
+              description: '',
+              fixedWeightKg: null,
+              requiresDimensions: false,
+              typicalCapacityKg: null,
+              handlingMultiplier: 1.0,
+              icon: 'box',
+            ),
+          );
+          packagingMultiplier = selectedItem.handlingMultiplier;
+        },
+        loading: () {},
+        error: (error, stackTrace) {},
+      );
+    }
+
+    // ignore: unused_local_variable
+    double estimatedPrice =
+        totalWeight * baseRatePerKg * productMultiplier * packagingMultiplier;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: AppColors.electricTeal.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Package Calculation",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkText,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: loadColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: loadColor.withOpacity(0.3)),
+                ),
+                child: Text(
+                  loadType,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: loadColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Calculation details
+          _buildCalculationRow(
+            label: "Item Weight",
+            value: "${itemWeight.toStringAsFixed(2)} kg",
+            icon: Icons.scale,
+          ),
+
+          _buildCalculationRow(
+            label: "Quantity",
+            value: quantity.toString(),
+            icon: Icons.numbers,
+          ),
+
+          const Divider(height: 16, thickness: 1),
+
+          _buildCalculationRow(
+            label: "Total Weight",
+            value: "${totalWeight.toStringAsFixed(2)} kg",
+            icon: Icons.inventory,
+            isTotal: true,
+          ),
+
+          const SizedBox(height: 8),
+
+          if (selectedProductTypeName != null ||
+              selectedPackagingTypeName != null)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 16, thickness: 1),
+
+                if (selectedProductTypeName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(Icons.category, size: 14, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Product: $selectedProductTypeName",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                if (selectedPackagingTypeName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 14,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Packaging: $selectedPackagingTypeName",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCalculationRow({
+    required String label,
+    required String value,
+    required IconData icon,
+    bool isTotal = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: isTotal
+                  ? AppColors.electricTeal.withOpacity(0.1)
+                  : Colors.grey[100],
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: isTotal ? AppColors.electricTeal : Colors.grey[600],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+              color: isTotal ? AppColors.electricTeal : AppColors.darkText,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1220,140 +1546,6 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
     });
   }
 
-  Widget _defaultAddressSection() {
-    final defaultAddressState = ref.watch(defaultAddressControllerProvider);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.pureWhite,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.mediumGray.withOpacity(0.1),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                "Default Address",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (editorMode == "edit" && showEditor) {
-                      showEditor = false;
-                    } else {
-                      editorMode = "edit";
-                      showEditor = true;
-                      ref
-                          .read(allAddressControllerProvider.notifier)
-                          .loadAllAddress();
-                    }
-                  });
-                },
-                child: _smallButton("Edit", showEditor && editorMode == "edit"),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          if (!showEditor)
-            defaultAddressState.when(
-              loading: () =>
-                  _selectableCard(index: 0, text: "Loading address..."),
-              error: (err, _) =>
-                  _selectableCard(index: 0, text: "Failed to load address"),
-              data: (addressModel) {
-                final address = addressModel.data;
-                final formatted =
-                    "${address.address},\n${address.city}, ${address.state}\n${address.postalCode}";
-
-                if (selectedAddress.isEmpty) {
-                  final cache = ref.read(orderCacheProvider);
-                  selectedAddress =
-                      cache["default_selected_address"] ?? formatted;
-                }
-
-                return _selectableCard(index: 0, text: selectedAddress);
-              },
-            ),
-
-          if (showEditor && editorMode == "edit") ...[
-            const SizedBox(height: 12),
-            Consumer(
-              builder: (context, ref, _) {
-                final allAddressState = ref.watch(allAddressControllerProvider);
-
-                return allAddressState.when(
-                  loading: () => _selectableCard(
-                    index: 999,
-                    text: "Loading saved addresses...",
-                  ),
-                  error: (err, _) => _selectableCard(
-                    index: 999,
-                    text: "Failed to load addresses",
-                  ),
-                  data: (model) {
-                    final list = model?.data ?? [];
-
-                    return Column(
-                      children: List.generate(list.length, (i) {
-                        final a = list[i];
-                        final formatted =
-                            "${a.address} - ${a.addressLine2}\n${a.city}, ${a.state}\n${a.postalCode}";
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _selectableCard(index: i + 1, text: formatted),
-                        );
-                      }),
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _smallButton(String text, bool isOpen) {
-    IconData icon;
-
-    if (isOpen) {
-      icon = Icons.close;
-    } else {
-      icon = (text == "Add") ? Icons.add : Icons.edit;
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.electricTeal,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 12, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -1373,51 +1565,6 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
       inputFormatters: isNumber
           ? [FilteringTextInputFormatter.digitsOnly]
           : <TextInputFormatter>[],
-    );
-  }
-
-  Widget _selectableCard({required int index, required String text}) {
-    bool isSelected = selectedCardIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedCardIndex = index;
-          selectedAddress = text;
-          showEditor = false;
-        });
-        ref
-            .read(orderCacheProvider.notifier)
-            .saveValue("default_selected_address", text);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.pureWhite,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? AppColors.electricTeal : AppColors.electricTeal,
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.home, size: 20, color: AppColors.electricTeal),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: AppColors.darkText,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

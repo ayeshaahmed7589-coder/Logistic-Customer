@@ -4,20 +4,20 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/constants/api_url.dart';
 import 'package:logisticscustomer/constants/local_storage.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_controller.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/calculate_quotes/calculate_quote_modal.dart';
 import 'package:logisticscustomer/features/home/create_orders_screens/fetch_order/place_order_modal.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/search_screen/search_controller.dart';
 
-class OrderRepository {
+import '../calculate_quotes/calculate_quote_controller.dart';
+import '../order_cache_provider.dart' show orderCacheProvider;
+
+class PlaceOrderRepository {
   final Dio dio;
   final Ref ref;
 
-  OrderRepository({required this.dio, required this.ref});
+  PlaceOrderRepository({required this.dio, required this.ref});
 
-  Future<OrderResponse> placeOrder({
-    required OrderRequestBody orderRequestBody,
+  // ✅ PLACE STANDARD ORDER
+  Future<OrderResponse> placeStandardOrder({
+    required StandardOrderRequestBody request,
   }) async {
     final url = ApiUrls.postPlaceOrder;
 
@@ -27,12 +27,21 @@ class OrderRepository {
     }
 
     try {
-      print("📤 Sending order to API...");
-      print("Request Body: ${jsonEncode(orderRequestBody.toJson())}");
+      print("📤 Placing Standard Order...");
+      
+      // ✅ FIRST CHECK IF WE CAN CONVERT TO JSON
+      try {
+        print("Testing JSON conversion...");
+        final requestJson = request.toJson();
+        print("Request Body: ${jsonEncode(requestJson)}");
+      } catch (jsonError) {
+        print("❌ JSON Conversion Error: $jsonError");
+        throw Exception("Failed to prepare request data: $jsonError");
+      }
 
       final response = await dio.post(
         url,
-        data: orderRequestBody.toJson(),
+        data: request.toJson(),
         options: Options(
           headers: {
             "Authorization": "Bearer $token",
@@ -53,53 +62,37 @@ class OrderRepository {
         throw Exception("Invalid response format from server");
       }
 
-      switch (response.statusCode) {
-        case 422:
-          final errors = responseData["errors"] ?? {};
-          String errorMsg = "Validation failed: ";
-          if (errors is Map) {
-            errors.forEach((key, value) {
-              if (value is List) {
-                errorMsg += "$key: ${value.join(", ")}. ";
-              } else {
-                errorMsg += "$key: $value. ";
-              }
-            });
-          }
-          throw Exception(errorMsg.trim());
-
-        case 400:
-          final message = responseData["message"] ?? "Bad request";
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (responseData["success"] == true) {
+          return OrderResponse.fromJson(responseData);
+        } else {
+          throw Exception("Order placement failed: ${responseData["message"]}");
+        }
+      } else if (response.statusCode == 400) {
+        final message = responseData["message"] ?? "Bad request";
+        if (message.contains("insufficient", caseSensitive: false)) {
           final required = responseData["required"] ?? 0;
           final available = responseData["available"] ?? 0;
-
-          if (message.contains("insufficient", caseSensitive: false)) {
-            throw Exception(
-              "Insufficient wallet balance. Required: R$required, Available: R$available",
-            );
-          }
-          throw Exception(message);
-
-        case 404:
           throw Exception(
-            "Customer profile not found. Please contact support.",
+            "Insufficient wallet balance. Required: R$required, Available: R$available",
           );
-
-        case 500:
-          throw Exception(
-            "Server error: ${responseData["message"] ?? "Internal server error"}",
-          );
-
-        case 200:
-        case 201:
-          if (responseData["success"] == true) {
-            return OrderResponse.fromJson(responseData);
-          } else {
-            throw Exception("Order failed: ${responseData["message"]}");
-          }
-
-        default:
-          throw Exception("Failed to place order: ${response.statusCode}");
+        }
+        throw Exception(message);
+      } else if (response.statusCode == 422) {
+        final errors = responseData["errors"] ?? {};
+        String errorMsg = "Validation failed: ";
+        if (errors is Map) {
+          errors.forEach((key, value) {
+            if (value is List) {
+              errorMsg += "$key: ${value.join(", ")}. ";
+            } else {
+              errorMsg += "$key: $value. ";
+            }
+          });
+        }
+        throw Exception(errorMsg.trim());
+      } else {
+        throw Exception("Failed to place order: ${response.statusCode}");
       }
     } on DioException catch (e) {
       print("⛔ Dio Error: ${e.type}");
@@ -121,118 +114,156 @@ class OrderRepository {
     }
   }
 
-  Future<OrderRequestBody> prepareOrderData() async {
-    final cache = ref.read(orderCacheProvider);
-    final items = ref.read(packageItemsProvider);
+  // ✅ PLACE MULTI-STOP ORDER
+  Future<OrderResponse> placeMultiStopOrder({
+    required MultiStopOrderRequestBody request,
+  }) async {
+    final url = ApiUrls.postPlaceOrder;
 
-    print("🔍 Preparing order data...");
+    final token = await LocalStorage.getToken() ?? "";
+    if (token.isEmpty) {
+      throw Exception("Token missing. Please login again.");
+    }
 
-    //  Step 1: Get selected quote data
-    final selectedQuote = ref.read(bestQuoteProvider);
+    try {
+      print("📤 Placing Multi-Stop Order...");
+      
+      // ✅ FIRST CHECK IF WE CAN CONVERT TO JSON
+      try {
+        print("Testing JSON conversion...");
+        final requestJson = request.toJson();
+        print("Request Body: ${jsonEncode(requestJson)}");
+      } catch (jsonError) {
+        print("❌ JSON Conversion Error: $jsonError");
+        throw Exception("Failed to prepare request data: $jsonError");
+      }
 
-    if (selectedQuote == null) {
-      print("❌❌❌ ERROR: bestQuoteProvider is NULL!");
-      print("Checking quote controller state...");
-
-      final quoteState = ref.read(quoteControllerProvider);
-      quoteState.when(
-        data: (data) {
-          print("Quote Data available: ${data != null}");
-          if (data != null) {
-            print("Quotes count: ${data.quotes.length}");
-            print("First quote vehicle: ${data.quotes.first.vehicleType}");
-          }
-        },
-        loading: () => print("Quotes are loading"),
-        error: (e, st) => print("Quote error: $e"),
+      final response = await dio.post(
+        url,
+        data: request.toJson(),
+        options: Options(
+          headers: {
+            "Authorization": "Bearer $token",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          receiveTimeout: Duration(seconds: 30),
+          sendTimeout: Duration(seconds: 30),
+        ),
       );
 
+      print("📌 API Status: ${response.statusCode}");
+
+      final Map<String, dynamic> responseData;
+      if (response.data is Map) {
+        responseData = (response.data as Map).cast<String, dynamic>();
+      } else {
+        throw Exception("Invalid response format from server");
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (responseData["success"] == true) {
+          return OrderResponse.fromJson(responseData);
+        } else {
+          throw Exception("Order placement failed: ${responseData["message"]}");
+        }
+      } else if (response.statusCode == 400) {
+        final message = responseData["message"] ?? "Bad request";
+        if (message.contains("insufficient", caseSensitive: false)) {
+          final required = responseData["required"] ?? 0;
+          final available = responseData["available"] ?? 0;
+          throw Exception(
+            "Insufficient wallet balance. Required: R$required, Available: R$available",
+          );
+        }
+        throw Exception(message);
+      } else if (response.statusCode == 422) {
+        final errors = responseData["errors"] ?? {};
+        String errorMsg = "Validation failed: ";
+        if (errors is Map) {
+          errors.forEach((key, value) {
+            if (value is List) {
+              errorMsg += "$key: ${value.join(", ")}. ";
+            } else {
+              errorMsg += "$key: $value. ";
+            }
+          });
+        }
+        throw Exception(errorMsg.trim());
+      } else {
+        throw Exception("Failed to place order: ${response.statusCode}");
+      }
+    } on DioException catch (e) {
+      print("⛔ Dio Error: ${e.type}");
+      print("Message: ${e.message}");
+      print("Response: ${e.response?.data}");
+
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception("Connection timeout. Please check your internet.");
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        throw Exception("Server response timeout. Please try again.");
+      } else if (e.type == DioExceptionType.connectionError) {
+        throw Exception("No internet connection. Please check your network.");
+      }
+
+      rethrow;
+    } catch (e) {
+      print("⛔ General Error: $e");
+      rethrow;
+    }
+  }
+
+  // ✅ PREPARE STANDARD ORDER DATA
+  Future<StandardOrderRequestBody> prepareStandardOrderData() async {
+    final cache = ref.read(orderCacheProvider);
+    final bestQuote = ref.read(bestQuoteProvider);
+
+    if (bestQuote == null) {
       throw Exception("Please calculate and select a quote first");
     }
 
-    print("✅ Quote found: ${selectedQuote.vehicleType}");
-
-    //  Step 2: Check if we have package items
-    if (items.isEmpty) {
-      print("⚠️ No package items - using default item");
-
-      // Create a default item if none exists
-      final defaultItems = [
-        OrderItemRequest(
-          name: "General Goods",
-          quantity: 1,
-          weight:
-              double.tryParse(cache["total_weight"]?.toString() ?? "1") ?? 1.0,
-          value:
-              double.tryParse(cache["declared_value"]?.toString() ?? "0") ??
-              0.0,
-          description:
-              "Order from ${cache["pickup_city"] ?? "Unknown"} to ${cache["delivery_city"] ?? "Unknown"}",
-          productSku: "GEN-001",
-        ),
-      ];
-
-      return _buildOrderRequestBody(cache, selectedQuote, defaultItems);
-    }
-
-    // Step 3: Calculate total weight and item quantity
-    double totalWeight = 0.0;
-    int totalQuantity = 0;
-
-    List<OrderItemRequest> orderItems = items.map((item) {
-      final weight = double.tryParse(item.weight) ?? 0.0;
-      final quantity = int.tryParse(item.qty) ?? 1;
-      final value = double.tryParse(item.value) ?? 0.0;
-
-      totalWeight += weight * quantity;
-      totalQuantity += quantity;
-
-      return OrderItemRequest(
-        name: item.name,
-        quantity: quantity,
-        weight: weight,
-        value: value,
-        description: item.note.isNotEmpty ? item.note : "No description",
-        shopifyProductId: item.isFromShopify
-            ? "gid://shopify/Product/${item.sku}"
-            : null,
-        productSku: item.sku.isNotEmpty ? item.sku : "N/A",
-      );
-    }).toList();
-
-    return _buildOrderRequestBody(cache, selectedQuote, orderItems);
-  }
-
-  OrderRequestBody _buildOrderRequestBody(
-    Map<String, dynamic> cache,
-    Quote selectedQuote,
-    List<OrderItemRequest> orderItems,
-  ) {
-    //  Get product and packaging type IDs
-    final productTypeIdStr =
-        cache["selected_product_type_id"]?.toString() ?? "0";
-    final packagingTypeIdStr =
-        cache["selected_packaging_type_id"]?.toString() ?? "0";
-
-    final productTypeId = int.tryParse(productTypeIdStr) ?? 0;
-    final packagingTypeId = int.tryParse(packagingTypeIdStr) ?? 0;
+    // Get product and packaging IDs
+    final productTypeId = int.tryParse(cache["selected_product_type_id"]?.toString() ?? "0") ?? 0;
+    final packagingTypeId = int.tryParse(cache["selected_packaging_type_id"]?.toString() ?? "0") ?? 0;
 
     if (productTypeId == 0 || packagingTypeId == 0) {
-      throw Exception(
-        "Product or packaging type not selected. Please go back to Step 1.",
-      );
+      throw Exception("Product or packaging type not selected");
     }
 
-    // Get declared value
-    double declaredValue = 0.0;
-    final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
-    declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
+    // Get quantity and weight
+    final quantity = int.tryParse(cache["quantity"]?.toString() ?? "1") ?? 1;
+    final weightStr = cache["total_weight"]?.toString() ?? "0";
+    final weightPerItem = double.tryParse(weightStr) ?? 0.0;
 
-    //  Get add-ons
-    List<String> addOns = [];
+    // Get coordinates
+    final pickupLat = double.tryParse(cache["pickup_latitude"]?.toString() ?? "-26.2041") ?? -26.2041;
+    final pickupLng = double.tryParse(cache["pickup_longitude"]?.toString() ?? "28.0473") ?? 28.0473;
+    final deliveryLat = double.tryParse(cache["delivery_latitude"]?.toString() ?? "-26.1952") ?? -26.1952;
+    final deliveryLng = double.tryParse(cache["delivery_longitude"]?.toString() ?? "28.0346") ?? 28.0346;
+
+    // Get addresses
+    final pickupAddress = cache["pickup_address1"]?.toString() ?? "";
+    final pickupCity = cache["pickup_city"]?.toString() ?? "";
+    final pickupState = cache["pickup_state"]?.toString() ?? "";
+    final pickupPostal = cache["pickup_postal"]?.toString();
+    final pickupContactName = cache["pickup_name"]?.toString() ?? "";
+    final pickupContactPhone = cache["pickup_phone"]?.toString() ?? "";
+
+    final deliveryAddress = cache["delivery_address1"]?.toString() ?? "";
+    final deliveryCity = cache["delivery_city"]?.toString() ?? "";
+    final deliveryState = cache["delivery_state"]?.toString() ?? "";
+    final deliveryPostal = cache["delivery_postal"]?.toString();
+    final deliveryContactName = cache["delivery_name"]?.toString() ?? "";
+    final deliveryContactPhone = cache["delivery_phone"]?.toString() ?? "";
+
+    // Get service type and add-ons
+    final serviceType = cache["service_type_id"]?.toString() ?? "standard";
+    final priority = cache["priority"]?.toString() ?? "medium";
+    final paymentMethod = cache["payment_method"]?.toString() ?? "wallet";
+    
+    final addOns = <String>[];
     final selectedAddons = cache["selected_addons"];
-
-    if (selectedAddons != null && selectedAddons is List) {
+    if (selectedAddons is List) {
       for (var addon in selectedAddons) {
         if (addon is String) {
           addOns.add(addon);
@@ -240,87 +271,263 @@ class OrderRepository {
       }
     }
 
-    //  Get addresses
-    String pickupAddress = cache["pickup_address1"]?.toString() ?? "";
-    if (pickupAddress.isEmpty) {
-      pickupAddress = cache["pickup_city"]?.toString() ?? "Unknown Location";
-    }
-
-    String deliveryAddress = cache["delivery_address1"]?.toString() ?? "";
-    if (deliveryAddress.isEmpty) {
-      deliveryAddress =
-          cache["delivery_city"]?.toString() ?? "Unknown Location";
-    }
-
-    // Get contact information
-    final pickupContactName = cache["pickup_name"]?.toString() ?? "Unknown";
-    final pickupContactPhone = cache["pickup_phone"]?.toString() ?? "";
-    final deliveryContactName = cache["delivery_name"]?.toString() ?? "Unknown";
-    final deliveryContactPhone = cache["delivery_phone"]?.toString() ?? "";
-
-    //  Get city/state/postal code
-    final pickupCity = cache["pickup_city"]?.toString() ?? "";
-    final pickupState = cache["pickup_state"]?.toString() ?? "";
-    final pickupPostalCode = cache["pickup_postal"]?.toString() ?? "";
-
-    final deliveryCity = cache["delivery_city"]?.toString() ?? "";
-    final deliveryState = cache["delivery_state"]?.toString() ?? "";
-    final deliveryPostalCode = cache["delivery_postal"]?.toString() ?? "";
-
-    //  Get service type
-    final serviceType = cache["service_type_id"]?.toString() ?? "standard";
-
-    // Get special instructions
     final specialInstructions = cache["special_instructions"]?.toString();
+    final declaredValue = double.tryParse(cache["declared_value"]?.toString() ?? "0") ?? 0.0;
 
-    // Get estimated cost from quote
-    double estimatedCost = selectedQuote.pricing.total;
+    // Get dimensions
+    final length = double.tryParse(cache["package_length"]?.toString() ?? "");
+    final width = double.tryParse(cache["package_width"]?.toString() ?? "");
+    final height = double.tryParse(cache["package_height"]?.toString() ?? "");
 
-    //  Create SelectedQuote object
-    final quoteSelected = SelectedQuote(
-      vehicleId: selectedQuote.vehicleId,
-      driverId: selectedQuote.driver.id,
-      matchingScore: selectedQuote.totalScore,
-      depotScore: selectedQuote.depotScore,
-      distanceScore: selectedQuote.distanceScore,
-      priceScore: selectedQuote.priceScore,
-      suitabilityScore: selectedQuote.suitabilityScore,
-      driverScore: (selectedQuote.driver.rating),
-      depotId: selectedQuote.depotId,
+    // Prepare selected quote
+    final selectedQuote = SelectedQuote(
+      vehicleId: bestQuote.vehicleId,
+      vehicleTypeId: bestQuote.vehicleTypeId,
+      vehicleTypeName: bestQuote.vehicleType,
+      registrationNumber: bestQuote.registrationNumber,
+      make: bestQuote.make,
+      model: bestQuote.model,
+      capacityKg: bestQuote.capacityWeightKg,
+      capacityVolumeM3: bestQuote.capacityWeightKg,
+      totalScore: bestQuote.totalScore,
+      matchingScore: bestQuote.totalScore,
+      depotScore: bestQuote.depotScore?.toInt() ?? 0,
+      distanceScore: bestQuote.distanceScore?.toInt() ?? 0,
+      priceScore: bestQuote.priceScore?.toInt() ?? 0,
+      suitabilityScore: bestQuote.suitabilityScore?.toInt() ?? 0,
+      driverScore: bestQuote.driverScore?.toInt() ?? 0,
+      depotId: bestQuote.depotId ?? 0,
+      depotName: bestQuote.depotName ?? '',
+      depotCity: bestQuote.depotCity ?? '',
+      depotDistanceKm: bestQuote.depotDistanceKm ?? 0,
+      isExclusive: bestQuote.isExclusive ?? false,
+      utilizationPercent: bestQuote.utilizationPercent ?? 0,
+      pricing: bestQuote.pricing,
+      company: bestQuote.company,
+      driver: bestQuote.driver,
     );
 
-    // ✅ Calculate total weight from items
-    double totalWeight = orderItems.fold(
-      0.0,
-      (sum, item) => sum + (item.weight * item.quantity),
-    );
-    int totalQuantity = orderItems.fold(0, (sum, item) => sum + item.quantity);
-
-    // ✅ Create final order request body
-    return OrderRequestBody(
+    // ✅ CREATE THE REQUEST OBJECT
+    final request = StandardOrderRequestBody(
       productTypeId: productTypeId,
       packagingTypeId: packagingTypeId,
-      totalWeightKg: totalWeight,
-      itemQuantity: totalQuantity,
-      pickupContactName: pickupContactName,
-      pickupContactPhone: pickupContactPhone,
+      quantity: quantity,
+      weightPerItem: weightPerItem,
+      selectedQuote: selectedQuote,
       pickupAddress: pickupAddress,
+      pickupLatitude: pickupLat,
+      pickupLongitude: pickupLng,
       pickupCity: pickupCity,
       pickupState: pickupState,
-      pickupPostalCode: pickupPostalCode,
-      deliveryContactName: deliveryContactName,
-      deliveryContactPhone: deliveryContactPhone,
+      pickupPostalCode: pickupPostal,
+      pickupContactName: pickupContactName,
+      pickupContactPhone: pickupContactPhone,
       deliveryAddress: deliveryAddress,
+      deliveryLatitude: deliveryLat,
+      deliveryLongitude: deliveryLng,
       deliveryCity: deliveryCity,
       deliveryState: deliveryState,
-      deliveryPostalCode: deliveryPostalCode,
+      deliveryPostalCode: deliveryPostal,
+      deliveryContactName: deliveryContactName,
+      deliveryContactPhone: deliveryContactPhone,
       serviceType: serviceType,
-      specialInstructions: specialInstructions,
-      selectedQuote: quoteSelected,
-      estimatedCost: estimatedCost,
+      priority: priority,
+      paymentMethod: paymentMethod,
       addOns: addOns,
+      specialInstructions: specialInstructions,
       declaredValue: declaredValue,
-      items: orderItems,
+      length: length,
+      width: width,
+      height: height,
     );
+
+    // ✅ DEBUG PRINT STATEMENTS
+    print("📋 Preparing Standard Order Data...");
+    print("Selected Quote JSON: ${jsonEncode(selectedQuote.toJson())}");
+    print("Total Request Body: ${jsonEncode(request.toJson())}");
+
+    return request;
   }
+
+  // ✅ PREPARE MULTI-STOP ORDER DATA
+// ✅ PREPARE MULTI-STOP ORDER DATA - COMPLETELY FIXED
+Future<MultiStopOrderRequestBody> prepareMultiStopOrderData() async {
+  final cache = ref.read(orderCacheProvider);
+  final bestQuote = ref.read(bestQuoteProvider);
+
+  if (bestQuote == null) {
+    throw Exception("Please calculate and select a quote first");
+  }
+
+  // Get product and packaging IDs
+  final productTypeId = int.tryParse(cache["selected_product_type_id"]?.toString() ?? "0") ?? 0;
+  final packagingTypeId = int.tryParse(cache["selected_packaging_type_id"]?.toString() ?? "0") ?? 0;
+
+  if (productTypeId == 0 || packagingTypeId == 0) {
+    throw Exception("Product or packaging type not selected");
+  }
+
+  // ✅ IMPORTANT: Get quantity and weight FROM CACHE (standard order ki tarah)
+  // Standard order: cache["quantity"] aur cache["total_weight"] use karta hai
+  // Multi-stop ko bhi same keys use karni chahiye
+  
+  final quantityStr = cache["quantity"]?.toString() ?? "1";
+  final weightStr = cache["total_weight"]?.toString() ?? "0";
+  
+  int totalQuantity = int.tryParse(quantityStr) ?? 1;
+  double totalWeight = double.tryParse(weightStr) ?? 0.0;
+
+  print("📊 MULTI-STOP VALUES FROM CACHE:");
+  print("cache['quantity'] = $quantityStr -> totalQuantity = $totalQuantity");
+  print("cache['total_weight'] = $weightStr -> totalWeight = $totalWeight");
+
+  // ✅ FALLBACK: Agar cache mein nahi hai, to calculate from stops
+  if (totalQuantity == 0 || totalWeight == 0) {
+    print("⚠️  Cache values are 0, calculating from stops...");
+    
+    final stopsCount = int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+    totalQuantity = 0;
+    totalWeight = 0.0;
+    
+    for (int i = 1; i <= stopsCount; i++) {
+      final qty = int.tryParse(cache["stop_${i}_quantity"]?.toString() ?? "1") ?? 1;
+      final weight = double.tryParse(cache["stop_${i}_weight"]?.toString() ?? "50") ?? 50.0;
+      
+      totalQuantity += qty;
+      totalWeight += weight;
+    }
+    
+    print("Calculated from stops: Qty=$totalQuantity, Weight=$totalWeight");
+  }
+
+  // ✅ ENSURE MINIMUM VALUES
+  if (totalQuantity < 1) {
+    print("⚠️  Quantity $totalQuantity < 1, setting to 1");
+    totalQuantity = 1;
+  }
+  
+  if (totalWeight < 0.01) {
+    print("⚠️  Weight $totalWeight < 0.01, setting to 0.01");
+    totalWeight = 0.01;
+  }
+
+  print("✅ FINAL VALUES: Qty=$totalQuantity, Weight=$totalWeight");
+
+  // Prepare stops (ONLY ADDRESS/CONTACT INFO)
+  final stopsCount = int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+  final stops = <OrderStop>[];
+  
+  for (int i = 1; i <= stopsCount; i++) {
+    final stopTypeStr = cache["stop_${i}_type"]?.toString() ?? "";
+    
+    String stopType;
+    if (stopTypeStr.contains("pickup")) {
+      stopType = "pickup";
+    } else if (stopTypeStr.contains("dropOff")) {
+      stopType = "drop_off";
+    } else {
+      stopType = "waypoint";
+    }
+
+    // Get coordinates
+    final lat = double.tryParse(cache["stop_${i}_latitude"]?.toString() ?? "-26.2041") ?? -26.2041;
+    final lng = double.tryParse(cache["stop_${i}_longitude"]?.toString() ?? "28.0473") ?? 28.0473;
+
+    final stop = OrderStop(
+      sequenceNumber: i,
+      stopType: stopType,
+      address: cache["stop_${i}_address"]?.toString() ?? "",
+      city: cache["stop_${i}_city"]?.toString() ?? "",
+      state: cache["stop_${i}_state"]?.toString() ?? "",
+      latitude: lat,
+      longitude: lng,
+      contactName: cache["stop_${i}_contact_name"]?.toString() ?? "",
+      contactPhone: cache["stop_${i}_contact_phone"]?.toString() ?? "",
+      
+      // ✅ IMPORTANT: Set quantity and weight to values from stops
+      quantity: int.tryParse(cache["stop_${i}_quantity"]?.toString() ?? "1") ?? 1,
+      weight: double.tryParse(cache["stop_${i}_weight"]?.toString() ?? "50") ?? 50.0,
+      
+      notes: cache["stop_${i}_notes"]?.toString(),
+    );
+
+    stops.add(stop);
+  }
+
+  // ✅ Calculate weight per item (SAME AS STANDARD ORDER)
+  final weightPerItem = totalQuantity > 0 ? totalWeight / totalQuantity : totalWeight;
+
+  // Get service type and add-ons
+  final serviceType = cache["service_type_id"]?.toString() ?? "standard";
+  final priority = cache["priority"]?.toString() ?? "medium";
+  final paymentMethod = cache["payment_method"]?.toString() ?? "wallet";
+  
+  final addOns = <String>[];
+  final selectedAddons = cache["selected_addons"];
+  if (selectedAddons is List) {
+    for (var addon in selectedAddons) {
+      if (addon is String) {
+        addOns.add(addon);
+      }
+    }
+  }
+
+  final specialInstructions = cache["special_instructions"]?.toString();
+  final declaredValue = double.tryParse(cache["declared_value"]?.toString() ?? "0") ?? 0.0;
+
+  // Prepare selected quote
+  final selectedQuote = SelectedQuote(
+    vehicleId: bestQuote.vehicleId,
+    vehicleTypeId: bestQuote.vehicleTypeId,
+    vehicleTypeName: bestQuote.vehicleType,
+    registrationNumber: bestQuote.registrationNumber,
+    make: bestQuote.make,
+    model: bestQuote.model,
+    capacityKg: bestQuote.capacityWeightKg,
+    capacityVolumeM3: bestQuote.capacityWeightKg,
+    totalScore: bestQuote.totalScore,
+    matchingScore: bestQuote.matchingScore,
+    depotScore: bestQuote.depotScore ?? 0,
+    distanceScore: bestQuote.distanceScore ?? 0,
+    priceScore: bestQuote.priceScore ?? 0,
+    suitabilityScore: bestQuote.suitabilityScore ?? 0,
+    driverScore: bestQuote.driverScore ?? 0,
+    depotId: bestQuote.depotId ?? 0,
+    depotName: bestQuote.depotName ?? '',
+    depotCity: bestQuote.depotCity ?? '',
+    depotDistanceKm: bestQuote.depotDistanceKm ?? 0,
+    isExclusive: bestQuote.isExclusive ?? false,
+    utilizationPercent: bestQuote.utilizationPercent ?? 0,
+    pricing: bestQuote.pricing,
+    company: bestQuote.company,
+    driver: bestQuote.driver,
+  );
+
+  // ✅ CREATE THE REQUEST OBJECT
+  final request = MultiStopOrderRequestBody(
+    productTypeId: productTypeId,
+    packagingTypeId: packagingTypeId,
+    quantity: totalQuantity,
+    weightPerItem: weightPerItem,
+    isMultiStop: true,
+    selectedQuote: selectedQuote,
+    stops: stops,
+    serviceType: serviceType,
+    priority: priority,
+    paymentMethod: paymentMethod,
+    addOns: addOns,
+    specialInstructions: specialInstructions,
+    declaredValue: declaredValue,
+  );
+
+  // ✅ DEBUG PRINT
+  print("📋 MULTI-STOP ORDER DATA PREPARED:");
+  print("Quantity: $totalQuantity");
+  print("Weight Per Item: $weightPerItem");
+  print("Stops Count: ${stops.length}");
+
+  return request;
+}
+
+
 }

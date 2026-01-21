@@ -45,6 +45,12 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
 
   // ✅ ADD THESE PROVIDERS
   final selectedAddonsProvider = StateProvider<List<String>>((ref) => []);
+
+  // final selectedAddonsProvider = StateProvider<List<String>>((ref) => []);
+
+  final selectedAddOnsWithCostProvider =
+      StateProvider<List<Map<String, dynamic>>>((ref) => []);
+
   final declaredValueProvider = StateProvider<double>((ref) => 0.0);
 
   @override
@@ -604,29 +610,62 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   // Add-on toggle function
   void _toggleAddOn(String addOnValue, double cost) {
     final selectedAddons = ref.read(selectedAddonsProvider);
+    final selectedWithCost = ref.read(selectedAddOnsWithCostProvider);
 
-    setState(() {
-      if (selectedAddons.contains(addOnValue)) {
-        ref.read(selectedAddonsProvider.notifier).state = selectedAddons
-            .where((value) => value != addOnValue)
-            .toList();
-      } else {
-        ref.read(selectedAddonsProvider.notifier).state = [
-          ...selectedAddons,
-          addOnValue,
-        ];
-      }
-    });
+    if (selectedAddons.contains(addOnValue)) {
+      ref.read(selectedAddonsProvider.notifier).state = selectedAddons
+          .where((v) => v != addOnValue)
+          .toList();
+
+      ref.read(selectedAddOnsWithCostProvider.notifier).state = selectedWithCost
+          .where((e) => e['id'] != addOnValue)
+          .toList();
+    } else {
+      ref.read(selectedAddonsProvider.notifier).state = [
+        ...selectedAddons,
+        addOnValue,
+      ];
+
+      ref.read(selectedAddOnsWithCostProvider.notifier).state = [
+        ...selectedWithCost,
+        {'id': addOnValue, 'cost': cost},
+      ];
+    }
 
     ref
         .read(orderCacheProvider.notifier)
         .saveValue("selected_addons", ref.read(selectedAddonsProvider));
 
-    // Recalculate quotes if already calculated
     if (hasCalculatedQuotes) {
       _getSmartQuotes();
     }
   }
+
+  // void _toggleAddOn(String addOnValue, double cost) {
+  //   final selectedAddons = ref.read(selectedAddonsProvider);
+
+  //   setState(() {
+  //     if (selectedAddons.contains(addOnValue)) {
+  //       ref.read(selectedAddonsProvider.notifier).state = selectedAddons
+  //           .where((value) => value != addOnValue)
+  //           .toList();
+  //     } else {
+  //       ref.read(selectedAddonsProvider.notifier).state = [
+  //         ...selectedAddons,
+  //         addOnValue,
+  //       ];
+  //     }
+  //   });
+
+  //   ref
+  //       .read(orderCacheProvider.notifier)
+  //       .saveValue("selected_addons", ref.read(selectedAddonsProvider));
+
+  //   // Recalculate quotes if already calculated
+  //   if (hasCalculatedQuotes) {
+  //     _getSmartQuotes();
+  //   }
+  // }
 
   // Open Add-ons Modal
   void _openAddOnsModal(BuildContext context) {
@@ -740,18 +779,17 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
 
   // Payment Modal
   void showPaymentMethodModal(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (_) {
-      return const PaymentMethodModal();
-    },
-  );
-}
-
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return const PaymentMethodModal();
+      },
+    );
+  }
 
   // Check if all required data is available for quote calculation
   bool _isDataReadyForQuotes() {
@@ -3221,6 +3259,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
       ],
     );
   }
+  // Add-ons section end
 
   // Service Options Section
   Widget _buildLoadingContainer(String text) {

@@ -51,21 +51,30 @@ class _PaymentMethodModalState extends State<PaymentMethodModal> {
 
           const SizedBox(height: 20),
 
-          /// 🔹 Credit Card
+                  /// 🔹 Cash
           paymentTile(
             index: 0,
+            title: "Wallet payment",
+            subtitle: "Default method",
+            icon: Icons.money,
+          ),
+          const SizedBox(height: 10),
+          /// 🔹 Credit Card
+          paymentTile(
+            index: 1,
             title: "Add Creadit Card",
             subtitle: "Expires 09/25",
             icon: Icons.credit_card,
           ),
           const SizedBox(height: 10),
+        
 
-          /// 🔹 Cash
+          /// 🔹 pay later
           paymentTile(
-            index: 3,
-            title: "Wallet payment",
-            subtitle: "Default method",
-            icon: Icons.money,
+            index: 2,
+            title: "Pay Later",
+            subtitle: "Pay at your convenience",
+            icon: Icons.watch_later_outlined,
           ),
 
           const SizedBox(height: 24),

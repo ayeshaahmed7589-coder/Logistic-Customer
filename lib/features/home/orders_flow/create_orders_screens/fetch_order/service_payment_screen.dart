@@ -16,6 +16,7 @@ import 'package:logisticscustomer/features/home/orders_flow/create_orders_screen
 import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/order_cache_provider.dart';
 import 'package:logisticscustomer/features/home/order_successful.dart';
 
+import '../../payment_method_orders/payment_method_controller.dart';
 import '../../payment_method_orders/payment_method_screen.dart';
 // Update StopRequest model to include contact info
 
@@ -45,6 +46,8 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
 
   // ✅ ADD THESE PROVIDERS
   final selectedAddonsProvider = StateProvider<List<String>>((ref) => []);
+
+  final selectedTotalAmountProvider = StateProvider<double>((ref) => 0.0);
 
   // final selectedAddonsProvider = StateProvider<List<String>>((ref) => []);
 
@@ -1175,20 +1178,50 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                         bool canPlaceOrder = hasQuotes && bestQuote != null;
 
                         return CustomButton(
-                          text: isOrderLoading
-                              ? "Add Payment Method"
-                              : "Place Order",
+                          text: "Place Order",
                           backgroundColor: canPlaceOrder
                               ? AppColors.electricTeal
                               : AppColors.lightGrayBackground,
-                          borderColor: canPlaceOrder
-                              ? AppColors.electricTeal
-                              : AppColors.electricTeal,
+                          borderColor: AppColors.electricTeal,
                           textColor: canPlaceOrder
                               ? AppColors.pureWhite
                               : AppColors.electricTeal,
                           onPressed: canPlaceOrder && !isOrderLoading
-                              ? () => showPaymentMethodModal(context)
+                              ? () async {
+                                  // ✅ Read total amount safely
+                                  final totalAmount = ref.read(
+                                    selectedTotalAmountProvider,
+                                  );
+
+                                  await ref
+                                      .read(
+                                        paymentCheckControllerProvider.notifier,
+                                      )
+                                      .checkPayment(amount: totalAmount);
+
+                                  final paymentState = ref.read(
+                                    paymentCheckControllerProvider,
+                                  );
+
+                                  paymentState.when(
+                                    data: (data) {
+                                      if (data != null && data.success) {
+                                        showPaymentMethodModal(
+                                          context,
+                                          // paymentData: data.data,
+                                        );
+                                      }
+                                    },
+                                    loading: () {},
+                                    error: (e, _) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(content: Text(e.toString())),
+                                      );
+                                    },
+                                  );
+                                }
                               : null,
                         );
                       },
@@ -2115,164 +2148,131 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   Widget _buildQuoteDetails(Quote quote, QuoteData quoteData) {
     final pricing = quote.pricing;
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Quote Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer(
+      builder: (context, ref, _) {
+        // ✅ SAVE total globally
+        ref.read(selectedTotalAmountProvider.notifier).state = pricing.total;
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              // Quote Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    "Best Quote Selected",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkText,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Best Quote Selected",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkText,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${quote.company.name} • ${quote.vehicleType}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.mediumGray,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${quote.company.name} • ${quote.vehicleType}",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.mediumGray,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.electricTeal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${quote.totalScore.toStringAsFixed(1)}% Match",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.electricTeal,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.electricTeal.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.star, size: 14, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Text(
-                      "${quote.totalScore.toStringAsFixed(1)}% Match",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.electricTeal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-          // Vehicle Details
-          _buildQuoteDetailCard(
-            icon: Icons.directions_car,
-            title: "Vehicle Details",
-            children: [
-              _buildDetailRow("Type", quote.vehicleType),
-              _buildDetailRow("Capacity", "${quote.capacityWeightKg}kg"),
-              _buildDetailRow("Registration", quote.registrationNumber),
-              _buildDetailRow(
-                "Driver",
-                "${quote.driver.name} (⭐ ${quote.driver.rating})",
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Pricing Breakdown
-          _buildQuoteDetailCard(
-            icon: Icons.attach_money,
-            title: "Pricing Breakdown",
-            children: [
-              _buildPriceRow("Base Fare", pricing.baseFare),
-              _buildPriceRow("Distance Cost", pricing.distanceCost),
-              if (pricing.weightCharge > 0)
-                _buildPriceRow("Weight Charge", pricing.weightCharge),
-              if (pricing.addOnsTotal > 0)
-                _buildPriceRow("Add-ons Total", pricing.addOnsTotal),
-              const Divider(height: 20),
-              _buildPriceRow("Service Fee", pricing.serviceFee, isBold: true),
-              _buildPriceRow("Tax", pricing.tax, isBold: true),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.electricTeal.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.electricTeal.withOpacity(0.2),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Total Amount",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkText,
-                      ),
-                    ),
-                    Text(
-                      "R${pricing.total.toStringAsFixed(2)}",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.electricTeal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          // Distance Info
-          if (quoteData.distanceKm != null && quoteData.distanceKm! > 0)
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue[100]!),
-              ),
-              child: Row(
+              // Vehicle Details
+              _buildQuoteDetailCard(
+                icon: Icons.directions_car,
+                title: "Vehicle Details",
                 children: [
-                  Icon(Icons.map, size: 20, color: Colors.blue[700]),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  _buildDetailRow("Type", quote.vehicleType),
+                  _buildDetailRow("Capacity", "${quote.capacityWeightKg}kg"),
+                  _buildDetailRow("Registration", quote.registrationNumber),
+                  _buildDetailRow(
+                    "Driver",
+                    "${quote.driver.name} (⭐ ${quote.driver.rating})",
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Pricing Breakdown
+              _buildQuoteDetailCard(
+                icon: Icons.attach_money,
+                title: "Pricing Breakdown",
+                children: [
+                  _buildPriceRow("Base Fare", pricing.baseFare),
+                  _buildPriceRow("Distance Cost", pricing.distanceCost),
+                  if (pricing.weightCharge > 0)
+                    _buildPriceRow("Weight Charge", pricing.weightCharge),
+                  if (pricing.addOnsTotal > 0)
+                    _buildPriceRow("Add-ons Total", pricing.addOnsTotal),
+                  const Divider(height: 20),
+                  _buildPriceRow(
+                    "Service Fee",
+                    pricing.serviceFee,
+                    isBold: true,
+                  ),
+                  _buildPriceRow("Tax", pricing.tax, isBold: true),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.electricTeal.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.electricTeal.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "Estimated Distance",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "${quoteData.distanceKm!.toStringAsFixed(1)} km",
+                        const Text(
+                          "Total Amount",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue[900],
+                            color: AppColors.darkText,
+                          ),
+                        ),
+                        Text(
+                          "R${pricing.total.toStringAsFixed(2)}",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.electricTeal,
                           ),
                         ),
                       ],
@@ -2280,70 +2280,114 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                   ),
                 ],
               ),
-            ),
 
-          // Product & Packaging Info
-          if (quoteData.productType != null || quoteData.packagingType != null)
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green[100]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.inventory, size: 20, color: Colors.green[700]),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (quoteData.productType != null)
-                          Text(
-                            "Product: ${quoteData.productType!.name}",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.green[800],
+              // Distance Info
+              if (quoteData.distanceKm != null && quoteData.distanceKm! > 0)
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[100]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.map, size: 20, color: Colors.blue[700]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Estimated Distance",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue[800],
+                              ),
                             ),
-                          ),
-                        if (quoteData.packagingType != null)
-                          Text(
-                            "Packaging: ${quoteData.packagingType!.name}",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.green[800],
+                            const SizedBox(height: 4),
+                            Text(
+                              "${quoteData.distanceKm!.toStringAsFixed(1)} km",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[900],
+                              ),
                             ),
-                          ),
-                      ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Product & Packaging Info
+              if (quoteData.productType != null ||
+                  quoteData.packagingType != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green[100]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.inventory, size: 20, color: Colors.green[700]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (quoteData.productType != null)
+                              Text(
+                                "Product: ${quoteData.productType!.name}",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.green[800],
+                                ),
+                              ),
+                            if (quoteData.packagingType != null)
+                              Text(
+                                "Packaging: ${quoteData.packagingType!.name}",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.green[800],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // View All Quotes Button
+              Container(
+                margin: const EdgeInsets.only(top: 16),
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    _showAllQuotes(quoteData);
+                  },
+                  icon: const Icon(Icons.list_alt, size: 18),
+                  label: Text("View All Quotes (${quoteData.quotes.length})"),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.electricTeal),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                ],
-              ),
-            ),
-
-          // View All Quotes Button
-          Container(
-            margin: const EdgeInsets.only(top: 16),
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                _showAllQuotes(quoteData);
-              },
-              icon: const Icon(Icons.list_alt, size: 18),
-              label: Text("View All Quotes (${quoteData.quotes.length})"),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.electricTeal),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

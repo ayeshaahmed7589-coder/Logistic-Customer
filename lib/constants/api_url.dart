@@ -97,4 +97,9 @@ abstract class ApiUrls {
 
   //Order Tracking
   static const String trackOrder = "/api/v1/customer/orders/track";
+
+  //Payment Method
+  static const String paymentmethod = "/api/v1/customer/payment/check-options";
+
+  
 }

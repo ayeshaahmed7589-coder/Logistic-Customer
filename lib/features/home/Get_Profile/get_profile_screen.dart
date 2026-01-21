@@ -28,110 +28,110 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
   AsyncValue<DefaultAddressModel> get defaultAddressState =>
       ref.watch(defaultAddressControllerProvider);
 
-  void _openAddressModal() {
-    // Load addresses asynchronously
-    final allAddressNotifier = ref.read(allAddressControllerProvider.notifier);
-    allAddressNotifier.loadAllAddress();
+  // void _openAddressModal() {
+  //   // Load addresses asynchronously
+  //   final allAddressNotifier = ref.read(allAddressControllerProvider.notifier);
+  //   allAddressNotifier.loadAllAddress();
 
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        return Center(
-          child: Consumer(
-            builder: (context, ref, _) {
-              final allAddressState = ref.watch(allAddressControllerProvider);
-              final defaultAddressState = ref.watch(
-                defaultAddressControllerProvider,
-              );
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: true,
+  //     builder: (context) {
+  //       return Center(
+  //         child: Consumer(
+  //           builder: (context, ref, _) {
+  //             final allAddressState = ref.watch(allAddressControllerProvider);
+  //             final defaultAddressState = ref.watch(
+  //               defaultAddressControllerProvider,
+  //             );
 
-              return Material(
-                type: MaterialType.transparency,
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.65,
-                    maxWidth: MediaQuery.of(context).size.width * 0.9,
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.pureWhite,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: allAddressState.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (err, _) =>
-                        Center(child: Text("Error loading addresses")),
-                    data: (allAddress) {
-                      if (allAddress == null || allAddress.data.isEmpty) {
-                        return const Center(child: Text("No addresses found"));
-                      }
+  //             return Material(
+  //               type: MaterialType.transparency,
+  //               child: Container(
+  //                 constraints: BoxConstraints(
+  //                   maxHeight: MediaQuery.of(context).size.height * 0.65,
+  //                   maxWidth: MediaQuery.of(context).size.width * 0.9,
+  //                 ),
+  //                 padding: const EdgeInsets.all(20),
+  //                 decoration: BoxDecoration(
+  //                   color: AppColors.pureWhite,
+  //                   borderRadius: BorderRadius.circular(20),
+  //                 ),
+  //                 child: allAddressState.when(
+  //                   loading: () =>
+  //                       const Center(child: CircularProgressIndicator()),
+  //                   error: (err, _) =>
+  //                       Center(child: Text("Error loading addresses")),
+  //                   data: (allAddress) {
+  //                     if (allAddress == null || allAddress.data.isEmpty) {
+  //                       return const Center(child: Text("No addresses found"));
+  //                     }
 
-                      final backendDefaultId =
-                          defaultAddressState.value?.data.id;
-                      final currentDefaultId =
-                          selectedAddressId ?? backendDefaultId;
+  //                     final backendDefaultId =
+  //                         defaultAddressState.value?.data.id;
+  //                     final currentDefaultId =
+  //                         selectedAddressId ?? backendDefaultId;
 
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: allAddress.data.length,
-                        itemBuilder: (context, index) {
-                          final item = allAddress.data[index];
-                          final isDefault = item.id == currentDefaultId;
+  //                     return ListView.builder(
+  //                       shrinkWrap: true,
+  //                       itemCount: allAddress.data.length,
+  //                       itemBuilder: (context, index) {
+  //                         final item = allAddress.data[index];
+  //                         final isDefault = item.id == currentDefaultId;
 
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                selectedAddressId = item.id;
-                              });
-                              Navigator.pop(context);
+  //                         return GestureDetector(
+  //                           onTap: () {
+  //                             setState(() {
+  //                               selectedAddressId = item.id;
+  //                             });
+  //                             Navigator.pop(context);
 
-                              // Reload default address
-                              ref
-                                  .read(
-                                    defaultAddressControllerProvider.notifier,
-                                  )
-                                  .loadDefaultAddress();
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(15),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isDefault
-                                      ? AppColors.electricTeal
-                                      : AppColors.subtleGray,
-                                  width: 2,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "${item.address}, ${item.city}, ${item.state}, ${item.postalCode}",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: AppColors.darkText,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
+  //                             // Reload default address
+  //                             ref
+  //                                 .read(
+  //                                   defaultAddressControllerProvider.notifier,
+  //                                 )
+  //                                 .loadDefaultAddress();
+  //                           },
+  //                           child: Container(
+  //                             margin: const EdgeInsets.only(bottom: 12),
+  //                             padding: const EdgeInsets.all(15),
+  //                             decoration: BoxDecoration(
+  //                               borderRadius: BorderRadius.circular(12),
+  //                               border: Border.all(
+  //                                 color: isDefault
+  //                                     ? AppColors.electricTeal
+  //                                     : AppColors.subtleGray,
+  //                                 width: 2,
+  //                               ),
+  //                             ),
+  //                             child: Column(
+  //                               crossAxisAlignment: CrossAxisAlignment.start,
+  //                               children: [
+  //                                 Text(
+  //                                   "${item.address}, ${item.city}, ${item.state}, ${item.postalCode}",
+  //                                   style: const TextStyle(
+  //                                     fontSize: 16,
+  //                                     color: AppColors.darkText,
+  //                                     fontWeight: FontWeight.w600,
+  //                                   ),
+  //                                 ),
+  //                               ],
+  //                             ),
+  //                           ),
+  //                         );
+  //                       },
+  //                     );
+  //                   },
+  //                 ),
+  //               ),
+  //             );
+  //           },
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   @override
   void didChangeDependencies() {

@@ -6,10 +6,12 @@ import 'package:logisticscustomer/constants/session_expired.dart';
 import 'package:logisticscustomer/features/authentication/login/login.dart';
 import 'package:logisticscustomer/features/authentication/login/login_controller.dart';
 import 'package:logisticscustomer/features/home/Edit_Profile/edit_profile_screen.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/pickup_modal.dart';
+import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/pickup_location/pickup_modal.dart';
 
+import '../../../common_widgets/custom_text.dart';
 import '../../../constants/colors.dart';
-import '../create_orders_screens/pickup_location/pickup_controller.dart';
+import '../../../constants/gps_location.dart';
+import '../orders_flow/create_orders_screens/pickup_location/pickup_controller.dart';
 import 'get_profile_controller.dart';
 
 class GetProfileScreen extends ConsumerStatefulWidget {
@@ -154,15 +156,14 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
     return profileState.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      // error: (err, _) => Center(child: Text(err.toString())),
 
+      // error: (err, _) => Center(child: Text(err.toString())),
       error: (e, st) {
         if (e.toString().contains("SESSION_EXPIRED")) {
           return SessionExpiredScreen();
         }
         return Scaffold(body: Center(child: Text("Error: $e")));
       },
-
 
       data: (profile) {
         if (profile == null) {
@@ -357,87 +358,95 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
   }
 
   // --- Default Address Widget (Clean Row with Edit Icon) ---
-  Widget defaultAddressUI() {
-    final defaultAddressState = ref.watch(defaultAddressControllerProvider);
-    final allAddressState = ref.watch(allAddressControllerProvider);
+  // Widget defaultAddressUI() {
+  //   final defaultAddressState = ref.watch(defaultAddressControllerProvider);
+  //   final allAddressState = ref.watch(allAddressControllerProvider);
 
-    // Show loading if either is loading
-    if (defaultAddressState.isLoading || allAddressState.isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8.0),
-        child: Text("Loading...", style: TextStyle(fontSize: 16)),
-      );
-    }
+  //   // Show loading if either is loading
+  //   if (defaultAddressState.isLoading || allAddressState.isLoading) {
+  //     return const Padding(
+  //       padding: EdgeInsets.symmetric(vertical: 8.0),
+  //       child: Text("Loading...", style: TextStyle(fontSize: 16)),
+  //     );
+  //   }
 
-    // Show error if either has error
-    if (defaultAddressState.hasError || allAddressState.hasError) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8.0),
-        child: Text(
-          "Failed to load",
-          style: TextStyle(color: Colors.red, fontSize: 16),
-        ),
-      );
-    }
+  //   // Show error if either has error
+  //   if (defaultAddressState.hasError || allAddressState.hasError) {
+  //     return Column(
+  //       children: [
+  //         Text(
+  //             "Address",
+  //             style: TextStyle(color: Colors.black, fontSize: 16),
+  //           ),
+  //         const Padding(
+  //           padding: EdgeInsets.symmetric(vertical: 8.0),
+  //           child: Text(
+  //             "N/A",
+  //             style: TextStyle(color: Colors.black, fontSize: 16),
+  //           ),
+  //         ),
+  //       ],
+  //     );
+  //   }
 
-    final all = allAddressState.value;
-    final defaultAddress = defaultAddressState.value?.data;
+  //   final all = allAddressState.value;
+  //   final defaultAddress = defaultAddressState.value?.data;
 
-    if (all == null || all.data.isEmpty || defaultAddress == null) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8.0),
-        child: Text("No addresses found", style: TextStyle(fontSize: 16)),
-      );
-    }
+  //   if (all == null || all.data.isEmpty || defaultAddress == null) {
+  //     return const Padding(
+  //       padding: EdgeInsets.symmetric(vertical: 8.0),
+  //       child: Text("No addresses found", style: TextStyle(fontSize: 16)),
+  //     );
+  //   }
 
-    // Determine which address to show
-    final currentDefaultId = selectedAddressId ?? defaultAddress.id;
-    final selected = all.data.firstWhere(
-      (a) => a.id == currentDefaultId,
-      orElse: () => all.data.first,
-    );
+  //   // Determine which address to show
+  //   final currentDefaultId = selectedAddressId ?? defaultAddress.id;
+  //   final selected = all.data.firstWhere(
+  //     (a) => a.id == currentDefaultId,
+  //     orElse: () => all.data.first,
+  //   );
 
-    return Row(
-      children: [
-        // Label + Address
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    "Default Address",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.mediumGray,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _openAddressModal,
-                    icon: const Icon(
-                      Icons.edit,
-                      size: 18,
-                      color: AppColors.electricTeal,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                "${selected.address}, ${selected.city}, ${selected.state}, ${selected.postalCode}",
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppColors.darkText,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  //   return Row(
+  //     children: [
+  //       // Label + Address
+  //       Expanded(
+  //         child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Row(
+  //               children: [
+  //                 const Text(
+  //                   "Default Address",
+  //                   style: TextStyle(
+  //                     fontSize: 14,
+  //                     color: AppColors.mediumGray,
+  //                     fontWeight: FontWeight.w500,
+  //                   ),
+  //                 ),
+  //                 IconButton(
+  //                   onPressed: _openAddressModal,
+  //                   icon: const Icon(
+  //                     Icons.edit,
+  //                     size: 18,
+  //                     color: AppColors.electricTeal,
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //             Text(
+  //               "${selected.address}, ${selected.city}, ${selected.state}, ${selected.postalCode}",
+  //               style: const TextStyle(
+  //                 fontSize: 16,
+  //                 color: AppColors.darkText,
+  //                 fontWeight: FontWeight.w600,
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   // --- Profile Image Widget ---
   Widget _buildProfileImage(Color primaryBlue) {
@@ -557,7 +566,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
           // ✅ DOB
           _buildInfoRow(
-            label: 'DOB',
+            label: 'Date Of Birth',
             value: customer.dateOfBirth ?? "N/A",
             showVerification: false,
           ),
@@ -565,7 +574,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
           // ✅ Phone
           _buildInfoRow(
-            label: 'Mobile Phone',
+            label: 'Contact Number',
             value: user.phone,
             showVerification: false,
           ),
@@ -601,60 +610,93 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
             value: customer.country ?? "N/A",
             showVerification: false,
           ),
-          defaultAddressUI(),
+          const SizedBox(height: 10),
+          /// LOCATION
+          profileState.when(
+            data: (_) {
+              return FutureBuilder<String>(
+                future: getCurrentCity(),
+                builder: (_, snapshot) {
+                  final city = snapshot.data ?? "Loading...";
+                  return _locationRow(city);
+                },
+              );
+            },
+            loading: () => _loadingText(width: 90),
+            error: (_, __) => _loadingText(width: 90),
+          ),
+          // defaultAddressUI(),
           gapH32,
         ],
       ),
     );
   }
 
-  // --- Reusable Info Row Widget (Yeh pehle jaisa hi rahega) ---
-  Widget _buildInfoRow({
-    required String label,
-    required String value,
-    required bool showVerification,
-    Color labelColor = AppColors.mediumGray,
-    Color valueColor = AppColors.darkText,
-  }) {
-    // ... (same implementation as before)
+  /// ================= HELPERS =================
+  Widget _locationRow(String city) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(label, style: TextStyle(color: labelColor, fontSize: 14)),
-            SizedBox(width: 10),
-            if (showVerification)
-              const Row(
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.green,
-                    size: 18,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Verified',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        Text(
-          value,
-          style: TextStyle(
-            color: valueColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+      children: [CustomText(txt: "Address", fontSize: 14,color:AppColors.mediumGray),
+      const SizedBox(height: 5),
+        CustomText(txt: city,fontSize: 17,
+          fontWeight: FontWeight.w500, color: Colors.black)],
     );
   }
+
+  Widget _loadingText({double width = 100}) {
+    return Container(
+      width: width,
+      height: 14,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(6),
+      ),
+    );
+  }
+}
+
+// --- Reusable Info Row Widget (Yeh pehle jaisa hi rahega) ---
+Widget _buildInfoRow({
+  required String label,
+  required String value,
+  required bool showVerification,
+  Color labelColor = AppColors.mediumGray,
+  Color valueColor = AppColors.darkText,
+}) {
+  // ... (same implementation as before)
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Text(label, style: TextStyle(color: labelColor, fontSize: 14)),
+          SizedBox(width: 10),
+          if (showVerification)
+            const Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.green, size: 18),
+                SizedBox(width: 4),
+                Text(
+                  'Verified',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+      const SizedBox(height: 5),
+      Text(
+        value,
+        style: TextStyle(
+          color: valueColor,
+          fontSize: 17,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ],
+  );
 }

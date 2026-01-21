@@ -3,7 +3,7 @@ import 'package:logisticscustomer/constants/colors.dart';
 import 'package:logisticscustomer/features/home/Get_Profile/get_profile_screen.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/current_screen.dart';
 import 'package:logisticscustomer/features/home/map_screen.dart';
-import 'package:logisticscustomer/features/home/orders/orders.dart';
+import 'package:logisticscustomer/features/home/orders_flow/all_orders/orders.dart';
 import 'package:logisticscustomer/features/home/wallet_screen.dart';
 
 class TripsBottomNavBarScreen extends StatefulWidget {

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:logisticscustomer/features/authentication/register_successful.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/order_cache_provider.dart';
-import 'package:logisticscustomer/features/home/create_orders_screens/pickup_location/dropdown.dart';
+import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/order_cache_provider.dart';
+import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/pickup_location/dropdown.dart';
 
 import '../../../constants/validation_regx.dart';
 import '../../../export.dart';
@@ -189,7 +189,7 @@ class _SetUpProfileState extends ConsumerState<SetUpProfile> {
                   });
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
               // Full Name
               CustomAnimatedTextField(

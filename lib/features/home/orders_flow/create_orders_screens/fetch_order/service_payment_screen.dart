@@ -17,7 +17,9 @@ import 'package:logisticscustomer/features/home/orders_flow/create_orders_screen
 import 'package:logisticscustomer/features/home/order_successful.dart';
 
 import '../../payment_method_orders/payment_method_controller.dart';
+import '../../payment_method_orders/payment_method_model.dart';
 import '../../payment_method_orders/payment_method_screen.dart';
+import '../../payment_method_orders/paymet_result.dart';
 // Update StopRequest model to include contact info
 
 class ServicePaymentScreen extends ConsumerStatefulWidget {
@@ -781,15 +783,18 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   }
 
   // Payment Modal
-  void showPaymentMethodModal(BuildContext context) {
-    showModalBottomSheet(
+  Future<PaymentResult?> showPaymentMethodModal(
+    BuildContext context,
+    PaymentData paymentData,
+  ) {
+    return showModalBottomSheet<PaymentResult>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
-        return const PaymentMethodModal();
+        return PaymentMethodModal(paymentData: paymentData);
       },
     );
   }
@@ -846,164 +851,164 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     return null;
   }
 
-  // UPDATED: Place Order Function
-  Future<void> _placeOrder(BuildContext context) async {
-    try {
-      final cache = ref.read(orderCacheProvider);
-      final isMultiStop = cache["is_multi_stop_enabled"] == "true";
-      final bestQuote = ref.read(bestQuoteProvider);
+  // // UPDATED: Place Order Function
+  // Future<void> _placeOrder(BuildContext context) async {
+  //   try {
+  //     final cache = ref.read(orderCacheProvider);
+  //     final isMultiStop = cache["is_multi_stop_enabled"] == "true";
+  //     final bestQuote = ref.read(bestQuoteProvider);
 
-      if (bestQuote == null) {
-        throw Exception("Please select a quote first");
-      }
+  //     if (bestQuote == null) {
+  //       throw Exception("Please select a quote first");
+  //     }
 
-      print("🎯 Placing ${isMultiStop ? 'Multi-Stop' : 'Standard'} Order...");
+  //     print("🎯 Placing ${isMultiStop ? 'Multi-Stop' : 'Standard'} Order...");
 
-      // ✅ PRE-VALIDATION FOR MULTI-STOP
-      if (isMultiStop) {
-        print("🔍 Validating multi-stop data...");
+  //     // ✅ PRE-VALIDATION FOR MULTI-STOP
+  //     if (isMultiStop) {
+  //       print("🔍 Validating multi-stop data...");
 
-        // Check cache values
-        final quantity = cache["quantity"]?.toString();
-        final weight = cache["total_weight"]?.toString();
+  //       // Check cache values
+  //       final quantity = cache["quantity"]?.toString();
+  //       final weight = cache["total_weight"]?.toString();
 
-        print("Cache check - quantity: $quantity, weight: $weight");
+  //       print("Cache check - quantity: $quantity, weight: $weight");
 
-        if (quantity == null ||
-            quantity.isEmpty ||
-            int.tryParse(quantity) == 0) {
-          print("⚠️  Quantity missing in cache, calculating from stops...");
+  //       if (quantity == null ||
+  //           quantity.isEmpty ||
+  //           int.tryParse(quantity) == 0) {
+  //         print("⚠️  Quantity missing in cache, calculating from stops...");
 
-          final stopsCount =
-              int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
-          int totalQty = 0;
-          double totalWeight = 0.0;
+  //         final stopsCount =
+  //             int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+  //         int totalQty = 0;
+  //         double totalWeight = 0.0;
 
-          for (int i = 1; i <= stopsCount; i++) {
-            final qty =
-                int.tryParse(cache["stop_${i}_quantity"]?.toString() ?? "1") ??
-                1;
-            final wgt =
-                double.tryParse(
-                  cache["stop_${i}_weight"]?.toString() ?? "50",
-                ) ??
-                50.0;
+  //         for (int i = 1; i <= stopsCount; i++) {
+  //           final qty =
+  //               int.tryParse(cache["stop_${i}_quantity"]?.toString() ?? "1") ??
+  //               1;
+  //           final wgt =
+  //               double.tryParse(
+  //                 cache["stop_${i}_weight"]?.toString() ?? "50",
+  //               ) ??
+  //               50.0;
 
-            totalQty += qty;
-            totalWeight += wgt;
-          }
+  //           totalQty += qty;
+  //           totalWeight += wgt;
+  //         }
 
-          // Save to cache
-          ref
-              .read(orderCacheProvider.notifier)
-              .saveValue("quantity", totalQty.toString());
-          ref
-              .read(orderCacheProvider.notifier)
-              .saveValue("total_weight", totalWeight.toString());
+  //         // Save to cache
+  //         ref
+  //             .read(orderCacheProvider.notifier)
+  //             .saveValue("quantity", totalQty.toString());
+  //         ref
+  //             .read(orderCacheProvider.notifier)
+  //             .saveValue("total_weight", totalWeight.toString());
 
-          print("✅ Calculated and saved: Qty=$totalQty, Weight=$totalWeight");
-        }
-      }
+  //         print("✅ Calculated and saved: Qty=$totalQty, Weight=$totalWeight");
+  //       }
+  //     }
 
-      final repository = ref.read(placeOrderRepositoryProvider);
-      OrderResponse orderResponse;
+  //     final repository = ref.read(placeOrderRepositoryProvider);
+  //     OrderResponse orderResponse;
 
-      if (isMultiStop) {
-        print("🔄 Preparing multi-stop order data...");
-        final request = await repository.prepareMultiStopOrderData();
+  //     if (isMultiStop) {
+  //       print("🔄 Preparing multi-stop order data...");
+  //       final request = await repository.prepareMultiStopOrderData();
 
-        // ✅ FINAL SANITY CHECK
-        print("🔍 FINAL CHECK:");
-        print("Quantity: ${request.quantity}");
-        print("Weight Per Item: ${request.weightPerItem}");
+  //       // ✅ FINAL SANITY CHECK
+  //       print("🔍 FINAL CHECK:");
+  //       print("Quantity: ${request.quantity}");
+  //       print("Weight Per Item: ${request.weightPerItem}");
 
-        if (request.quantity < 1 || request.weightPerItem < 0.01) {
-          print("❌ Values invalid, forcing minimum values");
+  //       if (request.quantity < 1 || request.weightPerItem < 0.01) {
+  //         print("❌ Values invalid, forcing minimum values");
 
-          // Force minimum values
-          final fixedRequest = MultiStopOrderRequestBody(
-            productTypeId: request.productTypeId,
-            packagingTypeId: request.packagingTypeId,
-            quantity: request.quantity < 1 ? 1 : request.quantity,
-            weightPerItem: request.weightPerItem < 0.01
-                ? 0.01
-                : request.weightPerItem,
-            isMultiStop: true,
-            selectedQuote: request.selectedQuote,
-            stops: request.stops,
-            serviceType: request.serviceType,
-            priority: request.priority,
-            paymentMethod: request.paymentMethod,
-            addOns: request.addOns,
-            specialInstructions: request.specialInstructions,
-            declaredValue: request.declaredValue,
-          );
+  //         // Force minimum values
+  //         final fixedRequest = MultiStopOrderRequestBody(
+  //           productTypeId: request.productTypeId,
+  //           packagingTypeId: request.packagingTypeId,
+  //           quantity: request.quantity < 1 ? 1 : request.quantity,
+  //           weightPerItem: request.weightPerItem < 0.01
+  //               ? 0.01
+  //               : request.weightPerItem,
+  //           isMultiStop: true,
+  //           selectedQuote: request.selectedQuote,
+  //           stops: request.stops,
+  //           serviceType: request.serviceType,
+  //           priority: request.priority,
+  //           paymentMethod: request.paymentMethod,
+  //           addOns: request.addOns,
+  //           specialInstructions: request.specialInstructions,
+  //           declaredValue: request.declaredValue,
+  //         );
 
-          orderResponse = await repository.placeMultiStopOrder(
-            request: fixedRequest,
-          );
-        } else {
-          orderResponse = await repository.placeMultiStopOrder(
-            request: request,
-          );
-        }
-      } else {
-        final request = await repository.prepareStandardOrderData();
-        orderResponse = await repository.placeStandardOrder(request: request);
-      }
+  //         orderResponse = await repository.placeMultiStopOrder(
+  //           request: fixedRequest,
+  //         );
+  //       } else {
+  //         orderResponse = await repository.placeMultiStopOrder(
+  //           request: request,
+  //         );
+  //       }
+  //     } else {
+  //       final request = await repository.prepareStandardOrderData();
+  //       orderResponse = await repository.placeStandardOrder(request: request);
+  //     }
 
-      // Clear cache after successful order
-      ref.read(orderCacheProvider.notifier).clearCache();
+  //     // Clear cache after successful order
+  //     ref.read(orderCacheProvider.notifier).clearCache();
 
-      // Update controller state
-      ref.read(orderControllerProvider.notifier).state = AsyncData(
-        orderResponse,
-      );
+  //     // Update controller state
+  //     ref.read(orderControllerProvider.notifier).state = AsyncData(
+  //       orderResponse,
+  //     );
 
-      // Check if order was successful
-      if (orderResponse.success) {
-        final order = orderResponse.data.order;
-        final orderNumber = order.orderNumber;
-        final totalAmount = order.finalCost.toStringAsFixed(2);
+  //     // Check if order was successful
+  //     if (orderResponse.success) {
+  //       final order = orderResponse.data.order;
+  //       final orderNumber = order.orderNumber;
+  //       final totalAmount = order.finalCost.toStringAsFixed(2);
 
-        print("✅ Order placed successfully!");
-        print("Order Number: $orderNumber");
-        print("Total Amount: R$totalAmount");
+  //       print("✅ Order placed successfully!");
+  //       print("Order Number: $orderNumber");
+  //       print("Total Amount: R$totalAmount");
 
-        // Navigate to order success screen
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OrderSuccessful(
-              orderNumber: orderNumber,
-              totalAmount: totalAmount,
-            ),
-          ),
-          (route) => false,
-        );
-      } else {
-        throw Exception(orderResponse.message);
-      }
-    } catch (e) {
-      print("❌ Error placing order: $e");
+  //       // Navigate to order success screen
+  //       Navigator.pushAndRemoveUntil(
+  //         context,
+  //         MaterialPageRoute(
+  //           builder: (_) => OrderSuccessful(
+  //             orderNumber: orderNumber,
+  //             totalAmount: totalAmount,
+  //           ),
+  //         ),
+  //         (route) => false,
+  //       );
+  //     } else {
+  //       throw Exception(orderResponse.message);
+  //     }
+  //   } catch (e) {
+  //     print("❌ Error placing order: $e");
 
-      String errorMsg = e.toString();
-      if (errorMsg.contains("quantity") ||
-          errorMsg.contains("weight_per_item")) {
-        errorMsg =
-            "Please ensure all stops have at least 1 item and valid weight. "
-            "Go back to multi-stop screen and add quantities.";
-      }
+  //     String errorMsg = e.toString();
+  //     if (errorMsg.contains("quantity") ||
+  //         errorMsg.contains("weight_per_item")) {
+  //       errorMsg =
+  //           "Please ensure all stops have at least 1 item and valid weight. "
+  //           "Go back to multi-stop screen and add quantities.";
+  //     }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMsg),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 5),
-        ),
-      );
-    }
-  }
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text(errorMsg),
+  //         backgroundColor: Colors.red,
+  //         duration: Duration(seconds: 5),
+  //       ),
+  //     );
+  //   }
+  // }
 
   void _debugCacheData() {
     final cache = ref.read(orderCacheProvider);
@@ -1204,12 +1209,21 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                                   );
 
                                   paymentState.when(
-                                    data: (data) {
+                                    data: (data) async {
                                       if (data != null && data.success) {
-                                        showPaymentMethodModal(
-                                          context,
-                                          // paymentData: data.data,
+                                        final paymentResult =
+                                            await showPaymentMethodModal(
+                                              context,
+                                              data.data,
+                                            );
+
+                                        if (paymentResult == null) return;
+
+                                        // 🔥 Ab yahan tumhare pass final payment method hai
+                                        print(
+                                          "METHOD: ${paymentResult.method}",
                                         );
+                                        print("TOKEN: ${paymentResult.token}");
                                       }
                                     },
                                     loading: () {},
@@ -1228,7 +1242,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                     ),
                   ),
 
-                  // Place Order Button
+                  // // Place Order Button
                   // Padding(
                   //   padding: const EdgeInsets.symmetric(horizontal: 20),
                   //   child: Consumer(
@@ -1255,7 +1269,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
                   //             ? AppColors.pureWhite
                   //             : AppColors.electricTeal,
                   //         onPressed: canPlaceOrder && !isOrderLoading
-                  //             ? () => _placeOrder(context)
+                  //             ? () => _place12Order(context)
                   //             : null,
                   //       );
                   //     },

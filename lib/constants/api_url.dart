@@ -101,5 +101,9 @@ abstract class ApiUrls {
   //Payment Method
   static const String paymentmethod = "/api/v1/customer/payment/check-options";
 
-  
+  //Wallet Balance
+  static const String walletbalance = "/api/v1/customer/wallet/balance";
+
+  //Wallet Transaction
+  static const walletTransactions = "/api/v1/customer/wallet/transactions";
 }

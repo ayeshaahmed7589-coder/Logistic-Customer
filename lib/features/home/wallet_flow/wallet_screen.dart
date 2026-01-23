@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/common_widgets/custom_button.dart';
 import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import 'package:logisticscustomer/constants/gap.dart';
+import 'package:logisticscustomer/features/home/wallet_flow/top_up/wallet_topup_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../constants/colors.dart';
@@ -31,12 +32,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
 
   Future<void> _refreshWallet() async {
     try {
-      await Future.wait([
-        ref.refresh(walletBalanceControllerProvider),
-        ref
-            .read(walletTransactionControllerProvider.notifier)
-            .fetchTransactions(),
-      ] as Iterable<Future>);
+      await Future.wait(
+        [
+              ref.refresh(walletBalanceControllerProvider),
+              ref
+                  .read(walletTransactionControllerProvider.notifier)
+                  .fetchTransactions(),
+            ]
+            as Iterable<Future>,
+      );
     } catch (e) {
       debugPrint("Refresh Error: $e");
     }
@@ -126,7 +130,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                         fontWeight: FontWeight.w600,
                                       ),
                                       GestureDetector(
-                                        onTap: () {},
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  WalletTopUPScreen(),
+                                            ),
+                                          );
+                                        },
                                         child: Row(
                                           children: [
                                             const Icon(
@@ -225,6 +237,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                       tx.transactionType == "payment";
 
                                   return Container(
+                                    width: double.infinity,
                                     margin: const EdgeInsets.only(bottom: 12),
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
@@ -333,7 +346,7 @@ Widget transactionShimmer() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(height: 14, width: 200, color: Colors.grey[300]),
+        Container(height: 14, width: double.infinity, color: Colors.grey[300]),
         gapH8,
         Container(height: 12, width: 120, color: Colors.grey[300]),
         gapH8,

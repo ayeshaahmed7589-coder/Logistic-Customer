@@ -106,4 +106,7 @@ abstract class ApiUrls {
 
   //Wallet Transaction
   static const walletTransactions = "/api/v1/customer/wallet/transactions";
+
+  //Wallet topup
+  static const walletTopup = "/api/v1/customer/wallet/topup";
 }

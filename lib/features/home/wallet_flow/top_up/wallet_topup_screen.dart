@@ -1,0 +1,102 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../common_widgets/cuntom_textfield.dart';
+import '../../../../common_widgets/custom_button.dart';
+import '../../../../constants/colors.dart';
+import '../yoco_payment_webview.dart';
+import 'wallet_topup_controller.dart';
+
+class WalletTopUPScreen extends ConsumerStatefulWidget {
+  const WalletTopUPScreen({super.key});
+
+  @override
+  ConsumerState<WalletTopUPScreen> createState() =>
+      _WalletTopUPScreenState();
+}
+
+class _WalletTopUPScreenState extends ConsumerState<WalletTopUPScreen> {
+  final TextEditingController amountController =
+      TextEditingController(text: "100");
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topUpState = ref.watch(walletTopUpControllerProvider);
+    final topUpController = ref.read(walletTopUpControllerProvider.notifier);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Add Money to Wallet")),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            CustomAnimatedTextField(
+              controller: amountController,
+              focusNode: FocusNode(),
+              labelText: "Amount to Add",
+              hintText: "Enter amount",
+              prefixIcon: Icons.attach_money,
+              iconColor: AppColors.electricTeal,
+              borderColor: AppColors.electricTeal,
+              textColor: AppColors.mediumGray,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 20),
+            CustomButton(
+              text: "Pay with YOCO",
+              backgroundColor: AppColors.electricTeal,
+              borderColor: AppColors.electricTeal,
+              textColor: AppColors.lightGrayBackground,
+              onPressed: () async {
+                double amount =
+                    double.tryParse(amountController.text) ?? 0;
+                if (amount <= 0) return;
+
+                // 1️⃣ Hit API to get checkout URL
+                final response = await topUpController.topUp(amount: amount);
+                if (response != null) {
+                  // 2️⃣ Open WebView for checkout
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => YocoPaymentWebView(
+                        checkoutUrl: response.data.checkoutUrl,
+                        reference: response.data.reference,
+                      ),
+                    ),
+                  );
+
+                  // 3️⃣ Show result
+                  if (result != null && result['success'] == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Payment Successful!"),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(result?['message'] ?? "Payment failed"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+
+            if (topUpState.isLoading)
+              const CircularProgressIndicator(color: AppColors.electricTeal),
+          ],
+        ),
+      ),
+    );
+  }
+}

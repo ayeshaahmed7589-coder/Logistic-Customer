@@ -7,6 +7,13 @@ bool parseBool(dynamic value) {
   return false;
 }
 
+double parseDouble(dynamic value) {
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  return 0.0;
+}
+
 class WalletTransactionResponse {
   final bool success;
   final List<WalletTransaction> data;
@@ -58,9 +65,9 @@ class WalletTransaction {
     return WalletTransaction(
       id: json["id"] ?? 0,
       transactionType: json["transaction_type"] ?? "",
-      amount: (json["amount"] ?? 0).toDouble(),
-      balanceBefore: (json["balance_before"] ?? 0).toDouble(),
-      balanceAfter: (json["balance_after"] ?? 0).toDouble(),
+      amount: parseDouble(json["amount"]),
+      balanceBefore: parseDouble(json["balance_before"]),
+      balanceAfter: parseDouble(json["balance_after"]),
       referenceNumber: json["reference_number"] ?? "",
       orderId: json["order_id"],
       description: json["description"] ?? "",

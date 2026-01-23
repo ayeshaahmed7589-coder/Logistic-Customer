@@ -2161,11 +2161,14 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   // Quote Details Widget
   Widget _buildQuoteDetails(Quote quote, QuoteData quoteData) {
     final pricing = quote.pricing;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+    ref.read(selectedTotalAmountProvider.notifier).state = pricing.total;
+  });
 
     return Consumer(
       builder: (context, ref, _) {
         // ✅ SAVE total globally
-        ref.read(selectedTotalAmountProvider.notifier).state = pricing.total;
+        // ref.read(selectedTotalAmountProvider.notifier).state = pricing.total;
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(

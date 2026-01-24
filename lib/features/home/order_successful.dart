@@ -6,11 +6,27 @@ import '../../constants/colors.dart';
 class OrderSuccessful extends StatelessWidget {
   final String orderNumber;
   final String totalAmount;
+  final String status;
+  final String paymentStatus;
+  final String paymentMethod;
+  final String totalWeightKg;
+  final String trackingCode;
+  final String distanceKm;
+  final String finalCost;
+  final String createedAt;
 
   const OrderSuccessful({
     super.key,
     required this.totalAmount,
     required this.orderNumber,
+    required this.status,
+    required this.paymentStatus,
+    required this.paymentMethod,
+    required this.totalWeightKg,
+    required this.trackingCode,
+    required this.distanceKm,
+    required this.finalCost,
+    required this.createedAt,
   });
 
   @override
@@ -23,7 +39,6 @@ class OrderSuccessful extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: 30),
               Center(
                 child: Lottie.asset(
                   "assets/Success.json",
@@ -81,11 +96,38 @@ class OrderSuccessful extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
+
+                    Text(
+                      "Tracking",
+                      style: TextStyle(fontSize: 14, color: AppColors.darkGray),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      trackingCode,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Text(
+                      "Weight: $totalWeightKg",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.electricTeal,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
 
                     // STATUS
                     Text(
-                      "Status: Pending",
+                      "Status: $status",
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -97,7 +139,18 @@ class OrderSuccessful extends StatelessWidget {
                       style: TextStyle(fontSize: 14, color: AppColors.darkGray),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
+
+                    Text(
+                      "Payment Status: $paymentStatus",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.electricTeal,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
 
                     // AMOUNT + PAYMENT
                     Text(
@@ -108,11 +161,37 @@ class OrderSuccessful extends StatelessWidget {
                         color: AppColors.darkText,
                       ),
                     ),
+                    const SizedBox(height: 10),
+
                     Text(
-                      "Payment: Wallet (Paid)",
-                      style: TextStyle(fontSize: 14, color: AppColors.darkGray),
+                      "Payment Method: $paymentMethod",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkText,
+                      ),
                     ),
 
+                    const SizedBox(height: 10),
+
+                    Text(
+                      "Distance : $distanceKm",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkText,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+                    Text(
+                      "Created At : $createedAt",
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.darkText,
+                      ),
+                    ),
                     const SizedBox(height: 20),
 
                     // MESSAGE

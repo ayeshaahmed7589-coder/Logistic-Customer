@@ -57,7 +57,8 @@ class StandardOrderRequestBody {
     required this.deliveryContactPhone,
     this.serviceType = 'standard',
     this.priority = 'medium',
-    this.paymentMethod = 'wallet',
+    // this.paymentMethod = 'wallet',
+    required this.paymentMethod,
     this.addOns = const [],
     this.specialInstructions,
     this.declaredValue = 0.0,
@@ -97,15 +98,15 @@ class StandardOrderRequestBody {
     if (pickupPostalCode != null && pickupPostalCode!.isNotEmpty) {
       map['pickup_postal_code'] = pickupPostalCode;
     }
-    
+
     if (deliveryPostalCode != null && deliveryPostalCode!.isNotEmpty) {
       map['delivery_postal_code'] = deliveryPostalCode;
     }
-    
+
     if (specialInstructions != null && specialInstructions!.isNotEmpty) {
       map['special_instructions'] = specialInstructions;
     }
-    
+
     if (length != null) map['length'] = length;
     if (width != null) map['width'] = width;
     if (height != null) map['height'] = height;
@@ -319,14 +320,97 @@ class SelectedQuote {
 }
 
 // ✅ ORDER RESPONSE
+// class OrderResponse {
+//   final bool success;
+//   final String message;
+//   final OrderData data;
+
+//   OrderResponse({
+//     required this.success,
+//     required this.message,
+//     required this.data,
+//   });
+
+//   factory OrderResponse.fromJson(Map<String, dynamic> json) {
+//     return OrderResponse(
+//       success: json['success'] ?? false,
+//       message: json['message'] ?? '',
+//       data: OrderData.fromJson(json['data']),
+//     );
+//   }
+// }
+
+// class OrderData {
+//   final Order order;
+
+//   OrderData({
+//     required this.order,
+//   });
+
+//   factory OrderData.fromJson(Map<String, dynamic> json) {
+//     return OrderData(
+//       order: Order.fromJson(json['order']),
+//     );
+//   }
+// }
+
+// class Order {
+//   final int id;
+//   final String orderNumber;
+//   final String trackingCode;
+//   final String status;
+//   final String paymentStatus;
+//   final bool isMultiStop;
+//   final int? stopsCount;
+//   final double totalWeightKg;
+//   final double distanceKm;
+//   final double finalCost;
+//   final String createdAt;
+
+//   Order({
+//     required this.id,
+//     required this.orderNumber,
+//     required this.trackingCode,
+//     required this.status,
+//     required this.paymentStatus,
+//     required this.isMultiStop,
+//     this.stopsCount,
+//     required this.totalWeightKg,
+//     required this.distanceKm,
+//     required this.finalCost,
+//     required this.createdAt,
+//   });
+
+//   factory Order.fromJson(Map<String, dynamic> json) {
+//     return Order(
+//       id: json['id'],
+//       orderNumber: json['order_number'],
+//       trackingCode: json['tracking_code'],
+//       status: json['status'],
+//       paymentStatus: json['payment_status'],
+//       isMultiStop: json['is_multi_stop'] ?? false,
+//       stopsCount: json['stops_count'],
+//       totalWeightKg: (json['total_weight_kg'] ?? 0).toDouble(),
+//       distanceKm: (json['distance_km'] ?? 0).toDouble(),
+//       finalCost: double.parse(json['final_cost'].toString()),
+//       createdAt: json['created_at'],
+//     );
+//   }
+// }
+
+/////////////////////////
+
+// ✅ COMPLETE UPDATED MODELS
 class OrderResponse {
   final bool success;
   final String message;
+  final bool requiresPayment;
   final OrderData data;
 
   OrderResponse({
     required this.success,
     required this.message,
+    required this.requiresPayment,
     required this.data,
   });
 
@@ -334,21 +418,50 @@ class OrderResponse {
     return OrderResponse(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
-      data: OrderData.fromJson(json['data']),
+      requiresPayment: json['requires_payment'] ?? false, // ✅ Yeh important hai
+      data: OrderData.fromJson(json['data'] ?? {}),
     );
   }
 }
 
 class OrderData {
   final Order order;
+  final PaymentResponse? payment;
 
   OrderData({
     required this.order,
+    this.payment,
   });
 
   factory OrderData.fromJson(Map<String, dynamic> json) {
     return OrderData(
-      order: Order.fromJson(json['order']),
+      order: Order.fromJson(json['order'] ?? {}),
+      payment: json['payment'] != null 
+          ? PaymentResponse.fromJson(json['payment'])
+          : null,
+    );
+  }
+}
+
+class PaymentResponse {
+  final String checkoutUrl;
+  final String checkoutId;
+  final String reference;
+  final double amount;
+
+  const PaymentResponse({
+    required this.checkoutUrl,
+    required this.checkoutId,
+    required this.reference,
+    required this.amount,
+  });
+
+  factory PaymentResponse.fromJson(Map<String, dynamic> json) {
+    return PaymentResponse(
+      checkoutUrl: json['checkout_url'] ?? '',
+      checkoutId: json['checkout_id'] ?? '',
+      reference: json['reference'] ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -382,17 +495,91 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'],
-      orderNumber: json['order_number'],
-      trackingCode: json['tracking_code'],
-      status: json['status'],
-      paymentStatus: json['payment_status'],
+      id: json['id'] ?? 0,
+      orderNumber: json['order_number'] ?? '',
+      trackingCode: json['tracking_code'] ?? '',
+      status: json['status'] ?? '',
+      paymentStatus: json['payment_status'] ?? '',
       isMultiStop: json['is_multi_stop'] ?? false,
       stopsCount: json['stops_count'],
       totalWeightKg: (json['total_weight_kg'] ?? 0).toDouble(),
       distanceKm: (json['distance_km'] ?? 0).toDouble(),
-      finalCost: double.parse(json['final_cost'].toString()),
-      createdAt: json['created_at'],
+      finalCost: double.tryParse(json['final_cost']?.toString() ?? '0') ?? 0.0,
+      createdAt: json['created_at'] ?? '',
     );
   }
 }
+
+// ✅ PAYMENT RESPONSE MODEL
+// class PaymentResponse {
+//   final String checkoutUrl;
+//   final String checkoutId;
+//   final String reference;
+//   final double amount;
+
+//   const PaymentResponse({
+//     required this.checkoutUrl,
+//     required this.checkoutId,
+//     required this.reference,
+//     required this.amount,
+//   });
+
+//   factory PaymentResponse.fromJson(Map<String, dynamic> json) {
+//     return PaymentResponse(
+//       checkoutUrl: json['checkout_url'] ?? '',
+//       checkoutId: json['checkout_id'] ?? '',
+//       reference: json['reference'] ?? '',
+//       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'checkout_url': checkoutUrl,
+//       'checkout_id': checkoutId,
+//       'reference': reference,
+//       'amount': amount,
+//     };
+//   }
+// }
+
+// // ✅ ORDER DATA MODEL
+// class OrderData {
+//   final Order order;
+//   final PaymentResponse? payment; // Yeh add karo
+
+//   OrderData({required this.order, this.payment});
+
+//   factory OrderData.fromJson(Map<String, dynamic> json) {
+//     return OrderData(
+//       order: Order.fromJson(json['order'] ?? {}),
+//       payment: json['payment'] != null
+//           ? PaymentResponse.fromJson(json['payment'])
+//           : null,
+//     );
+//   }
+// }
+
+// // ✅ ORDER RESPONSE MODEL
+// class OrderResponse {
+//   final bool success;
+//   final String message;
+//   final bool requiresPayment; // Yeh add karo
+//   final OrderData data;
+
+//   OrderResponse({
+//     required this.success,
+//     required this.message,
+//     required this.requiresPayment,
+//     required this.data,
+//   });
+
+//   factory OrderResponse.fromJson(Map<String, dynamic> json) {
+//     return OrderResponse(
+//       success: json['success'] ?? false,
+//       message: json['message'] ?? '',
+//       requiresPayment: json['requires_payment'] ?? false, // Yeh add karo
+//       data: OrderData.fromJson(json['data'] ?? {}),
+//     );
+//   }
+// }

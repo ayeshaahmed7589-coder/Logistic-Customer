@@ -17,12 +17,14 @@ class PaymentCheckModel {
 }
 
 class PaymentData {
+    final String selectedMethod;
   final double amountRequired;
   final Wallet wallet;
   final CardOption card;
   final PayLater payLater;
 
   PaymentData({
+      this.selectedMethod = 'wallet',
     required this.amountRequired,
     required this.wallet,
     required this.card,
@@ -56,7 +58,7 @@ class Wallet {
     return Wallet(
       available: json["available"] ?? false,
       balance: (json["balance"] ?? 0).toDouble(),
-      sufficient: json["sufficient"] ?? false,
+      sufficient: json["sufficient"],
       shortfall: (json["shortfall"] ?? 0).toDouble(),
     );
   }

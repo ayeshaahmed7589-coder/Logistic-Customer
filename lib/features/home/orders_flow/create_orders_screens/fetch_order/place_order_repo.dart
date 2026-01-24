@@ -259,7 +259,8 @@ class PlaceOrderRepository {
     // Get service type and add-ons
     final serviceType = cache["service_type_id"]?.toString() ?? "standard";
     final priority = cache["priority"]?.toString() ?? "medium";
-    final paymentMethod = cache["payment_method"]?.toString() ?? "wallet";
+    // final paymentMethod = cache["payment_method"]?.toString() ?? "wallet";
+      final paymentMethod = cache['payment_method'] ?? 'wallet';
     
     final addOns = <String>[];
     final selectedAddons = cache["selected_addons"];
@@ -348,6 +349,8 @@ class PlaceOrderRepository {
 
     return request;
   }
+
+
 
   // ✅ PREPARE MULTI-STOP ORDER DATA
 // ✅ PREPARE MULTI-STOP ORDER DATA - COMPLETELY FIXED

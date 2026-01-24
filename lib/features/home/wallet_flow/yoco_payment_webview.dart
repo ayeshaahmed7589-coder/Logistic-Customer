@@ -59,14 +59,14 @@ class _YocoPaymentWebViewState extends State<YocoPaymentWebView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('YOCO Payment'),
-        backgroundColor: Colors.teal,
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      // appBar: AppBar(
+      //   title: const Text('YOCO Payment'),
+      //   backgroundColor: Colors.teal,
+      //   leading: IconButton(
+      //     icon: const Icon(Icons.close),
+      //     onPressed: () => Navigator.pop(context),
+      //   ),
+      // ),
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),

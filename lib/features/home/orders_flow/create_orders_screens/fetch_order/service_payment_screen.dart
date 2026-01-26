@@ -12,9 +12,7 @@ import 'package:logisticscustomer/features/home/orders_flow/create_orders_screen
 import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/fetch_order/order_types/add_ons/add_ons_modal.dart';
 import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/fetch_order/order_types/service_type/service_type_controller.dart';
 import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/fetch_order/place_order_controller.dart';
-import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/fetch_order/place_order_modal.dart';
 import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/order_cache_provider.dart';
-import 'package:logisticscustomer/features/home/order_successful.dart';
 
 import '../../payment_method_orders/payment_method_controller.dart';
 import '../../payment_method_orders/payment_method_model.dart';

@@ -8,6 +8,7 @@ import 'package:logisticscustomer/features/home/orders_flow/all_orders/orders_co
 import '../../../../export.dart';
 import '../order details/order_details_screen.dart';
 import '../ordr_tracking/order_tracking_screen.dart';
+import 'pending_payment_method.dart';
 
 class Orders extends ConsumerStatefulWidget {
   const Orders({super.key});
@@ -51,6 +52,35 @@ class _OrdersState extends ConsumerState<Orders> {
     });
   }
 
+
+void _handlePayment(AlOrder order) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(20),
+      ),
+    ),
+    builder: (context) => PaymentOptionsModal(order: order, ref: ref),
+  );
+}
+void _processPayment(AlOrder order) {
+  // Payment processing logic yahan implement karein
+  // Example: Payment gateway integration
+  
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text("Processing payment for order ${order.orderNumber}"),
+      duration: const Duration(seconds: 2),
+    ),
+  );
+  
+  // After payment, refresh orders list
+  Future.delayed(const Duration(seconds: 2), () {
+    ref.read(orderControllerProvider.notifier).refreshOrders();
+  });
+}
   @override
   Widget build(BuildContext context) {
     ref.listen(orderControllerProvider, (previous, next) {
@@ -619,64 +649,142 @@ class _OrdersState extends ConsumerState<Orders> {
           ),
 
           /// ================= FOOTER =================
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => OrderTrackingScreen(
-                            trackingCode: order.trackingCode ?? "",
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.map_outlined, size: 16),
-                    label: const Text("Track"),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.electricTeal,
-                      side: BorderSide(color: AppColors.electricTeal),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              OrderDetailsScreen(orderId: order.id ?? 0),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.remove_red_eye_outlined, size: 16,color: AppColors.pureWhite,),
-                    label: const Text("Details",style: TextStyle(color: AppColors.pureWhite,),),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.electricTeal,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                  ),
-                ),
-              ],
+          /// ================= FOOTER =================
+Padding(
+  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+  child: order.paymetstatus?.toLowerCase() == 'pending'
+      ? ElevatedButton.icon(
+          onPressed: () {
+            // Payment karne ka logic yahan implement karein
+            _handlePayment(order);
+          },
+          icon: const Icon(Icons.payment, size: 16),
+          label: const Text("Pay Now"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green, // Pending payment ke liye orange color
+            foregroundColor: AppColors.pureWhite,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
             ),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            minimumSize: const Size(double.infinity, 0),
           ),
+        )
+      : Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => OrderTrackingScreen(
+                        trackingCode: order.trackingCode ?? "",
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.map_outlined, size: 16),
+                label: const Text("Track"),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.electricTeal,
+                  side: BorderSide(color: AppColors.electricTeal),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          OrderDetailsScreen(orderId: order.id ?? 0),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.remove_red_eye_outlined,
+                    size: 16, color: AppColors.pureWhite),
+                label: const Text("Details",
+                    style: TextStyle(color: AppColors.pureWhite)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.electricTeal,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+          ],
+        ),
+),
+          // Padding(
+          //   padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          //   child: Row(
+          //     children: [
+          //       Expanded(
+          //         child: OutlinedButton.icon(
+          //           onPressed: () {
+          //             Navigator.push(
+          //               context,
+          //               MaterialPageRoute(
+          //                 builder: (_) => OrderTrackingScreen(
+          //                   trackingCode: order.trackingCode ?? "",
+          //                 ),
+          //               ),
+          //             );
+          //           },
+          //           icon: const Icon(Icons.map_outlined, size: 16),
+          //           label: const Text("Track"),
+          //           style: OutlinedButton.styleFrom(
+          //             foregroundColor: AppColors.electricTeal,
+          //             side: BorderSide(color: AppColors.electricTeal),
+          //             shape: RoundedRectangleBorder(
+          //               borderRadius: BorderRadius.circular(18),
+          //             ),
+          //             padding: const EdgeInsets.symmetric(vertical: 10),
+          //           ),
+          //         ),
+          //       ),
+          //       const SizedBox(width: 12),
+          //       Expanded(
+          //         child: ElevatedButton.icon(
+          //           onPressed: () {
+          //             Navigator.push(
+          //               context,
+          //               MaterialPageRoute(
+          //                 builder: (_) =>
+          //                     OrderDetailsScreen(orderId: order.id ?? 0),
+          //               ),
+          //             );
+          //           },
+          //           icon: const Icon(Icons.remove_red_eye_outlined, size: 16,color: AppColors.pureWhite,),
+          //           label: const Text("Details",style: TextStyle(color: AppColors.pureWhite,),),
+          //           style: ElevatedButton.styleFrom(
+          //             backgroundColor: AppColors.electricTeal,
+          //             shape: RoundedRectangleBorder(
+          //               borderRadius: BorderRadius.circular(18),
+          //             ),
+          //             padding: const EdgeInsets.symmetric(vertical: 10),
+          //           ),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
+       
         ],
       ),
     );
   }
+
+  
 
   Widget _singleTimeline(AlOrder order) {
     return Column(

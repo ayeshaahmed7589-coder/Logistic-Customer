@@ -95,6 +95,7 @@ class AlOrder {
   final int? id;
   final String? orderNumber;
   final String? trackingCode;
+  final String? paymetstatus;
   final int stopsCount;
   final List<OrderStop> stops;
   final String status;
@@ -115,6 +116,7 @@ class AlOrder {
     required this.id,
     required this.orderNumber,
     required this.trackingCode,
+    required this.paymetstatus,
     required this.status,
     required this.isMultiStop,
     required this.stopsCount,
@@ -138,6 +140,7 @@ class AlOrder {
       orderNumber: json['order_number'] ?? '',
       trackingCode: json['tracking_code'],
       status: json['status'] ?? '',
+      paymetstatus: json['payment_status'] ?? '',
       isMultiStop: json['is_multi_stop'] ?? 0,
       stopsCount: json['stops_count'] ?? 0,
 

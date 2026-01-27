@@ -303,17 +303,18 @@ class SelectedQuote {
       'utilization_percent': utilizationPercent,
       'pricing': pricing,
       'company': company,
+       'driver': null,
     };
 
-    if (driver != null) {
-      map['driver'] = {
-        'id': driver!.id,
-        'name': driver!.name,
-        'rating': driver!.rating,
-      };
-    } else {
-      map['driver'] = null;
-    }
+    // if (driver != null) {
+    //   map['driver'] = {
+    //     'id': driver!.id,
+    //     'name': driver!.name,
+    //     'rating': driver!.rating,
+    //   };
+    // } else {
+    //   map['driver'] = null;
+    // }
 
     return map;
   }

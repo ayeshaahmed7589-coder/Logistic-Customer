@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:logisticscustomer/constants/session_expired.dart';
 import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/main_order_create_screen.dart';
 import 'package:logisticscustomer/features/home/orders_flow/all_orders/get_all_orders_modal.dart';
 import 'package:logisticscustomer/features/home/orders_flow/all_orders/orders_controller.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../export.dart';
 import '../order details/order_details_screen.dart';
@@ -52,35 +54,34 @@ class _OrdersState extends ConsumerState<Orders> {
     });
   }
 
-
-void _handlePayment(AlOrder order) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(20),
+  void _handlePayment(AlOrder order) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-    ),
-    builder: (context) => PaymentOptionsModal(order: order, ref: ref),
-  );
-}
-void _processPayment(AlOrder order) {
-  // Payment processing logic yahan implement karein
-  // Example: Payment gateway integration
-  
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text("Processing payment for order ${order.orderNumber}"),
-      duration: const Duration(seconds: 2),
-    ),
-  );
-  
-  // After payment, refresh orders list
-  Future.delayed(const Duration(seconds: 2), () {
-    ref.read(orderControllerProvider.notifier).refreshOrders();
-  });
-}
+      builder: (context) => PaymentOptionsModal(order: order, ref: ref),
+    );
+  }
+
+  // void _processPayment(AlOrder order) {
+  //   // Payment processing logic yahan implement karein
+  //   // Example: Payment gateway integration
+
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text("Processing payment for order ${order.orderNumber}"),
+  //       duration: const Duration(seconds: 2),
+  //     ),
+  //   );
+
+  //   // After payment, refresh orders list
+  //   Future.delayed(const Duration(seconds: 2), () {
+  //     ref.read(orderControllerProvider.notifier).refreshOrders();
+  //   });
+  // }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(orderControllerProvider, (previous, next) {
@@ -114,24 +115,46 @@ void _processPayment(AlOrder order) {
 
   // Build content based on state
   Widget _buildContent(OrderState state) {
-    // Show loading only when first loading and no data
+    // 1️⃣ Error (session expired / unauthorized)
+    if (state.error != null && state.orders.isEmpty) {
+      return SessionExpiredScreen();
+    }
+
+    // 2️⃣ Initial loading (first API call)
     if (state.isLoading && state.orders.isEmpty) {
       return _buildLoadingState();
     }
 
-    // Show error if any
-    if (state.error != null) {
-      return _buildErrorState(state.error!);
-    }
-
-    // Show empty state if no orders
-    if (state.orders.isEmpty) {
+    // 3️⃣ Empty state (no orders after loading)
+    if (!state.isLoading && state.orders.isEmpty) {
       return _buildEmptyState();
     }
 
-    // Show orders list
+    // 4️⃣ Orders list (with pagination / refresh)
     return _buildOrdersList(state);
   }
+
+  // Widget _buildContent(OrderState state) {
+  //   // Show loading only when first loading and no data
+
+  //   // Show error if any
+  //   if (state.error != null) {
+  //     // return _buildErrorState(state.error!);
+  //     return SessionExpiredScreen();
+  //   }
+
+  //   if (state.isLoading && state.orders.isEmpty) {
+  //     return _buildLoadingState();
+  //   }
+
+  //   // Show empty state if no orders
+  //   if (state.orders.isEmpty) {
+  //     return _buildEmptyState();
+  //   }
+
+  //   // Show orders list
+  //   return _buildOrdersList(state);
+  // }
 
   // Custom AppBar
   Widget _buildAppBar() {
@@ -258,123 +281,231 @@ void _processPayment(AlOrder order) {
     );
   }
 
-  // Loading State
+  // Loading State shimmer
   Widget _buildLoadingState() {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(12),
-      itemCount: 6, // Skeleton items
+      itemCount: 6,
       itemBuilder: (context, index) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.pureWhite,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumGray.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 80,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumGray.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Container(
-                    width: 100,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumGray.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 60,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumGray.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
+        return _orderShimmerCard();
       },
     );
   }
 
-  // Error State
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 60, color: AppColors.mediumGray),
-          const SizedBox(height: 16),
-          CustomText(
-            txt: "Oops! Something went wrong",
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.darkText,
-          ),
-          const SizedBox(height: 8),
-          // CustomText(
-          //   txt: error,
-          //   fontSize: 14,
-          //   color: AppColors.mediumGray,
-          //   align: TextAlign.center,
-          // ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            // onPressed: _refreshOrders,
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const Login()),
-                (route) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.electricTeal,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.login_outlined, size: 20, color: Colors.white),
-                SizedBox(width: 8),
-                Text("Login Again", style: TextStyle(color: Colors.white)),
-              ],
-            ),
+  Widget _orderShimmerCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppColors.pureWhite,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey.shade300,
+        highlightColor: Colors.grey.shade100,
+        child: Column(
+          children: [
+            /// HEADER
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(14),
+                ),
+              ),
+              child: Row(
+                children: [
+                  _shimmerBox(width: 120, height: 14),
+                  const Spacer(),
+                  _shimmerBox(width: 70, height: 18, radius: 20),
+                ],
+              ),
+            ),
+
+            /// BODY
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  _shimmerBox(height: 60, radius: 12),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _shimmerBox(width: 80, height: 12),
+                      _shimmerBox(width: 80, height: 12),
+                      _shimmerBox(width: 60, height: 12),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _shimmerBox(width: 70, height: 16),
+                      _shimmerBox(width: 100, height: 12),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            /// FOOTER BUTTONS
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(child: _shimmerBox(height: 38, radius: 18)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _shimmerBox(height: 38, radius: 18)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+
+  Widget _shimmerBox({
+    double width = double.infinity,
+    required double height,
+    double radius = 6,
+  }) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  // shimmer end
+  // Widget _buildLoadingState() {
+  //   return ListView.builder(
+  //     controller: _scrollController,
+  //     padding: const EdgeInsets.all(12),
+  //     itemCount: 6, // Skeleton items
+  //     itemBuilder: (context, index) {
+  //       return Container(
+  //         margin: const EdgeInsets.only(bottom: 12),
+  //         padding: const EdgeInsets.all(16),
+  //         decoration: BoxDecoration(
+  //           color: AppColors.pureWhite,
+  //           borderRadius: BorderRadius.circular(12),
+  //         ),
+  //         child: Column(
+  //           children: [
+  //             Row(
+  //               children: [
+  //                 Container(
+  //                   width: 60,
+  //                   height: 20,
+  //                   decoration: BoxDecoration(
+  //                     color: AppColors.mediumGray.withOpacity(0.2),
+  //                     borderRadius: BorderRadius.circular(4),
+  //                   ),
+  //                 ),
+  //                 const Spacer(),
+  //                 Container(
+  //                   width: 80,
+  //                   height: 20,
+  //                   decoration: BoxDecoration(
+  //                     color: AppColors.mediumGray.withOpacity(0.2),
+  //                     borderRadius: BorderRadius.circular(4),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //             const SizedBox(height: 12),
+  //             Row(
+  //               children: [
+  //                 Container(
+  //                   width: 100,
+  //                   height: 16,
+  //                   decoration: BoxDecoration(
+  //                     color: AppColors.mediumGray.withOpacity(0.2),
+  //                     borderRadius: BorderRadius.circular(4),
+  //                   ),
+  //                 ),
+  //                 const Spacer(),
+  //                 Container(
+  //                   width: 60,
+  //                   height: 16,
+  //                   decoration: BoxDecoration(
+  //                     color: AppColors.mediumGray.withOpacity(0.2),
+  //                     borderRadius: BorderRadius.circular(4),
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  // Error State
+  // Widget _buildErrorState(String error) {
+  //   return Center(
+  //     child: Column(
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: [
+  //         Icon(Icons.error_outline, size: 60, color: AppColors.mediumGray),
+  //         const SizedBox(height: 16),
+  //         CustomText(
+  //           txt: "Oops! Something went wrong",
+  //           fontSize: 18,
+  //           fontWeight: FontWeight.w600,
+  //           color: AppColors.darkText,
+  //         ),
+  //         const SizedBox(height: 8),
+  //         // CustomText(
+  //         //   txt: error,
+  //         //   fontSize: 14,
+  //         //   color: AppColors.mediumGray,
+  //         //   align: TextAlign.center,
+  //         // ),
+  //         const SizedBox(height: 24),
+  //         ElevatedButton(
+  //           // onPressed: _refreshOrders,
+  //           onPressed: () {
+  //             Navigator.pushAndRemoveUntil(
+  //               context,
+  //               MaterialPageRoute(builder: (_) => const Login()),
+  //               (route) => false,
+  //             );
+  //           },
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: AppColors.electricTeal,
+  //             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(8),
+  //             ),
+  //           ),
+  //           child: const Row(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               Icon(Icons.login_outlined, size: 20, color: Colors.white),
+  //               SizedBox(width: 8),
+  //               Text("Login Again", style: TextStyle(color: Colors.white)),
+  //             ],
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   // Orders List
   Widget _buildOrdersList(OrderState state) {
@@ -650,80 +781,87 @@ void _processPayment(AlOrder order) {
 
           /// ================= FOOTER =================
           /// ================= FOOTER =================
-Padding(
-  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-  child: order.paymetstatus?.toLowerCase() == 'pending'
-      ? ElevatedButton.icon(
-          onPressed: () {
-            // Payment karne ka logic yahan implement karein
-            _handlePayment(order);
-          },
-          icon: const Icon(Icons.payment, size: 16),
-          label: const Text("Pay Now"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green, // Pending payment ke liye orange color
-            foregroundColor: AppColors.pureWhite,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            minimumSize: const Size(double.infinity, 0),
-          ),
-        )
-      : Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => OrderTrackingScreen(
-                        trackingCode: order.trackingCode ?? "",
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: order.paymetstatus?.toLowerCase() == 'pending'
+                ? ElevatedButton.icon(
+                    onPressed: () {
+                      // Payment karne ka logic yahan implement karein
+                      _handlePayment(order);
+                    },
+                    icon: const Icon(Icons.payment, size: 16),
+                    label: const Text("Pay Now"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Colors.orange, // Pending payment ke liye orange color
+                      foregroundColor: AppColors.pureWhite,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
                       ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      minimumSize: const Size(double.infinity, 0),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.map_outlined, size: 16),
-                label: const Text("Track"),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.electricTeal,
-                  side: BorderSide(color: AppColors.electricTeal),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => OrderTrackingScreen(
+                                  trackingCode: order.trackingCode ?? "",
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.map_outlined, size: 16),
+                          label: const Text("Track"),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.electricTeal,
+                            side: BorderSide(color: AppColors.electricTeal),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    OrderDetailsScreen(orderId: order.id ?? 0),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.remove_red_eye_outlined,
+                            size: 16,
+                            color: AppColors.pureWhite,
+                          ),
+                          label: const Text(
+                            "Details",
+                            style: TextStyle(color: AppColors.pureWhite),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.electricTeal,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          OrderDetailsScreen(orderId: order.id ?? 0),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.remove_red_eye_outlined,
-                    size: 16, color: AppColors.pureWhite),
-                label: const Text("Details",
-                    style: TextStyle(color: AppColors.pureWhite)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.electricTeal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                ),
-              ),
-            ),
-          ],
-        ),
-),
+          ),
+
           // Padding(
           //   padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           //   child: Row(
@@ -778,13 +916,10 @@ Padding(
           //     ],
           //   ),
           // ),
-       
         ],
       ),
     );
   }
-
-  
 
   Widget _singleTimeline(AlOrder order) {
     return Column(

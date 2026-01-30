@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logisticscustomer/common_widgets/custom_button.dart';
 import 'package:logisticscustomer/common_widgets/custom_text.dart';
 import 'package:logisticscustomer/constants/gap.dart';
+import 'package:logisticscustomer/constants/session_expired.dart';
 import 'package:logisticscustomer/features/home/wallet_flow/top_up/wallet_topup_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -94,8 +95,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             child: balanceShimmer(),
                           ),
                           error: (e, _) {
-                            debugPrint("Balance Error: $e");
-                            return Text("Error: $e");
+                            // debugPrint("Balance Error: $e");
+                            return SessionExpiredScreen();
+                            //  Text("Error: $e");
                           },
                           data: (wallet) {
                             final balance = wallet?.data.balance ?? 0;
@@ -209,8 +211,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                             ),
                           ),
                           error: (e, _) {
-                            debugPrint("Transaction Error: $e");
-                            return Text("Error: $e");
+                            // debugPrint("Transaction Error: $e");
+                            // return Text("Error: $e");
+                            return SessionExpiredScreen();
                           },
                           data: (transactions) {
                             return Column(

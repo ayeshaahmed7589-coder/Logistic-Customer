@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:logisticscustomer/constants/gap.dart';
 import 'package:logisticscustomer/constants/local_storage.dart';
 import 'package:logisticscustomer/constants/session_expired.dart';
@@ -159,10 +160,10 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
       // error: (err, _) => Center(child: Text(err.toString())),
       error: (e, st) {
-        if (e.toString().contains("SESSION_EXPIRED")) {
-          return SessionExpiredScreen();
-        }
-        return Scaffold(body: Center(child: Text("Error: $e")));
+        // if (e.toString().contains("SESSION_EXPIRED")) {
+        return SessionExpiredScreen();
+        // }
+        // return Scaffold(body: Center(child: Text("Error: $e")));
       },
 
       data: (profile) {
@@ -509,6 +510,18 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
 
   // --- Info Card Widget (Aapka White Container) ---
   Widget _buildInfoCard() {
+    String formatDateOfBirth(String? rawDate) {
+      if (rawDate == null || rawDate.isEmpty) return "N/A";
+
+      try {
+        final dateTime = DateTime.parse(rawDate);
+        return DateFormat('dd MMM yyyy').format(dateTime);
+        // Example: 01 Jan 1990
+      } catch (e) {
+        return "N/A";
+      }
+    }
+
     final profileState = ref.watch(getProfileControllerProvider);
 
     // 🔵 Loading State
@@ -567,9 +580,15 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
           // ✅ DOB
           _buildInfoRow(
             label: 'Date Of Birth',
-            value: customer.dateOfBirth ?? "N/A",
+            value: formatDateOfBirth(customer.dateOfBirth),
             showVerification: false,
           ),
+
+          // _buildInfoRow(
+          //   label: 'Date Of Birth',
+          //   value: customer.dateOfBirth ?? "N/A",
+          //   showVerification: false,
+          // ),
           const SizedBox(height: 10),
 
           // ✅ Phone
@@ -611,6 +630,7 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
             showVerification: false,
           ),
           const SizedBox(height: 10),
+
           /// LOCATION
           profileState.when(
             data: (_) {
@@ -636,10 +656,16 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
   Widget _locationRow(String city) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [CustomText(txt: "Address", fontSize: 14,color:AppColors.mediumGray),
-      const SizedBox(height: 5),
-        CustomText(txt: city,fontSize: 17,
-          fontWeight: FontWeight.w500, color: Colors.black)],
+      children: [
+        CustomText(txt: "Address", fontSize: 14, color: AppColors.mediumGray),
+        const SizedBox(height: 5),
+        CustomText(
+          txt: city,
+          fontSize: 17,
+          fontWeight: FontWeight.w500,
+          color: Colors.black,
+        ),
+      ],
     );
   }
 

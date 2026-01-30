@@ -218,10 +218,10 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
       loading: () => const DashboardShimmer(),
       // error: (e, st) => Scaffold(body: Center(child: Text("Error: $e"))),
       error: (e, st) {
-        if (e.toString().contains("SESSION_EXPIRED")) {
-          return SessionExpiredScreen();
-        }
-        return Scaffold(body: Center(child: Text("Error: $e")));
+        // if (e.toString().contains("SESSION_EXPIRED")) {
+        return SessionExpiredScreen();
+        // }
+        // return Scaffold(body: Center(child: Text("Error: $e")));
       },
 
       data: (dashboard) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:logisticscustomer/constants/jwt.dart';
+import 'package:logisticscustomer/constants/local_storage.dart';
 import 'package:logisticscustomer/constants/session_expired.dart';
 
 import 'package:logisticscustomer/export.dart';
@@ -8,6 +10,7 @@ import 'package:logisticscustomer/features/home/orders_flow/create_orders_screen
 import 'package:logisticscustomer/features/home/main_screens/home_screen/home_controller.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/view_all.dart';
 import 'package:logisticscustomer/features/home/notification_screen.dart';
+import 'package:logisticscustomer/services/notification_service.dart';
 
 import 'package:shimmer/shimmer.dart';
 
@@ -203,10 +206,30 @@ class _CurrentScreenState extends ConsumerState<CurrentScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+
+    Future.microtask(() async {
+      final token = await LocalStorage.getToken();
+
+      if (token == null) return;
+
+      final userId = getUserIdFromToken(token);
+      if (userId == null) return;
+
+      // await NotificationService.initialize(userId);
+
+        await NotificationService.initialize();
+
       ref.read(dashboardControllerProvider.notifier).loadDashboard();
     });
   }
+
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   Future.microtask(() {
+  //     ref.read(dashboardControllerProvider.notifier).loadDashboard();
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {

@@ -11,27 +11,28 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services") // ✅ ONLY HERE
 }
 
 android {
-    namespace = "com.yourcompany.logisticscustomer"
-
-    // 🔹 Updated SDK versions
+    namespace = "com.skyguru.logisticscustomer"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     defaultConfig {
-        applicationId = "com.yourcompany.logisticscustomer"
+        applicationId = "com.skyguru.logisticscustomer"
         minSdk = flutter.minSdkVersion
-        targetSdk = 36   // 🔹 also updated targetSdk
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    isCoreLibraryDesugaringEnabled = true
     }
+
 
     kotlinOptions {
         jvmTarget = "17"
@@ -52,8 +53,21 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
         }
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
 }
+
+dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-messaging")
+
+    // 🔥 REQUIRED FOR flutter_local_notifications
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+
 
 flutter {
     source = "../.."

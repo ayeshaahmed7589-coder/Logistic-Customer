@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "635861298243",
+    "project_id": "drovvi-58e48",
+    "storage_bucket": "drovvi-58e48.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635861298243:android:0ebce6410d6f47f61578f6",
+        "android_client_info": {
+          "package_name": "com.skyguru.logisticscustomer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkxmXOIXdOLfe7sgSPhtGkmRBsr_XnNko"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

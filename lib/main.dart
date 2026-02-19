@@ -8,7 +8,7 @@ import 'export.dart';
 // void main() {
 //   runApp(ProviderScope(child: const MyApp()));
 // }
-
+  final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -17,6 +17,7 @@ void main() async {
   
   // Initialize notifications
   await NotificationService.initialize();
+
   
   runApp(
     ProviderScope(
@@ -38,6 +39,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+       navigatorKey: rootNavigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Logistic Customer',
       theme: ThemeData(

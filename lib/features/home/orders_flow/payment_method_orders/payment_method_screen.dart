@@ -4,6 +4,7 @@ import 'package:logisticscustomer/constants/colors.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../../common_widgets/custom_button.dart';
+import '../../../../main.dart';
 import '../../order_successful.dart';
 import '../all_orders/orders_controller.dart';
 import '../create_orders_screens/calculate_quotes/calculate_quote_controller.dart';
@@ -180,35 +181,7 @@ class _PaymentMethodModalState extends ConsumerState<PaymentMethodModal> {
                     checkoutUrl: payment.checkoutUrl,
                     amount: payment.amount,
                     orderNumber: orderResponse.data.order.orderNumber,
-                    onPaymentSuccess: () {
-                      // Payment successful hone ke baad
-                      // IMPORTANT: Sab screens clear karo aur OrderSuccessful pe jao
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => OrderSuccessful(
-                            orderNumber: orderResponse.data.order.orderNumber,
-                            status:
-                                'confirmed', // Ya jo bhi confirmed status hai
-                            totalAmount: payment.amount.toStringAsFixed(2),
-                            createedAt: orderResponse.data.order.createdAt,
-                            distanceKm: orderResponse.data.order.distanceKm
-                                .toStringAsFixed(2),
-                            finalCost: payment.amount.toStringAsFixed(2),
-                            trackingCode: orderResponse.data.order.trackingCode,
-                            totalWeightKg: orderResponse
-                                .data
-                                .order
-                                .totalWeightKg
-                                .toStringAsFixed(2),
-                            paymentMethod: selectedMethod,
-                            paymentStatus: 'paid', // Update payment status
-                          ),
-                        ),
-                        (route) => false, // Sab previous screens clear kardo
-                      );
-                    },
-                  ),
+                 ),
                 ),
               );
             } else {
@@ -495,14 +468,12 @@ class PaymentWebViewScreen extends StatefulWidget {
   final String checkoutUrl;
   final double amount;
   final String orderNumber;
-  final VoidCallback onPaymentSuccess;
 
   const PaymentWebViewScreen({
     super.key,
     required this.checkoutUrl,
     required this.amount,
     required this.orderNumber,
-    required this.onPaymentSuccess,
   });
 
   @override
@@ -551,82 +522,47 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   }
 
   void _checkPaymentResult(String url) {
-    print('🔍 Checking payment result URL: $url');
+  print('🔍 Checking payment result URL: $url');
 
-    // YOCO payment success URLs
-    final successPatterns = [
-      'success',
-      'thank-you',
-      'thank_you',
-      'completed',
-      'payment-success',
-      'payment_success',
-      'checkout/success',
-      'yoco.com/success',
-    ];
+  final successPatterns = [
+    'success',
+    'thank-you',
+    'thank_you',
+    'completed',
+    'payment-success',
+    'checkout/success',
+  ];
 
-    // YOCO payment failure/cancel URLs
-    final failurePatterns = [
-      'cancel',
-      'failed',
-      'failure',
-      'error',
-      'declined',
-    ];
+  for (var pattern in successPatterns) {
+    if (url.toLowerCase().contains(pattern)) {
+      if (!_paymentCompleted) {
+        _paymentCompleted = true;
+        print('🎉 PAYMENT SUCCESS DETECTED!');
 
-    // Check for SUCCESS
-    for (var pattern in successPatterns) {
-      if (url.toLowerCase().contains(pattern.toLowerCase())) {
-        if (!_paymentCompleted) {
-          _paymentCompleted = true;
-          print('🎉 PAYMENT SUCCESS DETECTED!');
-
-          // 2 seconds delay then redirect
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              print('🔄 Redirecting to OrderSuccessful screen...');
-              widget.onPaymentSuccess();
-            }
-          });
-        }
-        return;
-      }
-    }
-
-    // Check for FAILURE/CANCEL
-    for (var pattern in failurePatterns) {
-      if (url.toLowerCase().contains(pattern.toLowerCase())) {
-        print('❌ PAYMENT FAILED/CANCELLED DETECTED');
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            Navigator.pop(context);
-          }
+        Future.delayed(const Duration(milliseconds: 500), () {
+          rootNavigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (_) => OrderSuccessful(
+                orderNumber: widget.orderNumber,
+                status: "confirmed",
+                totalAmount: widget.amount.toStringAsFixed(2),
+                createedAt: DateTime.now().toString(),
+                distanceKm: "0",
+                finalCost: widget.amount.toStringAsFixed(2),
+                trackingCode: "",
+                totalWeightKg: "0",
+                paymentMethod: "card",
+                paymentStatus: "paid",
+              ),
+            ),
+            (route) => false,
+          );
         });
-        return;
       }
-    }
-
-    // Also check URL parameters
-    final uri = Uri.tryParse(url);
-    if (uri != null) {
-      final queryParams = uri.queryParameters;
-
-      if (queryParams['status']?.toLowerCase() == 'success' ||
-          queryParams['payment_status']?.toLowerCase() == 'success' ||
-          queryParams['result']?.toLowerCase() == 'success') {
-        if (!_paymentCompleted) {
-          _paymentCompleted = true;
-          print('🎉 PAYMENT SUCCESS DETECTED via query params!');
-
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              widget.onPaymentSuccess();
-            }
-          });
-        }
-      }
+      return;
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -684,92 +620,3 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     );
   }
 }
-  
-
-
-// class PaymentWebViewScreen extends StatefulWidget {
-//   final String checkoutUrl;
-//   // final String reference;
-//   final double amount;
-//   final String orderNumber;
-//   final VoidCallback onPaymentSuccess;
-
-//   const PaymentWebViewScreen({
-//     super.key,
-//     required this.checkoutUrl,
-//     // required this.reference,
-//     required this.amount,
-//     required this.orderNumber,
-//     required this.onPaymentSuccess,
-//   });
-
-//   @override
-//   _PaymentWebViewScreenState createState() => _PaymentWebViewScreenState();
-// }
-
-// class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
-//   late WebViewController _controller;
-//   bool _isLoading = true;
-
-//   @override
-//   void initState() {
-//     super.initState();
-
-//     _controller = WebViewController()
-//       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-//       ..setNavigationDelegate(
-//         NavigationDelegate(
-//           onPageStarted: (url) {
-//             print('Page started: $url');
-//             setState(() => _isLoading = true);
-//             _checkPaymentResult(url);
-//           },
-//           onPageFinished: (url) {
-//             print('Page finished: $url');
-//             setState(() => _isLoading = false);
-//           },
-//         ),
-//       )
-//       ..loadRequest(Uri.parse(widget.checkoutUrl));
-//   }
-
-//   void _checkPaymentResult(String url) {
-//     print('Checking URL: $url');
-
-//     if (url.contains('/wallet/topup-success')) {
-//       print('Payment SUCCESS detected');
-//       Navigator.pop(context, {'success': true, 'message': 'Payment successful'});
-//     } else if (url.contains('/wallet/topup-cancel')) {
-//       print('Payment CANCELLED detected');
-//       Navigator.pop(context, {'success': false, 'message': 'Payment cancelled'});
-//     } else if (url.contains('/wallet/topup-failure')) {
-//       print('Payment FAILED detected');
-//       Navigator.pop(context, {'success': false, 'message': 'Payment failed'});
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       // appBar: AppBar(
-//       //   title: const Text('YOCO Payment'),
-//       //   backgroundColor: Colors.teal,
-//       //   leading: IconButton(
-//       //     icon: const Icon(Icons.close),
-//       //     onPressed: () => Navigator.pop(context),
-//       //   ),
-//       // ),
-//       body: Stack(
-//         children: [
-//           WebViewWidget(controller: _controller),
-//           if (_isLoading)
-//             const Center(
-//               child: CircularProgressIndicator(color: Colors.teal),
-//             ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-

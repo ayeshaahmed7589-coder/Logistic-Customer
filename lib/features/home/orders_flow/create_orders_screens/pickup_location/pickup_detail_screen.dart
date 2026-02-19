@@ -56,6 +56,14 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
   final TextEditingController widthController = TextEditingController();
   final TextEditingController heightController = TextEditingController();
 
+  final FocusNode weightFocus = FocusNode();
+  final FocusNode quantityFocus = FocusNode();
+  final FocusNode declaredValueFocus = FocusNode();
+
+  final FocusNode lengthFocus = FocusNode();
+  final FocusNode widthFocus = FocusNode();
+  final FocusNode heightFocus = FocusNode();
+
   void _validateFields() {
     // Product Type validation
     if (selectedProductTypeId == null) {
@@ -120,8 +128,8 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
 
     places = FlutterGooglePlacesSdk("AIzaSyBrF_4PwauOkQ_RS8iGYhAW1NIApp3IEf0");
 
-    setupPickupListener();
-    setupDeliveryListener();
+    // setupPickupListener();
+    // setupDeliveryListener();
 
     // LOAD CACHED DATA
     Future.microtask(() {
@@ -215,134 +223,134 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
     _addCacheListeners(); // Added this
   }
 
-  void setupPickupListener() {
-    address1Controller.addListener(() async {
-      final input = address1Controller.text.trim();
-      if (input.length < 3) return;
+  // void setupPickupListener() {
+  //   address1Controller.addListener(() async {
+  //     final input = address1Controller.text.trim();
+  //     if (input.length < 3) return;
 
-      try {
-        final predictions = await places.findAutocompletePredictions(
-          input,
-          countries: ["ZA"],
-        );
+  //     try {
+  //       final predictions = await places.findAutocompletePredictions(
+  //         input,
+  //         countries: ["ZA"],
+  //       );
 
-        if (predictions.predictions.isEmpty) return;
+  //       if (predictions.predictions.isEmpty) return;
 
-        final placeId = predictions.predictions.first.placeId;
-        final placeDetails = await places.fetchPlace(placeId, fields: []);
+  //       final placeId = predictions.predictions.first.placeId;
+  //       final placeDetails = await places.fetchPlace(placeId, fields: []);
 
-        double? lat;
-        double? lng;
+  //       double? lat;
+  //       double? lng;
 
-        if (placeDetails.place?.latLng != null) {
-          lat = placeDetails.place!.latLng!.lat;
-          lng = placeDetails.place!.latLng!.lng;
-        }
+  //       if (placeDetails.place?.latLng != null) {
+  //         lat = placeDetails.place!.latLng!.lat;
+  //         lng = placeDetails.place!.latLng!.lng;
+  //       }
 
-        if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
-          _setPickupTestCoordinates(input);
-          return;
-        }
+  //       if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
+  //         _setPickupTestCoordinates(input);
+  //         return;
+  //       }
 
-        ref
-            .read(orderCacheProvider.notifier)
-            .saveValue("pickup_latitude", lat.toString());
-        ref
-            .read(orderCacheProvider.notifier)
-            .saveValue("pickup_longitude", lng.toString());
-      } catch (e) {
-        _setPickupTestCoordinates(input);
-      }
-    });
-  }
+  //       ref
+  //           .read(orderCacheProvider.notifier)
+  //           .saveValue("pickup_latitude", lat.toString());
+  //       ref
+  //           .read(orderCacheProvider.notifier)
+  //           .saveValue("pickup_longitude", lng.toString());
+  //     } catch (e) {
+  //       _setPickupTestCoordinates(input);
+  //     }
+  //   });
+  // }
 
-  void setupDeliveryListener() {
-    address1DeliveryController.addListener(() async {
-      final input = address1DeliveryController.text.trim();
-      if (input.length < 3) return;
+  // void setupDeliveryListener() {
+  //   address1DeliveryController.addListener(() async {
+  //     final input = address1DeliveryController.text.trim();
+  //     if (input.length < 3) return;
 
-      try {
-        final predictions = await places.findAutocompletePredictions(
-          input,
-          countries: ["ZA"],
-        );
+  //     try {
+  //       final predictions = await places.findAutocompletePredictions(
+  //         input,
+  //         countries: ["ZA"],
+  //       );
 
-        if (predictions.predictions.isEmpty) return;
+  //       if (predictions.predictions.isEmpty) return;
 
-        final placeId = predictions.predictions.first.placeId;
-        final placeDetails = await places.fetchPlace(placeId, fields: []);
+  //       final placeId = predictions.predictions.first.placeId;
+  //       final placeDetails = await places.fetchPlace(placeId, fields: []);
 
-        double? lat;
-        double? lng;
+  //       double? lat;
+  //       double? lng;
 
-        if (placeDetails.place?.latLng != null) {
-          lat = placeDetails.place!.latLng!.lat;
-          lng = placeDetails.place!.latLng!.lng;
-        }
+  //       if (placeDetails.place?.latLng != null) {
+  //         lat = placeDetails.place!.latLng!.lat;
+  //         lng = placeDetails.place!.latLng!.lng;
+  //       }
 
-        if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
-          _setDeliveryTestCoordinates(input);
-          return;
-        }
+  //       if (lat == null || lng == null || lat == 0.0 || lng == 0.0) {
+  //         _setDeliveryTestCoordinates(input);
+  //         return;
+  //       }
 
-        ref
-            .read(orderCacheProvider.notifier)
-            .saveValue("delivery_latitude", lat.toString());
-        ref
-            .read(orderCacheProvider.notifier)
-            .saveValue("delivery_longitude", lng.toString());
-      } catch (e) {
-        _setDeliveryTestCoordinates(input);
-      }
-    });
-  }
+  //       ref
+  //           .read(orderCacheProvider.notifier)
+  //           .saveValue("delivery_latitude", lat.toString());
+  //       ref
+  //           .read(orderCacheProvider.notifier)
+  //           .saveValue("delivery_longitude", lng.toString());
+  //     } catch (e) {
+  //       _setDeliveryTestCoordinates(input);
+  //     }
+  //   });
+  // }
 
-  void _setPickupTestCoordinates(String address) {
-    String lat, lng;
+  // void _setPickupTestCoordinates(String address) {
+  //   String lat, lng;
 
-    if (address.toLowerCase().contains("cape town")) {
-      lat = "-33.9249";
-      lng = "18.4241";
-    } else if (address.toLowerCase().contains("johannesburg") ||
-        address.toLowerCase().contains("joburg")) {
-      lat = "-26.2041";
-      lng = "28.0473";
-    } else if (address.toLowerCase().contains("durban")) {
-      lat = "-29.8587";
-      lng = "31.0218";
-    } else if (address.toLowerCase().contains("pretoria")) {
-      lat = "-25.7479";
-      lng = "28.2293";
-    } else {
-      lat = "-33.9258";
-      lng = "18.4232";
-    }
+  //   if (address.toLowerCase().contains("cape town")) {
+  //     lat = "-33.9249";
+  //     lng = "18.4241";
+  //   } else if (address.toLowerCase().contains("johannesburg") ||
+  //       address.toLowerCase().contains("joburg")) {
+  //     lat = "-26.2041";
+  //     lng = "28.0473";
+  //   } else if (address.toLowerCase().contains("durban")) {
+  //     lat = "-29.8587";
+  //     lng = "31.0218";
+  //   } else if (address.toLowerCase().contains("pretoria")) {
+  //     lat = "-25.7479";
+  //     lng = "28.2293";
+  //   } else {
+  //     lat = "-33.9258";
+  //     lng = "18.4232";
+  //   }
 
-    ref.read(orderCacheProvider.notifier).saveValue("pickup_latitude", lat);
-    ref.read(orderCacheProvider.notifier).saveValue("pickup_longitude", lng);
-  }
+  //   ref.read(orderCacheProvider.notifier).saveValue("pickup_latitude", lat);
+  //   ref.read(orderCacheProvider.notifier).saveValue("pickup_longitude", lng);
+  // }
 
-  void _setDeliveryTestCoordinates(String address) {
-    String lat, lng;
+  // void _setDeliveryTestCoordinates(String address) {
+  //   String lat, lng;
 
-    if (address.toLowerCase().contains("cape town")) {
-      lat = "-33.9189";
-      lng = "18.4233";
-    } else if (address.toLowerCase().contains("johannesburg") ||
-        address.toLowerCase().contains("joburg")) {
-      lat = "-26.1952";
-      lng = "28.0346";
-    } else if (address.toLowerCase().contains("durban")) {
-      lat = "-29.8498";
-      lng = "31.0168";
-    } else {
-      lat = "-33.9318";
-      lng = "18.4172";
-    }
+  //   if (address.toLowerCase().contains("cape town")) {
+  //     lat = "-33.9189";
+  //     lng = "18.4233";
+  //   } else if (address.toLowerCase().contains("johannesburg") ||
+  //       address.toLowerCase().contains("joburg")) {
+  //     lat = "-26.1952";
+  //     lng = "28.0346";
+  //   } else if (address.toLowerCase().contains("durban")) {
+  //     lat = "-29.8498";
+  //     lng = "31.0168";
+  //   } else {
+  //     lat = "-33.9318";
+  //     lng = "18.4172";
+  //   }
 
-    ref.read(orderCacheProvider.notifier).saveValue("delivery_latitude", lat);
-    ref.read(orderCacheProvider.notifier).saveValue("delivery_longitude", lng);
-  }
+  //   ref.read(orderCacheProvider.notifier).saveValue("delivery_latitude", lat);
+  //   ref.read(orderCacheProvider.notifier).saveValue("delivery_longitude", lng);
+  // }
 
   void _addCacheListeners() {
     // Product info listeners
@@ -535,7 +543,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
       valueMultiplier = double.tryParse(savedMultiplier ?? "1.0") ?? 1.0;
     }
 
-    double baseRatePerKg = 50.0;
+    double baseRatePerKg = 0;
     double calculatedPrice = weight * baseRatePerKg * valueMultiplier;
 
     ref
@@ -565,6 +573,16 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
 
   @override
   void dispose() {
+    weightFocus.dispose();
+    quantityFocus.dispose();
+    declaredValueFocus.dispose();
+
+    lengthFocus.dispose();
+    widthFocus.dispose();
+    heightFocus.dispose();
+
+    //
+
     editlocationFocus.dispose();
     contactnameFocus.dispose();
     locationFocus.dispose();
@@ -1128,6 +1146,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                           children: [
                             Expanded(
                               child: _buildTextField(
+                                 focusNode: weightFocus,
                                 controller: weightController,
                                 label: "Total Weight (kg)",
                                 icon: Icons.scale,
@@ -1136,6 +1155,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                             gapW8,
                             Expanded(
                               child: _buildTextField(
+                                 focusNode: quantityFocus,
                                 controller: quantityController,
                                 label: "Quantity",
                                 icon: Icons.numbers,
@@ -1145,6 +1165,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                         ),
 
                         _buildTextField(
+                           focusNode: declaredValueFocus,
                           controller: declaredValueController,
                           label: "Declared Value (R)",
                           icon: Icons.attach_money,
@@ -1168,6 +1189,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                 children: [
                                   Expanded(
                                     child: _buildTextField(
+                                       focusNode: lengthFocus,
                                       controller: lengthController,
                                       label: "Length (cm)",
                                       icon: Icons.straighten,
@@ -1176,6 +1198,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: _buildTextField(
+                                       focusNode: widthFocus,
                                       controller: widthController,
                                       label: "Width (cm)",
                                       icon: Icons.width_normal,
@@ -1188,6 +1211,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                 children: [
                                   Expanded(
                                     child: _buildTextField(
+                                       focusNode: heightFocus,
                                       controller: heightController,
                                       label: "Height (cm)",
                                       icon: Icons.height,
@@ -1276,7 +1300,7 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
     }
 
     // Calculate estimated price
-    double baseRatePerKg = 50.0;
+    double baseRatePerKg = 0;
     double productMultiplier = 1.0;
     double packagingMultiplier = 1.0;
 
@@ -1548,13 +1572,16 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
 
   Widget _buildTextField({
     required TextEditingController controller,
+    required FocusNode focusNode,
+
     required String label,
     required IconData icon,
     bool isNumber = false,
   }) {
     return CustomAnimatedTextField(
       controller: controller,
-      focusNode: FocusNode(),
+      // focusNode: FocusNode(),
+      focusNode: focusNode,
       labelText: label,
       hintText: label,
       prefixIcon: icon,

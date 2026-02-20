@@ -311,7 +311,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
         await _calculateStandardQuotes(
           productTypeId: int.parse(productTypeId),
           packagingTypeId: int.parse(packagingTypeId),
-          totalWeightKg: weight,
+          weightPerItem: weight,
           selectedAddons: selectedAddons, // ✅ Use provider value
         );
       }
@@ -333,7 +333,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   Future<void> _calculateStandardQuotes({
     required int productTypeId,
     required int packagingTypeId,
-    required double totalWeightKg,
+    required double weightPerItem,
     required List<String> selectedAddons,
   }) async {
     final cache = ref.read(orderCacheProvider);
@@ -389,7 +389,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
             productTypeId: productTypeId,
             packagingTypeId: packagingTypeId,
             quantity: quantity, // ✅ ADD THIS
-            totalWeightKg: totalWeightKg,
+            weightPerItem: weightPerItem,
             pickupAddress: pickupAddress,
             pickupLatitude: pickupLat,
             pickupLongitude: pickupLng,
@@ -423,154 +423,217 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   // UPDATED: Multi-Stop Quotes Calculation
   // _calculateMultiStopQuotes() function ko update karo:
 
-  Future<void> _calculateMultiStopQuotes({
-    required int productTypeId,
-    required int packagingTypeId,
-    required List<String> selectedAddons,
-  }) async {
-    final cache = ref.read(orderCacheProvider);
+Future<void> _calculateMultiStopQuotes({
+  required int productTypeId,
+  required int packagingTypeId,
+  required List<String> selectedAddons,
+}) async {
+  final cache = ref.read(orderCacheProvider);
 
-    print("🔍 MULTI-STOP CACHE DATA:");
-    print("Product Type ID: ${cache["selected_product_type_id"]}");
-    print("Packaging Type ID: ${cache["selected_packaging_type_id"]}");
-    print("Service Type ID: ${selectedServiceTypeId}");
-    print("Stops Count: ${cache["route_stops_count"]}");
+  print("🔍 MULTI-STOP CACHE DATA:");
+  print("Product Type ID: ${cache["selected_product_type_id"]}");
+  print("Packaging Type ID: ${cache["selected_packaging_type_id"]}");
+  print("Service Type ID: ${selectedServiceTypeId}");
+  print("Stops Count: ${cache["route_stops_count"]}");
 
-    final stopsCount =
-        int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
+  final stopsCount =
+      int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
 
-    if (stopsCount < 2) {
-      throw Exception("Multi-stop route requires at least 2 stops");
-    }
-
-    final stops = <StopRequest>[];
-    int totalQuantity = 0;
-    double totalWeight = 0.0;
-
-    for (int i = 1; i <= stopsCount; i++) {
-      final stopTypeStr = cache["stop_${i}_type"]?.toString() ?? "";
-      final city = cache["stop_${i}_city"]?.toString().trim() ?? "";
-      final state = cache["stop_${i}_state"]?.toString().trim() ?? "";
-
-      // ✅ DATA VALIDATION ADD KARO
-      if (city.isEmpty || state.isEmpty) {
-        throw Exception("Stop $i: Please enter City and State");
-      }
-
-      // ✅ City ke according default coordinates set karo
-      String lat, lng;
-      if (city.toLowerCase().contains("cape town")) {
-        lat = "-33.9249";
-        lng = "18.4241";
-      } else if (city.toLowerCase().contains("johannesburg") ||
-          city.toLowerCase().contains("joburg")) {
-        lat = "-26.2041";
-        lng = "28.0473";
-      } else if (city.toLowerCase().contains("durban")) {
-        lat = "-29.8587";
-        lng = "31.0218";
-      } else if (city.toLowerCase().contains("pretoria")) {
-        lat = "-25.7479";
-        lng = "28.2293";
-      } else {
-        lat = "-26.2041";
-        lng = "28.0473";
-      }
-
-      // ✅ IMPORTANT FIX: Default values 1 aur 50.0 karo
-      final quantityStr = cache["stop_${i}_quantity"]?.toString() ?? "1";
-      final weightStr = cache["stop_${i}_weight"]?.toString() ?? "50.0";
-
-      final quantity = int.tryParse(quantityStr) ?? 1;
-      final weight = double.tryParse(weightStr) ?? 50.0;
-
-      totalQuantity += quantity;
-      totalWeight += weight;
-
-      // ✅ API format mai convert karo
-      String apiStopType;
-      if (stopTypeStr.contains("pickup")) {
-        apiStopType = "pickup";
-      } else if (stopTypeStr.contains("dropOff")) {
-        apiStopType = "drop_off";
-      } else {
-        apiStopType = "waypoint";
-      }
-
-      stops.add(
-        StopRequest(
-          sequenceNumber: i,
-          stopType: apiStopType,
-          address:
-              cache["stop_${i}_address"]?.toString() ?? "Address not provided",
-          city: city,
-          state: state,
-          latitude: double.parse(lat),
-          longitude: double.parse(lng),
-          contactName:
-              cache["stop_${i}_contact_name"]?.toString() ?? "Contact N/A",
-          contactPhone:
-              cache["stop_${i}_contact_phone"]?.toString() ?? "Phone N/A",
-          quantity: quantity,
-          weight: weight,
-          notes: cache["stop_${i}_notes"]?.toString(),
-        ),
-      );
-    }
-
-    // ✅ IMPORTANT: TOTAL QUANTITY AUR WEIGHT CACHE MEIN SAVE KARO
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("quantity", totalQuantity.toString());
-    ref
-        .read(orderCacheProvider.notifier)
-        .saveValue("total_weight", totalWeight.toString());
-
-    print(
-      "💾 Saved to cache: quantity=$totalQuantity, total_weight=$totalWeight",
-    );
-
-    // ✅ SERVICE TYPE NAHI HAI TO DEFAULT SET KARO
-    final serviceType = selectedServiceTypeId ?? "standard";
-
-    // ✅ DECLARED VALUE GET KARO
-    final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
-    final declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
-
-    // ✅ ADD-ONS
-    final selectedAddons = ref.read(selectedAddonsProvider);
-
-    // ✅ FINAL CHECK
-    print("📤 SENDING MULTI-STOP REQUEST:");
-    print("Product Type ID: $productTypeId");
-    print("Packaging Type ID: $packagingTypeId");
-    print("Service Type: $serviceType");
-    print("Total Quantity: $totalQuantity");
-    print("Total Weight: $totalWeight");
-    print("Declared Value: $declaredValue");
-    print("Add-ons: $selectedAddons");
-
-    try {
-      await ref
-          .read(quoteControllerProvider.notifier)
-          .calculateMultiStopQuote(
-            productTypeId: productTypeId,
-            packagingTypeId: packagingTypeId,
-            stops: stops,
-            quantity: totalQuantity,
-            weight: totalWeight,
-            serviceType: serviceType,
-            declaredValue: declaredValue,
-            addOns: selectedAddons,
-          );
-    } catch (e) {
-      print("❌ MULTI-STOP ERROR DETAILS:");
-      print("Error Type: ${e.runtimeType}");
-      print("Error Message: $e");
-      rethrow;
-    }
+  if (stopsCount < 2) {
+    throw Exception("Multi-stop route requires at least 2 stops");
   }
 
+  final stops = <StopRequest>[];
+  int totalQuantity = 0;
+  double totalWeight = 0.0;
+
+  for (int i = 1; i <= stopsCount; i++) {
+    final stopTypeStr = cache["stop_${i}_type"]?.toString() ?? "";
+    final city = cache["stop_${i}_city"]?.toString().trim() ?? "";
+    final state = cache["stop_${i}_state"]?.toString().trim() ?? "";
+
+    if (city.isEmpty || state.isEmpty) {
+      throw Exception("Stop $i: Please enter City and State");
+    }
+
+    // Coordinates
+    String lat, lng;
+    if (city.toLowerCase().contains("cape town")) {
+      lat = "-33.9249";
+      lng = "18.4241";
+    } else if (city.toLowerCase().contains("johannesburg") ||
+        city.toLowerCase().contains("joburg")) {
+      lat = "-26.2041";
+      lng = "28.0473";
+    } else if (city.toLowerCase().contains("durban")) {
+      lat = "-29.8587";
+      lng = "31.0218";
+    } else if (city.toLowerCase().contains("pretoria")) {
+      lat = "-25.7479";
+      lng = "28.2293";
+    } else {
+      lat = "-26.2041";
+      lng = "28.0473";
+    }
+
+    // ✅ API format mein stop type convert karo
+    String apiStopType;
+    if (stopTypeStr.contains("pickup")) {
+      apiStopType = "pickup";
+    } else if (stopTypeStr.contains("dropOff")) {
+      apiStopType = "drop_off";
+    } else {
+      apiStopType = "waypoint";
+    }
+
+    // ✅ Quantity aur weight ke liye variables
+    int quantity = 0;
+    double weight = 0.0;
+
+    // ✅ Waypoint ke liye quantity/weight skip
+    if (apiStopType == "waypoint") {
+      print("Stop $i is Waypoint - Skipping quantity/weight");
+    } 
+    // ✅ Pickup ke liye quantity/weight REQUIRED
+    else if (apiStopType == "pickup") {
+      final quantityStr = cache["stop_${i}_quantity"]?.toString();
+      final weightStr = cache["stop_${i}_weight"]?.toString();
+
+      print("Stop $i (Pickup) - Raw quantity: '$quantityStr', Raw weight: '$weightStr'");
+
+      if (quantityStr == null || quantityStr.isEmpty) {
+        throw Exception("Stop $i (Pickup): Please enter quantity");
+      }
+
+      if (weightStr == null || weightStr.isEmpty) {
+        throw Exception("Stop $i (Pickup): Please enter weight per item");
+      }
+
+      final parsedQuantity = int.tryParse(quantityStr);
+      if (parsedQuantity == null || parsedQuantity <= 0) {
+        throw Exception(
+          "Stop $i (Pickup): Invalid quantity. Please enter a positive number.",
+        );
+      }
+
+      final parsedWeight = double.tryParse(weightStr);
+      if (parsedWeight == null || parsedWeight <= 0) {
+        throw Exception(
+          "Stop $i (Pickup): Invalid weight. Please enter a positive number.",
+        );
+      }
+
+      quantity = parsedQuantity;
+      weight = parsedWeight;
+
+      totalQuantity += quantity;
+      totalWeight += (weight * quantity);
+    } 
+    // ✅ DropOff ke liye quantity/weight OPTIONAL
+    else if (apiStopType == "drop_off") {
+      final quantityStr = cache["stop_${i}_quantity"]?.toString();
+      final weightStr = cache["stop_${i}_weight"]?.toString();
+
+      print("Stop $i (DropOff) - Raw quantity: '$quantityStr', Raw weight: '$weightStr'");
+
+      // Agar quantity di hai to parse karo, warna default 0
+      if (quantityStr != null && quantityStr.isNotEmpty) {
+        final parsedQuantity = int.tryParse(quantityStr);
+        if (parsedQuantity != null && parsedQuantity > 0) {
+          quantity = parsedQuantity;
+        }
+      }
+
+      // Agar weight di hai to parse karo, warna default 0
+      if (weightStr != null && weightStr.isNotEmpty) {
+        final parsedWeight = double.tryParse(weightStr);
+        if (parsedWeight != null && parsedWeight > 0) {
+          weight = parsedWeight;
+        }
+      }
+
+      // Agar quantity aur weight dono diye hain to total mein add karo
+      if (quantity > 0 && weight > 0) {
+        totalQuantity += quantity;
+        totalWeight += (weight * quantity);
+      }
+    }
+
+    stops.add(
+      StopRequest(
+        sequenceNumber: i,
+        stopType: apiStopType,
+        address: cache["stop_${i}_address"]?.toString() ?? "Address not provided",
+        city: city,
+        state: state,
+        latitude: double.parse(lat),
+        longitude: double.parse(lng),
+        contactName: cache["stop_${i}_contact_name"]?.toString() ?? "Contact N/A",
+        contactPhone: cache["stop_${i}_contact_phone"]?.toString() ?? "Phone N/A",
+        quantity: quantity,
+        weight: weight,
+        notes: cache["stop_${i}_notes"]?.toString(),
+      ),
+    );
+  }
+
+  // ✅ Validate - Kam se kam ek pickup mein quantity/weight hona chahiye
+  final hasPickupWithItems = stops.any((s) => 
+    s.stopType == "pickup" && s.quantity > 0 && s.weight > 0
+  );
+
+  if (!hasPickupWithItems) {
+    throw Exception("At least one pickup stop must have quantity and weight");
+  }
+
+  // ✅ Calculate average weight per item
+  double weightPerItem = 0.0;
+  if (totalQuantity > 0) {
+    weightPerItem = totalWeight / totalQuantity;
+  }
+
+  print("📊 WEIGHT CALCULATION:");
+  print("Total Quantity: $totalQuantity");
+  print("Total Weight: $totalWeight");
+  print("Average Weight Per Item: $weightPerItem");
+
+  // Save to cache
+  ref
+      .read(orderCacheProvider.notifier)
+      .saveValue("quantity", totalQuantity.toString());
+  ref
+      .read(orderCacheProvider.notifier)
+      .saveValue("total_weight", totalWeight.toString());
+
+  final serviceType = selectedServiceTypeId ?? "standard";
+  final declaredValueStr = cache["declared_value"]?.toString() ?? "0";
+  final declaredValue = double.tryParse(declaredValueStr) ?? 0.0;
+  final dimensions = _getDimensionsFromCache(cache);
+
+  try {
+    await ref
+        .read(quoteControllerProvider.notifier)
+        .calculateMultiStopQuote(
+          productTypeId: productTypeId,
+          packagingTypeId: packagingTypeId,
+          stops: stops,
+          quantity: totalQuantity,
+          weightPerItem: weightPerItem,
+          serviceType: serviceType,
+          declaredValue: declaredValue,
+          addOns: selectedAddons,
+          length: dimensions['length'],
+          width: dimensions['width'],
+          height: dimensions['height'],
+        );
+  } catch (e) {
+    print("❌ MULTI-STOP ERROR DETAILS:");
+    print("Error Type: ${e.runtimeType}");
+    print("Error Message: $e");
+    rethrow;
+  }
+}
+ 
   Map<String, double?> _getDimensionsFromCache(Map<String, dynamic> cache) {
     final length = cache["package_length"]?.toString();
     final width = cache["package_width"]?.toString();
@@ -643,32 +706,6 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
       _getSmartQuotes();
     }
   }
-
-  // void _toggleAddOn(String addOnValue, double cost) {
-  //   final selectedAddons = ref.read(selectedAddonsProvider);
-
-  //   setState(() {
-  //     if (selectedAddons.contains(addOnValue)) {
-  //       ref.read(selectedAddonsProvider.notifier).state = selectedAddons
-  //           .where((value) => value != addOnValue)
-  //           .toList();
-  //     } else {
-  //       ref.read(selectedAddonsProvider.notifier).state = [
-  //         ...selectedAddons,
-  //         addOnValue,
-  //       ];
-  //     }
-  //   });
-
-  //   ref
-  //       .read(orderCacheProvider.notifier)
-  //       .saveValue("selected_addons", ref.read(selectedAddonsProvider));
-
-  //   // Recalculate quotes if already calculated
-  //   if (hasCalculatedQuotes) {
-  //     _getSmartQuotes();
-  //   }
-  // }
 
   // Open Add-ons Modal
   void _openAddOnsModal(BuildContext context) {
@@ -849,165 +886,6 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     return null;
   }
 
-  // // UPDATED: Place Order Function
-  // Future<void> _placeOrder(BuildContext context) async {
-  //   try {
-  //     final cache = ref.read(orderCacheProvider);
-  //     final isMultiStop = cache["is_multi_stop_enabled"] == "true";
-  //     final bestQuote = ref.read(bestQuoteProvider);
-
-  //     if (bestQuote == null) {
-  //       throw Exception("Please select a quote first");
-  //     }
-
-  //     print("🎯 Placing ${isMultiStop ? 'Multi-Stop' : 'Standard'} Order...");
-
-  //     // ✅ PRE-VALIDATION FOR MULTI-STOP
-  //     if (isMultiStop) {
-  //       print("🔍 Validating multi-stop data...");
-
-  //       // Check cache values
-  //       final quantity = cache["quantity"]?.toString();
-  //       final weight = cache["total_weight"]?.toString();
-
-  //       print("Cache check - quantity: $quantity, weight: $weight");
-
-  //       if (quantity == null ||
-  //           quantity.isEmpty ||
-  //           int.tryParse(quantity) == 0) {
-  //         print("⚠️  Quantity missing in cache, calculating from stops...");
-
-  //         final stopsCount =
-  //             int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
-  //         int totalQty = 0;
-  //         double totalWeight = 0.0;
-
-  //         for (int i = 1; i <= stopsCount; i++) {
-  //           final qty =
-  //               int.tryParse(cache["stop_${i}_quantity"]?.toString() ?? "1") ??
-  //               1;
-  //           final wgt =
-  //               double.tryParse(
-  //                 cache["stop_${i}_weight"]?.toString() ?? "50",
-  //               ) ??
-  //               50.0;
-
-  //           totalQty += qty;
-  //           totalWeight += wgt;
-  //         }
-
-  //         // Save to cache
-  //         ref
-  //             .read(orderCacheProvider.notifier)
-  //             .saveValue("quantity", totalQty.toString());
-  //         ref
-  //             .read(orderCacheProvider.notifier)
-  //             .saveValue("total_weight", totalWeight.toString());
-
-  //         print("✅ Calculated and saved: Qty=$totalQty, Weight=$totalWeight");
-  //       }
-  //     }
-
-  //     final repository = ref.read(placeOrderRepositoryProvider);
-  //     OrderResponse orderResponse;
-
-  //     if (isMultiStop) {
-  //       print("🔄 Preparing multi-stop order data...");
-  //       final request = await repository.prepareMultiStopOrderData();
-
-  //       // ✅ FINAL SANITY CHECK
-  //       print("🔍 FINAL CHECK:");
-  //       print("Quantity: ${request.quantity}");
-  //       print("Weight Per Item: ${request.weightPerItem}");
-
-  //       if (request.quantity < 1 || request.weightPerItem < 0.01) {
-  //         print("❌ Values invalid, forcing minimum values");
-
-  //         // Force minimum values
-  //         final fixedRequest = MultiStopOrderRequestBody(
-  //           productTypeId: request.productTypeId,
-  //           packagingTypeId: request.packagingTypeId,
-  //           quantity: request.quantity < 1 ? 1 : request.quantity,
-  //           weightPerItem: request.weightPerItem < 0.01
-  //               ? 0.01
-  //               : request.weightPerItem,
-  //           isMultiStop: true,
-  //           selectedQuote: request.selectedQuote,
-  //           stops: request.stops,
-  //           serviceType: request.serviceType,
-  //           priority: request.priority,
-  //           paymentMethod: request.paymentMethod,
-  //           addOns: request.addOns,
-  //           specialInstructions: request.specialInstructions,
-  //           declaredValue: request.declaredValue,
-  //         );
-
-  //         orderResponse = await repository.placeMultiStopOrder(
-  //           request: fixedRequest,
-  //         );
-  //       } else {
-  //         orderResponse = await repository.placeMultiStopOrder(
-  //           request: request,
-  //         );
-  //       }
-  //     } else {
-  //       final request = await repository.prepareStandardOrderData();
-  //       orderResponse = await repository.placeStandardOrder(request: request);
-  //     }
-
-  //     // Clear cache after successful order
-  //     ref.read(orderCacheProvider.notifier).clearCache();
-
-  //     // Update controller state
-  //     ref.read(orderControllerProvider.notifier).state = AsyncData(
-  //       orderResponse,
-  //     );
-
-  //     // Check if order was successful
-  //     if (orderResponse.success) {
-  //       final order = orderResponse.data.order;
-  //       final orderNumber = order.orderNumber;
-  //       final totalAmount = order.finalCost.toStringAsFixed(2);
-
-  //       print("✅ Order placed successfully!");
-  //       print("Order Number: $orderNumber");
-  //       print("Total Amount: R$totalAmount");
-
-  //       // Navigate to order success screen
-  //       Navigator.pushAndRemoveUntil(
-  //         context,
-  //         MaterialPageRoute(
-  //           builder: (_) => OrderSuccessful(
-  //             orderNumber: orderNumber,
-  //             totalAmount: totalAmount,
-  //           ),
-  //         ),
-  //         (route) => false,
-  //       );
-  //     } else {
-  //       throw Exception(orderResponse.message);
-  //     }
-  //   } catch (e) {
-  //     print("❌ Error placing order: $e");
-
-  //     String errorMsg = e.toString();
-  //     if (errorMsg.contains("quantity") ||
-  //         errorMsg.contains("weight_per_item")) {
-  //       errorMsg =
-  //           "Please ensure all stops have at least 1 item and valid weight. "
-  //           "Go back to multi-stop screen and add quantities.";
-  //     }
-
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(
-  //         content: Text(errorMsg),
-  //         backgroundColor: Colors.red,
-  //         duration: Duration(seconds: 5),
-  //       ),
-  //     );
-  //   }
-  // }
-
   void _debugCacheData() {
     final cache = ref.read(orderCacheProvider);
     final isMultiStop = cache["is_multi_stop_enabled"] == "true";
@@ -1045,6 +923,7 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
     });
   }
 
+  ///////////////////////////////////////////////////////////////////////////////////////////////////
   @override
   Widget build(BuildContext context) {
     final quoteState = ref.watch(quoteControllerProvider);
@@ -1973,50 +1852,362 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   }
 
   // Quote Error Display
+  // Quote Error Display - IMPROVED VERSION
+  // Widget _buildQuoteError() {
+  //   // Parse error message to extract meaningful info
+  //   String errorMessage = quoteError ?? "Unknown error";
+  //   String? compatibilityMessage;
+
+  //   if (errorMessage.contains("No vehicle types compatible with") ||
+  //       errorMessage.contains("compatible")) {
+  //     final RegExp regex = RegExp(r'compatible with (.*?)(?:\.|$)');
+  //     final match = regex.firstMatch(errorMessage);
+  //     if (match != null) {
+  //       final productName = match.group(1) ?? "selected product";
+  //       compatibilityMessage = "No vehicles available for '$productName'";
+  //     } else {
+  //       compatibilityMessage = "No compatible vehicles found";
+  //     }
+
+  //     errorMessage = errorMessage.replaceAll(
+  //       RegExp(r'Exception: |throwable: |DioError: '),
+  //       '',
+  //     );
+  //   }
+
+  //   final bool isCompatibilityIssue = compatibilityMessage != null;
+
+  //   return Container(
+  //     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  //     padding: const EdgeInsets.all(18),
+  //     decoration: BoxDecoration(
+  //       color: const Color(0xFFF4F9F9),
+  //       borderRadius: BorderRadius.circular(16),
+  //       border: Border.all(color: const Color(0xFF00B3A4).withOpacity(0.25)),
+  //       boxShadow: [
+  //         BoxShadow(
+  //           color: Colors.black.withOpacity(0.04),
+  //           blurRadius: 12,
+  //           offset: const Offset(0, 6),
+  //         ),
+  //       ],
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         /// 🔹 HEADER
+  //         Row(
+  //           crossAxisAlignment: CrossAxisAlignment.start,
+  //           children: [
+  //             Container(
+  //               padding: const EdgeInsets.all(10),
+  //               decoration: BoxDecoration(
+  //                 color: const Color(0xFF00B3A4).withOpacity(0.12),
+  //                 borderRadius: BorderRadius.circular(12),
+  //               ),
+  //               child: const Icon(
+  //                 Icons.local_shipping_outlined,
+  //                 color: Color(0xFF00B3A4),
+  //                 size: 22,
+  //               ),
+  //             ),
+  //             const SizedBox(width: 14),
+  //             Expanded(
+  //               child: Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   Text(
+  //                     isCompatibilityIssue
+  //                         ? "Service Not Available"
+  //                         : "Unable to Generate Quote",
+  //                     style: const TextStyle(
+  //                       fontSize: 17,
+  //                       fontWeight: FontWeight.w700,
+  //                       color: Color(0xFF1E2A2A),
+  //                     ),
+  //                   ),
+  //                   const SizedBox(height: 4),
+  //                   Text(
+  //                     isCompatibilityIssue
+  //                         ? compatibilityMessage!
+  //                         : "Please review shipment details and try again.",
+  //                     style: TextStyle(
+  //                       fontSize: 13.5,
+  //                       color: Colors.grey[700],
+  //                       height: 1.4,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+
+  //         const SizedBox(height: 18),
+
+  //         /// 🔹 ERROR DETAILS BOX
+  //         Container(
+  //           padding: const EdgeInsets.all(14),
+  //           decoration: BoxDecoration(
+  //             color: Colors.white,
+  //             borderRadius: BorderRadius.circular(12),
+  //             border: Border.all(color: Colors.grey.shade200),
+  //           ),
+  //           child: Row(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               Icon(
+  //                 Icons.info_outline,
+  //                 size: 18,
+  //                 color: Colors.orange.shade700,
+  //               ),
+  //               const SizedBox(width: 8),
+  //               Expanded(
+  //                 child: Text(
+  //                   errorMessage.isNotEmpty
+  //                       ? errorMessage
+  //                       : "Please fill in the required fields correctly.",
+  //                   style: TextStyle(
+  //                     fontSize: 13.5,
+  //                     color: Colors.grey[800],
+  //                     height: 1.5,
+  //                   ),
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+
+  //         if (errorMessage.contains("product_type_id"))
+  //           Padding(
+  //             padding: const EdgeInsets.only(top: 10),
+  //             child: Text(
+  //               "Tip: This shipment type may not be supported in the selected region.",
+  //               style: TextStyle(
+  //                 fontSize: 12,
+  //                 color: Colors.grey[600],
+  //                 fontStyle: FontStyle.italic,
+  //               ),
+  //             ),
+  //           ),
+
+  //         const SizedBox(height: 20),
+
+  //         /// 🔹 ACTION BUTTONS
+  //         Row(
+  //           children: [
+  //             Expanded(
+  //               child: OutlinedButton(
+  //                 onPressed: () {
+  //                   Navigator.pop(context);
+  //                 },
+  //                 style: OutlinedButton.styleFrom(
+  //                   foregroundColor: const Color(0xFF00B3A4),
+  //                   side: const BorderSide(color: Color(0xFF00B3A4)),
+  //                   padding: const EdgeInsets.symmetric(vertical: 14),
+  //                   shape: RoundedRectangleBorder(
+  //                     borderRadius: BorderRadius.circular(12),
+  //                   ),
+  //                 ),
+  //                 child: const Text(
+  //                   "Edit Details",
+  //                   style: TextStyle(fontWeight: FontWeight.w600),
+  //                 ),
+  //               ),
+  //             ),
+  //             const SizedBox(width: 12),
+  //             Expanded(
+  //               child: ElevatedButton(
+  //                 onPressed: () {
+  //                   _getSmartQuotes();
+  //                 },
+  //                 style: ElevatedButton.styleFrom(
+  //                   backgroundColor: const Color(0xFF00B3A4),
+  //                   foregroundColor: Colors.white,
+  //                   padding: const EdgeInsets.symmetric(vertical: 14),
+  //                   elevation: 0,
+  //                   shape: RoundedRectangleBorder(
+  //                     borderRadius: BorderRadius.circular(12),
+  //                   ),
+  //                 ),
+  //                 child: const Text(
+  //                   "Try Again",
+  //                   style: TextStyle(fontWeight: FontWeight.w600),
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
   Widget _buildQuoteError() {
+    // Sirf error message le lo, kuch mat karo
+    String errorMessage = quoteError ?? "Unknown error";
+
+    // Sirf "Exception: " prefix hatao agar ho to
+    errorMessage = errorMessage.replaceAll('Exception: ', '');
+    errorMessage = errorMessage.replaceAll('DioError: ', '');
+    errorMessage = errorMessage.replaceAll('throwable: ', '');
+
     return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.red[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red[200]!),
+        color: const Color(0xFFF4F9F9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF00B3A4).withOpacity(0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// 🔹 HEADER
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.error_outline, color: Colors.red[700]),
-              const SizedBox(width: 12),
-              Text(
-                "Quote Calculation Failed",
-                style: TextStyle(
-                  color: Colors.red[700],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00B3A4).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.local_shipping_outlined,
+                  color: Color(0xFF00B3A4),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Unable to Generate Quote",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E2A2A),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Please review shipment details and try again.",
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        color: Colors.grey,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            quoteError ?? "Unknown error",
-            style: TextStyle(color: Colors.red[600], fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: () {
-              // ✅ DEBUG INFO PRINT KARO
-              _printDebugInfo();
-              _getSmartQuotes(); // Try again
-            },
-            icon: Icon(Icons.refresh, size: 18),
-            label: Text("Try Again with Debug"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[100],
-              foregroundColor: Colors.red[800],
+
+          const SizedBox(height: 18),
+
+          /// 🔹 ERROR DETAILS BOX - Backend message yahan dikhega
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
             ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: Colors.orange.shade700,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    errorMessage, // 👈 DIRECT BACKEND MESSAGE
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: Colors.grey[800],
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Agar koi weight-related error hai to tip dikhao (optional)
+          if (errorMessage.toLowerCase().contains('weight') ||
+              errorMessage.toLowerCase().contains('kg'))
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                "Tip: Try adjusting the weight or splitting your shipment",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 20),
+
+          /// 🔹 ACTION BUTTONS
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF00B3A4),
+                    side: const BorderSide(color: Color(0xFF00B3A4)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Edit Details",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _getSmartQuotes();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00B3A4),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Try Again",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -2159,9 +2350,9 @@ class _ServicePaymentScreenState extends ConsumerState<ServicePaymentScreen> {
   // Quote Details Widget
   Widget _buildQuoteDetails(Quote quote, QuoteData quoteData) {
     final pricing = quote.pricing;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-    ref.read(selectedTotalAmountProvider.notifier).state = pricing.total;
-  });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(selectedTotalAmountProvider.notifier).state = pricing.total;
+    });
 
     return Consumer(
       builder: (context, ref, _) {

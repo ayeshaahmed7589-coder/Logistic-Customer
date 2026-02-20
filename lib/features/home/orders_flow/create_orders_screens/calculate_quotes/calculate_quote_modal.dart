@@ -1,11 +1,203 @@
 import 'package:logisticscustomer/features/home/orders_flow/create_orders_screens/fetch_order/common_modal.dart';
 
+
+// ✅ ERROR RESPONSE MODEL
+// ✅ SIMPLIFIED ERROR RESPONSE MODEL
+class QuoteErrorResponse {
+  final bool success;
+  final String message;
+  final QuoteDebugInfo? debugInfo;
+
+  QuoteErrorResponse({
+    required this.success,
+    required this.message,
+    this.debugInfo,
+  });
+
+  factory QuoteErrorResponse.fromJson(Map<String, dynamic> json) {
+    return QuoteErrorResponse(
+      success: json['success'] ?? false,
+      message: json['message'] ?? 'Unknown error occurred',
+      debugInfo: json['debug_info'] != null
+          ? QuoteDebugInfo.fromJson(json['debug_info'])
+          : null,
+    );
+  }
+
+  @override
+  String toString() {
+    return message; // Sirf message return karo, kuch extra nahi
+  }
+}
+
+// ✅ DEBUG INFO MODEL (Optional - agar aapko kuch extra chahiye to)
+class QuoteDebugInfo {
+  final double requiredCapacityKg;
+  final double declaredValue;
+  final Map<String, int> rejectionReasons;
+  final List<AvailableCapacity> availableCapacities;
+
+  QuoteDebugInfo({
+    required this.requiredCapacityKg,
+    required this.declaredValue,
+    required this.rejectionReasons,
+    required this.availableCapacities,
+  });
+
+  factory QuoteDebugInfo.fromJson(Map<String, dynamic> json) {
+    return QuoteDebugInfo(
+      requiredCapacityKg: (json['required_capacity_kg'] ?? 0).toDouble(),
+      declaredValue: (json['declared_value'] ?? 0).toDouble(),
+      rejectionReasons: Map<String, int>.from(json['rejection_reasons'] ?? {}),
+      availableCapacities: (json['available_capacities'] as List? ?? [])
+          .map((item) => AvailableCapacity.fromJson(item))
+          .toList(),
+    );
+  }
+}
+
+class AvailableCapacity {
+  final String registration;
+  final String type;
+  final double capacityKg;
+  final double capacityTons;
+  final String depot;
+
+  AvailableCapacity({
+    required this.registration,
+    required this.type,
+    required this.capacityKg,
+    required this.capacityTons,
+    required this.depot,
+  });
+
+  factory AvailableCapacity.fromJson(Map<String, dynamic> json) {
+    return AvailableCapacity(
+      registration: json['registration'] ?? '',
+      type: json['type'] ?? '',
+      capacityKg: (json['capacity_kg'] ?? 0).toDouble(),
+      capacityTons: (json['capacity_tons'] ?? 0).toDouble(),
+      depot: json['depot'] ?? '',
+    );
+  }
+}
+// class QuoteErrorResponse {
+//   final bool success;
+//   final String message;
+//   final QuoteDebugInfo? debugInfo;
+
+//   QuoteErrorResponse({
+//     required this.success,
+//     required this.message,
+//     this.debugInfo,
+//   });
+
+//   factory QuoteErrorResponse.fromJson(Map<String, dynamic> json) {
+//     return QuoteErrorResponse(
+//       success: json['success'] ?? false,
+//       message: json['message'] ?? 'Unknown error occurred',
+//       debugInfo: json['debug_info'] != null
+//           ? QuoteDebugInfo.fromJson(json['debug_info'])
+//           : null,
+//     );
+//   }
+
+//   @override
+//   String toString() {
+//     return message;
+//   }
+// }
+
+// class QuoteDebugInfo {
+//   final double requiredCapacityKg;
+//   final double declaredValue;
+//   final Map<String, int> rejectionReasons;
+//   final List<AvailableCapacity> availableCapacities;
+
+//   QuoteDebugInfo({
+//     required this.requiredCapacityKg,
+//     required this.declaredValue,
+//     required this.rejectionReasons,
+//     required this.availableCapacities,
+//   });
+
+//   factory QuoteDebugInfo.fromJson(Map<String, dynamic> json) {
+//     return QuoteDebugInfo(
+//       requiredCapacityKg: (json['required_capacity_kg'] ?? 0).toDouble(),
+//       declaredValue: (json['declared_value'] ?? 0).toDouble(),
+//       rejectionReasons: Map<String, int>.from(json['rejection_reasons'] ?? {}),
+//       availableCapacities: (json['available_capacities'] as List? ?? [])
+//           .map((item) => AvailableCapacity.fromJson(item))
+//           .toList(),
+//     );
+//   }
+
+//   // ✅ Helper to get user-friendly message
+//   String getUserFriendlyMessage() {
+//     if (rejectionReasons['min_load'] == 1) {
+//       return "Your shipment weight (${requiredCapacityKg.toStringAsFixed(2)} kg) is too light for our vehicles. Minimum load required is ${_getMinLoadFromAvailable().toStringAsFixed(0)} kg.";
+//     }
+//     if (rejectionReasons['capacity'] == 1) {
+//       return "Your shipment weight (${requiredCapacityKg.toStringAsFixed(2)} kg) exceeds vehicle capacity. Maximum available is ${_getMaxCapacity().toStringAsFixed(0)} kg.";
+//     }
+//     if (rejectionReasons['git_expired'] == 1) {
+//       return "Your Good-In-Transit (GIT) insurance has expired. Please update your GIT details.";
+//     }
+//     if (rejectionReasons['git_insufficient'] == 1) {
+//       return "Your Good-In-Transit (GIT) insurance coverage is insufficient for the declared value.";
+//     }
+    
+//     // Default fallback message
+//     return "No vehicles available for your shipment. Please try different options.";
+//   }
+
+//   double _getMinLoadFromAvailable() {
+//     if (availableCapacities.isEmpty) return 0;
+//     // Usually minimum load is around 10% of capacity
+//     // But we should ideally get this from backend
+//     return availableCapacities.first.capacityKg * 0.1;
+//   }
+
+//   double _getMaxCapacity() {
+//     if (availableCapacities.isEmpty) return 0;
+//     // Return the maximum capacity available
+//     return availableCapacities.map((e) => e.capacityKg).reduce((a, b) => a > b ? a : b);
+//   }
+// }
+
+// class AvailableCapacity {
+//   final String registration;
+//   final String type;
+//   final double capacityKg;
+//   final double capacityTons;
+//   final String depot;
+
+//   AvailableCapacity({
+//     required this.registration,
+//     required this.type,
+//     required this.capacityKg,
+//     required this.capacityTons,
+//     required this.depot,
+//   });
+
+//   factory AvailableCapacity.fromJson(Map<String, dynamic> json) {
+//     return AvailableCapacity(
+//       registration: json['registration'] ?? '',
+//       type: json['type'] ?? '',
+//       capacityKg: (json['capacity_kg'] ?? 0).toDouble(),
+//       capacityTons: (json['capacity_tons'] ?? 0).toDouble(),
+//       depot: json['depot'] ?? '',
+//     );
+//   }
+// }
+
+
 // ✅ STANDARD QUOTE REQUEST
 class StandardQuoteRequest {
   final int productTypeId;
   final int packagingTypeId;
   final int? quantity;
-  final double? weight;
+  final double? weightPerItem;
   final bool isMultiStop;
   final String pickupAddress;
   final double pickupLatitude;
@@ -28,7 +220,7 @@ class StandardQuoteRequest {
     required this.productTypeId,
     required this.packagingTypeId,
     this.quantity,
-    this.weight,
+    this.weightPerItem,
     this.isMultiStop = false,
     required this.pickupAddress,
     required this.pickupLatitude,
@@ -53,7 +245,7 @@ class StandardQuoteRequest {
       'product_type_id': productTypeId,
       'packaging_type_id': packagingTypeId,
       'quantity': quantity,
-      'weight': weight,
+      'weight_per_item': weightPerItem,
       'is_multi_stop': isMultiStop,
       'pickup_address': pickupAddress,
       'pickup_latitude': pickupLatitude,
@@ -147,7 +339,10 @@ class MultiStopQuoteRequest {
   final List<String>? addOns;
   final double? declaredValue;
   final int? quantity;
-  final double? weight;
+  final double? weightPerItem;
+  final double? length; // ✅ ADD THIS
+  final double? width; // ✅ ADD THIS
+  final double? height; // ✅ ADD THIS
 
   MultiStopQuoteRequest({
     required this.productTypeId,
@@ -158,7 +353,10 @@ class MultiStopQuoteRequest {
     this.addOns,
     this.declaredValue,
     this.quantity,
-    this.weight,
+    this.weightPerItem,
+    this.length, // ✅ ADD THIS
+    this.width, // ✅ ADD THIS
+    this.height, // ✅ ADD THIS
   });
 
   Map<String, dynamic> toJson() {
@@ -182,9 +380,15 @@ class MultiStopQuoteRequest {
       map['quantity'] = quantity;
     }
 
-    if (weight != null && weight! > 0) {
-      map['weight'] = weight;
+    if (weightPerItem != null && weightPerItem! > 0) {
+      map['weight_per_item'] = weightPerItem;
     }
+
+    // ✅ ADD DIMENSIONS
+    if (length != null) map['length'] = length;
+    if (width != null) map['width'] = width;
+    if (height != null) map['height'] = height;
+    
 
     return map;
   }
@@ -276,7 +480,7 @@ class ProductType {
 class PackagingType {
   final int id;
   final String name;
-  final double fixedWeightKg;
+  final double? fixedWeightKg;
 
   PackagingType({
     required this.id,
@@ -288,7 +492,10 @@ class PackagingType {
     return PackagingType(
       id: json['id'],
       name: json['name'],
-      fixedWeightKg: double.parse(json['fixed_weight_kg'].toString()),
+      // fixedWeightKg: double.parse(json['fixed_weight_kg'].toString()),
+      fixedWeightKg: json['fixed_weight_kg'] != null
+          ? double.tryParse(json['fixed_weight_kg'].toString())
+          : null,
     );
   }
 }

@@ -29,111 +29,6 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
   AsyncValue<DefaultAddressModel> get defaultAddressState =>
       ref.watch(defaultAddressControllerProvider);
 
-  // void _openAddressModal() {
-  //   // Load addresses asynchronously
-  //   final allAddressNotifier = ref.read(allAddressControllerProvider.notifier);
-  //   allAddressNotifier.loadAllAddress();
-
-  //   showDialog(
-  //     context: context,
-  //     barrierDismissible: true,
-  //     builder: (context) {
-  //       return Center(
-  //         child: Consumer(
-  //           builder: (context, ref, _) {
-  //             final allAddressState = ref.watch(allAddressControllerProvider);
-  //             final defaultAddressState = ref.watch(
-  //               defaultAddressControllerProvider,
-  //             );
-
-  //             return Material(
-  //               type: MaterialType.transparency,
-  //               child: Container(
-  //                 constraints: BoxConstraints(
-  //                   maxHeight: MediaQuery.of(context).size.height * 0.65,
-  //                   maxWidth: MediaQuery.of(context).size.width * 0.9,
-  //                 ),
-  //                 padding: const EdgeInsets.all(20),
-  //                 decoration: BoxDecoration(
-  //                   color: AppColors.pureWhite,
-  //                   borderRadius: BorderRadius.circular(20),
-  //                 ),
-  //                 child: allAddressState.when(
-  //                   loading: () =>
-  //                       const Center(child: CircularProgressIndicator()),
-  //                   error: (err, _) =>
-  //                       Center(child: Text("Error loading addresses")),
-  //                   data: (allAddress) {
-  //                     if (allAddress == null || allAddress.data.isEmpty) {
-  //                       return const Center(child: Text("No addresses found"));
-  //                     }
-
-  //                     final backendDefaultId =
-  //                         defaultAddressState.value?.data.id;
-  //                     final currentDefaultId =
-  //                         selectedAddressId ?? backendDefaultId;
-
-  //                     return ListView.builder(
-  //                       shrinkWrap: true,
-  //                       itemCount: allAddress.data.length,
-  //                       itemBuilder: (context, index) {
-  //                         final item = allAddress.data[index];
-  //                         final isDefault = item.id == currentDefaultId;
-
-  //                         return GestureDetector(
-  //                           onTap: () {
-  //                             setState(() {
-  //                               selectedAddressId = item.id;
-  //                             });
-  //                             Navigator.pop(context);
-
-  //                             // Reload default address
-  //                             ref
-  //                                 .read(
-  //                                   defaultAddressControllerProvider.notifier,
-  //                                 )
-  //                                 .loadDefaultAddress();
-  //                           },
-  //                           child: Container(
-  //                             margin: const EdgeInsets.only(bottom: 12),
-  //                             padding: const EdgeInsets.all(15),
-  //                             decoration: BoxDecoration(
-  //                               borderRadius: BorderRadius.circular(12),
-  //                               border: Border.all(
-  //                                 color: isDefault
-  //                                     ? AppColors.electricTeal
-  //                                     : AppColors.subtleGray,
-  //                                 width: 2,
-  //                               ),
-  //                             ),
-  //                             child: Column(
-  //                               crossAxisAlignment: CrossAxisAlignment.start,
-  //                               children: [
-  //                                 Text(
-  //                                   "${item.address}, ${item.city}, ${item.state}, ${item.postalCode}",
-  //                                   style: const TextStyle(
-  //                                     fontSize: 16,
-  //                                     color: AppColors.darkText,
-  //                                     fontWeight: FontWeight.w600,
-  //                                   ),
-  //                                 ),
-  //                               ],
-  //                             ),
-  //                           ),
-  //                         );
-  //                       },
-  //                     );
-  //                   },
-  //                 ),
-  //               ),
-  //             );
-  //           },
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -155,159 +50,203 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(getProfileControllerProvider);
 
-    return profileState.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-
-      // error: (err, _) => Center(child: Text(err.toString())),
-      error: (e, st) {
-        // if (e.toString().contains("SESSION_EXPIRED")) {
-        return SessionExpiredScreen();
-        // }
-        // return Scaffold(body: Center(child: Text("Error: $e")));
-      },
-
-      data: (profile) {
-        if (profile == null) {
-          return const Center(child: Text("No Profile Data"));
-        }
-
-        final user = profile.data.user;
-
-        final Color blueColor = AppColors.electricTeal;
-        // Screen height ka hisaab lagana zaroori hai is layout ke liye
-        double screenHeight = MediaQuery.of(context).size.height;
-
-        return Scaffold(
-          backgroundColor: AppColors.lightGrayBackground,
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            title: const Text(
-              'Profile',
-              style: TextStyle(
-                color: AppColors.pureWhite,
-                fontWeight: FontWeight.bold,
-              ),
+    return Scaffold(
+      backgroundColor: AppColors.lightGrayBackground,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: RotatedBox(
+          quarterTurns: 2,
+          child: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_forward_rounded,
+              color: AppColors.pureWhite,
             ),
-            centerTitle: true,
-            backgroundColor: blueColor,
-            elevation: 0,
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 15.0),
-                child: GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: true,
-                      builder: (context) {
-                        return AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: AppColors.pureWhite,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: AppColors.electricTeal,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 15.0),
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  builder: (context) {
+                    return Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: SizedBox(
+                        width: 300,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 25,
                           ),
-                          title: const Text(
-                            "Logout",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
-                          ),
-                          content: const Text(
-                            "Are you sure you want to logout?",
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          actions: [
-                            /// CANCEL BUTTON (bordered)
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: TextButton.styleFrom(
-                                side: const BorderSide(
-                                  color: AppColors.electricTeal,
-                                  width: 1,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 9,
-                                ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // --- Icon + Title ---
+                              Row(
+                                children: const [
+                                  Icon(
+                                    Icons.logout,
+                                    color: AppColors.electricTeal,
+                                    size: 28,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    "Logout",
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.darkText,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: const Text(
-                                "Cancel",
+                              const SizedBox(height: 20),
+
+                              // --- Message ---
+                              const Text(
+                                "Are you sure you want to logout?",
                                 style: TextStyle(
-                                  color: AppColors.electricTeal,
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  color: Colors.black87,
                                 ),
                               ),
-                            ),
+                              const SizedBox(height: 25),
 
-                            /// LOGOUT BUTTON (actual API call)
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: blueColor,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                              // --- Buttons ---
+                              Row(
+                                children: [
+                                  // CANCEL BUTTON
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                          color: AppColors.electricTeal,
+                                          width: 1.5,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "Cancel",
+                                        style: TextStyle(
+                                          color: AppColors.electricTeal,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 15),
+                                  // LOGOUT BUTTON
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        final msg = await ref
+                                            .read(
+                                              logoutControllerProvider.notifier,
+                                            )
+                                            .logoutUser();
+
+                                        if (msg != null) {
+                                          await LocalStorage.clearToken();
+
+                                          Navigator.of(
+                                            context,
+                                            rootNavigator: true,
+                                          ).pushAndRemoveUntil(
+                                            MaterialPageRoute(
+                                              builder: (_) => Login(),
+                                            ),
+                                            (route) => false,
+                                          );
+
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(content: Text(msg)),
+                                          );
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.electricTeal,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "Logout",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onPressed: () async {
-                                final msg = await ref
-                                    .read(logoutControllerProvider.notifier)
-                                    .logoutUser();
-
-                                if (msg != null) {
-                                  await LocalStorage.clearToken();
-
-                                  // Close dialog
-                                  Navigator.of(
-                                    // ignore: use_build_context_synchronously
-                                    context,
-                                    rootNavigator: true,
-                                  ).pop();
-
-                                  // Navigate to Login
-                                  Navigator.of(
-                                    // ignore: use_build_context_synchronously
-                                    context,
-                                    rootNavigator: true,
-                                  ).pushAndRemoveUntil(
-                                    MaterialPageRoute(builder: (_) => Login()),
-                                    (route) => false,
-                                  );
-
-                                  // Show logout message
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(SnackBar(content: Text(msg)));
-                                }
-                              },
-                              child: const Text(
-                                "Logout",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                            ],
+                          ),
+                        ),
+                      ),
                     );
                   },
-                  child: const Icon(
-                    Icons.logout,
-                    color: AppColors.pureWhite,
-                    size: 28,
-                  ),
-                ),
+                );
+              },
+              child: const Icon(
+                Icons.logout,
+                color: AppColors.pureWhite,
+                size: 28,
               ),
-            ],
+            ),
           ),
+        ],
+      ),
 
-          body: Column(
+      // 🔥 IMPORTANT FIX HERE
+      body: profileState.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+
+        error: (e, st) => SessionExpiredScreen(),
+
+        data: (profile) {
+          if (profile == null) {
+            return const Center(child: Text("No Profile Data"));
+          }
+
+          final user = profile.data.user;
+          final Color blueColor = AppColors.electricTeal;
+          double screenHeight = MediaQuery.of(context).size.height;
+
+          return Column(
             children: [
               Expanded(
                 child: Stack(
@@ -338,7 +277,6 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-
                           Container(
                             width: 300,
                             margin: const EdgeInsets.only(top: 8),
@@ -352,100 +290,225 @@ class _GetProfileScreenState extends ConsumerState<GetProfileScreen> {
                 ),
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
-  // --- Default Address Widget (Clean Row with Edit Icon) ---
-  // Widget defaultAddressUI() {
-  //   final defaultAddressState = ref.watch(defaultAddressControllerProvider);
-  //   final allAddressState = ref.watch(allAddressControllerProvider);
+  // @override
+  // Widget build(BuildContext context) {
+  //   final profileState = ref.watch(getProfileControllerProvider);
 
-  //   // Show loading if either is loading
-  //   if (defaultAddressState.isLoading || allAddressState.isLoading) {
-  //     return const Padding(
-  //       padding: EdgeInsets.symmetric(vertical: 8.0),
-  //       child: Text("Loading...", style: TextStyle(fontSize: 16)),
-  //     );
-  //   }
+  //   return profileState.when(
+  //     loading: () => const Center(child: CircularProgressIndicator()),
 
-  //   // Show error if either has error
-  //   if (defaultAddressState.hasError || allAddressState.hasError) {
-  //     return Column(
-  //       children: [
-  //         Text(
-  //             "Address",
-  //             style: TextStyle(color: Colors.black, fontSize: 16),
-  //           ),
-  //         const Padding(
-  //           padding: EdgeInsets.symmetric(vertical: 8.0),
-  //           child: Text(
-  //             "N/A",
-  //             style: TextStyle(color: Colors.black, fontSize: 16),
-  //           ),
+  //     // error: (err, _) => Center(child: Text(err.toString())),
+  //     error: (e, st) {
+  //       // if (e.toString().contains("SESSION_EXPIRED")) {
+  //       return SessionExpiredScreen();
+  //       // }
+  //       // return Scaffold(body: Center(child: Text("Error: $e")));
+  //     },
+
+  //     data: (profile) {
+  //       if (profile == null) {
+  //         return const Center(child: Text("No Profile Data"));
+  //       }
+
+  //       final user = profile.data.user;
+
+  //       final Color blueColor = AppColors.electricTeal;
+  //       // Screen height ka hisaab lagana zaroori hai is layout ke liye
+  //       double screenHeight = MediaQuery.of(context).size.height;
+
+  //       return Scaffold(
+  //         backgroundColor: AppColors.lightGrayBackground,
+  //         appBar: AppBar(
+  //           automaticallyImplyLeading: false,
+
+  //     leading: RotatedBox(
+  //         quarterTurns: 2,
+  //         child: IconButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           icon: Icon(Icons.arrow_forward_rounded, color: AppColors.pureWhite),
   //         ),
-  //       ],
-  //     );
-  //   }
+  //       ),
 
-  //   final all = allAddressState.value;
-  //   final defaultAddress = defaultAddressState.value?.data;
-
-  //   if (all == null || all.data.isEmpty || defaultAddress == null) {
-  //     return const Padding(
-  //       padding: EdgeInsets.symmetric(vertical: 8.0),
-  //       child: Text("No addresses found", style: TextStyle(fontSize: 16)),
-  //     );
-  //   }
-
-  //   // Determine which address to show
-  //   final currentDefaultId = selectedAddressId ?? defaultAddress.id;
-  //   final selected = all.data.firstWhere(
-  //     (a) => a.id == currentDefaultId,
-  //     orElse: () => all.data.first,
-  //   );
-
-  //   return Row(
-  //     children: [
-  //       // Label + Address
-  //       Expanded(
-  //         child: Column(
-  //           crossAxisAlignment: CrossAxisAlignment.start,
-  //           children: [
-  //             Row(
-  //               children: [
-  //                 const Text(
-  //                   "Default Address",
-  //                   style: TextStyle(
-  //                     fontSize: 14,
-  //                     color: AppColors.mediumGray,
-  //                     fontWeight: FontWeight.w500,
-  //                   ),
-  //                 ),
-  //                 IconButton(
-  //                   onPressed: _openAddressModal,
-  //                   icon: const Icon(
-  //                     Icons.edit,
-  //                     size: 18,
-  //                     color: AppColors.electricTeal,
-  //                   ),
-  //                 ),
-  //               ],
+  //           title: const Text(
+  //             'Profile',
+  //             style: TextStyle(
+  //               color: AppColors.pureWhite,
+  //               fontWeight: FontWeight.bold,
   //             ),
-  //             Text(
-  //               "${selected.address}, ${selected.city}, ${selected.state}, ${selected.postalCode}",
-  //               style: const TextStyle(
-  //                 fontSize: 16,
-  //                 color: AppColors.darkText,
-  //                 fontWeight: FontWeight.w600,
+  //           ),
+  //           centerTitle: true,
+  //           backgroundColor: blueColor,
+  //           elevation: 0,
+  //           actions: [
+  //             Padding(
+  //               padding: const EdgeInsets.only(right: 15.0),
+  //               child: GestureDetector(
+  //                 onTap: () {
+  //                   showDialog(
+  //                     context: context,
+  //                     barrierDismissible: true,
+  //                     builder: (context) {
+  //                       return AlertDialog(
+  //                         shape: RoundedRectangleBorder(
+  //                           borderRadius: BorderRadius.circular(16),
+  //                         ),
+  //                         title: const Text(
+  //                           "Logout",
+  //                           style: TextStyle(
+  //                             fontWeight: FontWeight.bold,
+  //                             fontSize: 20,
+  //                           ),
+  //                         ),
+  //                         content: const Text(
+  //                           "Are you sure you want to logout?",
+  //                           style: TextStyle(
+  //                             fontSize: 15,
+  //                             color: Colors.black87,
+  //                           ),
+  //                         ),
+  //                         actions: [
+  //                           /// CANCEL BUTTON (bordered)
+  //                           TextButton(
+  //                             onPressed: () => Navigator.pop(context),
+  //                             style: TextButton.styleFrom(
+  //                               side: const BorderSide(
+  //                                 color: AppColors.electricTeal,
+  //                                 width: 1,
+  //                               ),
+  //                               shape: RoundedRectangleBorder(
+  //                                 borderRadius: BorderRadius.circular(8),
+  //                               ),
+  //                               padding: const EdgeInsets.symmetric(
+  //                                 horizontal: 18,
+  //                                 vertical: 9,
+  //                               ),
+  //                             ),
+  //                             child: const Text(
+  //                               "Cancel",
+  //                               style: TextStyle(
+  //                                 color: AppColors.electricTeal,
+  //                                 fontSize: 16,
+  //                                 fontWeight: FontWeight.w500,
+  //                               ),
+  //                             ),
+  //                           ),
+
+  //                           /// LOGOUT BUTTON (actual API call)
+  //                           ElevatedButton(
+  //                             style: ElevatedButton.styleFrom(
+  //                               backgroundColor: blueColor,
+  //                               shape: RoundedRectangleBorder(
+  //                                 borderRadius: BorderRadius.circular(8),
+  //                               ),
+  //                             ),
+  //                             onPressed: () async {
+  //                               final msg = await ref
+  //                                   .read(logoutControllerProvider.notifier)
+  //                                   .logoutUser();
+
+  //                               if (msg != null) {
+  //                                 await LocalStorage.clearToken();
+
+  //                                 // Close dialog
+  //                                 Navigator.of(
+  //                                   // ignore: use_build_context_synchronously
+  //                                   context,
+  //                                   rootNavigator: true,
+  //                                 ).pop();
+
+  //                                 // Navigate to Login
+  //                                 Navigator.of(
+  //                                   // ignore: use_build_context_synchronously
+  //                                   context,
+  //                                   rootNavigator: true,
+  //                                 ).pushAndRemoveUntil(
+  //                                   MaterialPageRoute(builder: (_) => Login()),
+  //                                   (route) => false,
+  //                                 );
+
+  //                                 // Show logout message
+  //                                 ScaffoldMessenger.of(
+  //                                   context,
+  //                                 ).showSnackBar(SnackBar(content: Text(msg)));
+  //                               }
+  //                             },
+  //                             child: const Text(
+  //                               "Logout",
+  //                               style: TextStyle(
+  //                                 color: Colors.white,
+  //                                 fontSize: 16,
+  //                               ),
+  //                             ),
+  //                           ),
+  //                         ],
+  //                       );
+  //                     },
+  //                   );
+  //                 },
+  //                 child: const Icon(
+  //                   Icons.logout,
+  //                   color: AppColors.pureWhite,
+  //                   size: 28,
+  //                 ),
   //               ),
   //             ),
   //           ],
   //         ),
-  //       ),
-  //     ],
+
+  //         body: Column(
+  //           children: [
+  //             Expanded(
+  //               child: Stack(
+  //                 children: [
+  //                   Container(height: 150, color: blueColor),
+
+  //                   Positioned(
+  //                     top: screenHeight * 0.1,
+  //                     left: 20,
+  //                     right: 20,
+  //                     bottom: 25,
+  //                     child: _buildInfoCard(),
+  //                   ),
+
+  //                   Positioned(
+  //                     top: 10,
+  //                     left: 0,
+  //                     right: 0,
+  //                     child: Column(
+  //                       children: [
+  //                         _buildProfileImage(AppColors.electricTeal),
+  //                         const SizedBox(height: 15),
+  //                         Text(
+  //                           user.name.isNotEmpty ? user.name : "N/A",
+  //                           style: const TextStyle(
+  //                             color: AppColors.darkText,
+  //                             fontSize: 24,
+  //                             fontWeight: FontWeight.w600,
+  //                           ),
+  //                         ),
+
+  //                         Container(
+  //                           width: 300,
+  //                           margin: const EdgeInsets.only(top: 8),
+  //                           height: 1,
+  //                           color: AppColors.electricTeal,
+  //                         ),
+  //                       ],
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
   //   );
   // }
 

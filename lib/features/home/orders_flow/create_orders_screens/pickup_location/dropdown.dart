@@ -122,215 +122,10 @@ class _DropDownContainerState extends State<DropDownContainer> {
   }
 }
 
-// class MaterialConditionPopupLeftIcon extends StatefulWidget {
-//   final List<String>? conditions;
-//   final String? title;
-//   final Function? onSelect;
-//   final BorderRadiusGeometry? borderRadius;
-//   final double height;
-//   final double verticalPadding;
-//   final int? initialSelectedIndex;
-//   final Function(String)? onItemSelected;
-//   final bool enableSearch;
-
-//   const MaterialConditionPopupLeftIcon({
-//     super.key,
-//     this.conditions,
-//     this.title,
-//     this.onSelect,
-//     this.borderRadius,
-//     this.height = 50,
-//     this.verticalPadding = 0,
-//     this.initialSelectedIndex,
-//     this.onItemSelected,
-//     this.enableSearch = false,
-//   });
-
-//   @override
-//   State<MaterialConditionPopupLeftIcon> createState() =>
-//       _MaterialConditionPopupLeftIconState();
-// }
-
-// class _MaterialConditionPopupLeftIconState
-//     extends State<MaterialConditionPopupLeftIcon> {
-//   int? selectedIndex;
-//   List<String>? filteredConditions;
-//   TextEditingController searchController = TextEditingController();
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     filteredConditions = widget.conditions;
-//     searchController.addListener(_filterConditions);
-//     selectedIndex = widget.initialSelectedIndex;
-//   }
-
-//   @override
-//   void didUpdateWidget(MaterialConditionPopupLeftIcon oldWidget) {
-//     super.didUpdateWidget(oldWidget);
-//     if (widget.conditions != oldWidget.conditions ||
-//         widget.initialSelectedIndex != oldWidget.initialSelectedIndex) {
-//       filteredConditions = widget.conditions;
-//       selectedIndex = widget.initialSelectedIndex;
-//     }
-//   }
-
-//   void _filterConditions() {
-//     if (widget.enableSearch) {
-//       String query = searchController.text.toLowerCase();
-//       setState(() {
-//         filteredConditions = widget.conditions!
-//             .where((condition) => condition.toLowerCase().contains(query))
-//             .toList();
-//       });
-//     }
-//   }
-
-//   @override
-//   void dispose() {
-//     searchController.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-//     final bluetextColor = isDarkMode ? Colors.white : AppColors.darkText;
-
-//     return Container(
-//       padding: const EdgeInsets.only(left: 4, right: 6, top: 4),
-//       decoration: BoxDecoration(
-//         color: AppColors.pureWhite,
-//         borderRadius: BorderRadius.circular(10),
-//         border: Border(
-//           bottom: BorderSide(color: Theme.of(context).dividerColor),
-//         ),
-//       ),
-//       child: Column(
-//         mainAxisSize: MainAxisSize.min,
-//         children: [
-//           // Optional search bar
-//           if (widget.enableSearch)
-//             Padding(
-//               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-//               child: TextField(
-//                 controller: searchController,
-//                 decoration: InputDecoration(
-//                   hintText: 'Search...',
-//                   prefixIcon: const Icon(Icons.search),
-//                   border: OutlineInputBorder(
-//                     borderRadius: BorderRadius.circular(8),
-//                     borderSide: BorderSide(
-//                       color: Colors.grey.shade400,
-//                       width: 1, // thin border
-//                     ),
-//                   ),
-//                   focusedBorder: OutlineInputBorder(
-//                     borderRadius: BorderRadius.circular(8),
-//                     borderSide: BorderSide(
-//                       color: Colors.grey.shade400,
-//                       width: 1,
-//                     ),
-//                   ),
-//                 ),
-//               ),
-//             ),
-
-//           // Options list
-//           Flexible(
-//             child: ListView.builder(
-//               itemCount: filteredConditions?.length ?? 0,
-//               shrinkWrap: true,
-//               itemBuilder: (context, index) {
-//                 int? selectedIndex = this.selectedIndex;
-//                 final isSelected =
-//                     selectedIndex != null &&
-//                     selectedIndex >= 0 &&
-//                     widget.conditions != null &&
-//                     selectedIndex < widget.conditions!.length &&
-//                     filteredConditions![index] ==
-//                         widget.conditions![selectedIndex];
-
-//                 return InkWell(
-//                   onTap: () {
-//                     if (widget.conditions != null) {
-//                       final originalIndex = widget.conditions!.indexOf(
-//                         filteredConditions![index],
-//                       );
-//                       setState(() {
-//                         this.selectedIndex = originalIndex;
-//                       });
-
-//                       if (widget.onItemSelected != null) {
-//                         widget.onItemSelected!(
-//                           widget.conditions![originalIndex],
-//                         );
-//                       } else {
-//                         Navigator.pop(
-//                           context,
-//                           widget.conditions![originalIndex],
-//                         );
-//                       }
-//                     }
-//                   },
-
-//                   child: Container(
-//                     height: widget.height,
-//                     padding: EdgeInsets.symmetric(
-//                       horizontal: 16,
-//                       vertical: widget.verticalPadding,
-//                     ),
-//                     decoration: BoxDecoration(
-//                       color: isSelected
-//                           ? AppColors.electricTeal.withOpacity(0.08)
-//                           : Colors.white,
-//                       border: Border(
-//                         bottom: BorderSide(
-//                           color: AppColors.mediumGray.withOpacity(0.20),
-//                           //  Theme.of(context).dividerColor,
-//                         ),
-//                       ),
-//                     ),
-//                     child: Row(
-//                       children: [
-//                         Icon(
-//                           isSelected
-//                               ? Icons.check_circle
-//                               : Icons.circle_outlined,
-//                           color: isSelected
-//                               ? Colors.green
-//                               : (isDarkMode ? Colors.white38 : Colors.black38),
-//                           size: 20,
-//                         ),
-//                         const SizedBox(width: 8),
-//                         Expanded(
-//                           child: CustomText(
-//                             txt: filteredConditions![index],
-//                             fontSize: 16,
-//                             color: isSelected ? bluetextColor : Colors.black,
-//                             fontWeight: isSelected
-//                                 ? FontWeight.w600
-//                                 : FontWeight.w400,
-//                             overflow: TextOverflow.ellipsis,
-//                           ),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 );
-//               },
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
 class MaterialConditionPopupLeftIcon extends StatefulWidget {
   final List<String>? conditions;
   final List<bool>? isHeaderList; // New: List to identify headers
-  
+
   final String? title;
   final Function? onSelect;
   final BorderRadiusGeometry? borderRadius;
@@ -596,6 +391,7 @@ class _MaterialConditionPopupLeftIconState
     );
   }
 }
+
 ///
 
 class MaterialConditionPopupLeftIcon2 extends StatefulWidget {
@@ -664,7 +460,7 @@ class _MaterialConditionPopupLeftIcon2State
     if (!widget.enableSearch) return;
 
     String query = searchController.text.toLowerCase().trim();
-    
+
     if (query.isEmpty) {
       setState(() {
         filteredConditions = widget.conditions ?? [];
@@ -679,7 +475,7 @@ class _MaterialConditionPopupLeftIcon2State
         return item.name.toLowerCase().contains(query) ||
             item.description.toLowerCase().contains(query);
       }).toList();
-      
+
       setState(() {
         filteredItems = filtered;
         filteredConditions = filtered.map((e) => e.name).toList();
@@ -800,8 +596,9 @@ class _MaterialConditionPopupLeftIcon2State
                       return InkWell(
                         onTap: () {
                           if (widget.conditions != null) {
-                            final originalIndex =
-                                widget.conditions!.indexOf(filteredConditions[index]);
+                            final originalIndex = widget.conditions!.indexOf(
+                              filteredConditions[index],
+                            );
                             setState(() {
                               selectedIndex = originalIndex;
                             });
@@ -847,8 +644,8 @@ class _MaterialConditionPopupLeftIcon2State
                                     color: isSelected
                                         ? Colors.green
                                         : (isDarkMode
-                                            ? Colors.white38
-                                            : Colors.black38),
+                                              ? Colors.white38
+                                              : Colors.black38),
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),

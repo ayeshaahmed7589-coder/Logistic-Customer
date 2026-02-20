@@ -299,6 +299,7 @@ class _OrdersState extends ConsumerState<Orders> {
       decoration: BoxDecoration(
         color: AppColors.pureWhite,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.electricTeal.withOpacity(0.35)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -308,8 +309,8 @@ class _OrdersState extends ConsumerState<Orders> {
         ],
       ),
       child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
+        baseColor: AppColors.electricTeal.withOpacity(0.1),
+        highlightColor: AppColors.electricTeal.withOpacity(0.1),
         child: Column(
           children: [
             /// HEADER
@@ -559,7 +560,7 @@ class _OrdersState extends ConsumerState<Orders> {
           ),
           const SizedBox(height: 20),
           CustomText(
-            txt: "No orders found",
+            txt: "No Orders Found",
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: AppColors.darkText,

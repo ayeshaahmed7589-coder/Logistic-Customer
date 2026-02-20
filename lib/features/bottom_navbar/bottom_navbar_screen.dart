@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:logisticscustomer/constants/colors.dart';
-import 'package:logisticscustomer/features/home/Get_Profile/get_profile_screen.dart';
 import 'package:logisticscustomer/features/home/main_screens/home_screen/current_screen.dart';
+import 'package:logisticscustomer/features/home/main_screens/more.dart';
 import 'package:logisticscustomer/features/home/map_screen.dart';
 import 'package:logisticscustomer/features/home/orders_flow/all_orders/orders.dart';
-import 'package:logisticscustomer/features/home/wallet_flow/wallet_screen.dart';
 
 class TripsBottomNavBarScreen extends StatefulWidget {
   final int initialIndex;
@@ -22,8 +21,9 @@ class _TripsBottomNavBarScreenState extends State<TripsBottomNavBarScreen> {
     CurrentScreen(),
     Orders(),
     MapScreen(),
-    WalletScreen(),
-    GetProfileScreen(),
+    BuyerMoreScreen(),
+    // WalletScreen(),
+    // GetProfileScreen(),
   ];
 
   @override
@@ -61,17 +61,17 @@ class _TripsBottomNavBarScreenState extends State<TripsBottomNavBarScreen> {
             label: "Orders",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.summarize_outlined),
+            icon: Icon(Icons.local_shipping_outlined),
             label: "Tracking",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: "Wallet",
+            icon: Icon(Icons.grid_view_rounded),
+            label: "More",
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: "Profile",
-          ),
+          // BottomNavigationBarItem(
+          //   icon: Icon(Icons.person_outline),
+          //   label: "Profile",
+          // ),
         ],
       ),
     );

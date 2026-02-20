@@ -61,12 +61,28 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
             children: [
               // APPBAR
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
+                padding: const EdgeInsets.fromLTRB(6, 40, 16, 1),
                 width: double.infinity,
                 decoration: const BoxDecoration(color: AppColors.electricTeal),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
+                    /// 🔹 LEFT BACK ICON
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: RotatedBox(
+                        quarterTurns: 2,
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: AppColors.pureWhite,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    /// 🔹 CENTER TITLE
                     CustomText(
                       txt: "Wallet",
                       fontSize: 18,

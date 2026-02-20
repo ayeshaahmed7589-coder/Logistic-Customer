@@ -15,6 +15,21 @@ class PlaceOrderRepository {
 
   PlaceOrderRepository({required this.dio, required this.ref});
 
+Future<Order> getOrderById(int orderId) async {
+  try {
+    // dio ko use karo apiClient ki jagah
+    final response = await dio.get("${ApiUrls.orderDetails}/$orderId");
+
+    if (response.data != null && response.data["data"] != null) {
+      return Order.fromJson(response.data["data"]);
+    } else {
+      throw Exception("Order data not found");
+    }
+  } catch (e) {
+    throw Exception("Failed to fetch order: $e");
+  }
+}
+
   // ✅ PLACE STANDARD ORDER
   Future<OrderResponse> placeStandardOrder({
     required StandardOrderRequestBody request,

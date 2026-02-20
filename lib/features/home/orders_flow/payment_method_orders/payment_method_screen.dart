@@ -35,51 +35,35 @@ class _PaymentMethodModalState extends ConsumerState<PaymentMethodModal> {
       ref
           .read(orderCacheProvider.notifier)
           .saveValue('payment_method', selectedMethod);
-
       print("🎯 Selected Payment Method: $selectedMethod");
 
       final repository = ref.read(placeOrderRepositoryProvider);
       OrderResponse orderResponse;
 
-      // Check order type
       final isMultiStop = cache["is_multi_stop_enabled"] == "true";
       final bestQuote = ref.read(bestQuoteProvider);
-
-      if (bestQuote == null) {
-        throw Exception("Please select a quote first");
-      }
+      if (bestQuote == null) throw Exception("Please select a quote first");
 
       // MULTI-STOP ORDER
       if (isMultiStop) {
-        print("🔄 Preparing multi-stop order data...");
-
-        // Validation check for multi-stop
         final quantity = cache["quantity"]?.toString();
         if (quantity == null ||
             quantity.isEmpty ||
             int.tryParse(quantity) == 0) {
-          print("⚠️  Quantity missing in cache, calculating from stops...");
-
           final stopsCount =
               int.tryParse(cache["route_stops_count"]?.toString() ?? "0") ?? 0;
           int totalQty = 0;
           double totalWeight = 0.0;
-
           for (int i = 1; i <= stopsCount; i++) {
-            final qty =
+            totalQty +=
                 int.tryParse(cache["stop_${i}_quantity"]?.toString() ?? "1") ??
                 1;
-            final wgt =
+            totalWeight +=
                 double.tryParse(
                   cache["stop_${i}_weight"]?.toString() ?? "50",
                 ) ??
                 50.0;
-
-            totalQty += qty;
-            totalWeight += wgt;
           }
-
-          // Save to cache
           ref
               .read(orderCacheProvider.notifier)
               .saveValue("quantity", totalQty.toString());
@@ -87,72 +71,78 @@ class _PaymentMethodModalState extends ConsumerState<PaymentMethodModal> {
               .read(orderCacheProvider.notifier)
               .saveValue("total_weight", totalWeight.toString());
         }
-
-        // Prepare and place multi-stop order
         final request = await repository.prepareMultiStopOrderData();
-
-        // Final validation
-        if (request.quantity < 1 || request.weightPerItem < 0.01) {
-          print("❌ Values invalid, forcing minimum values");
-
-          final fixedRequest = MultiStopOrderRequestBody(
-            productTypeId: request.productTypeId,
-            packagingTypeId: request.packagingTypeId,
-            quantity: request.quantity < 1 ? 1 : request.quantity,
-            weightPerItem: request.weightPerItem < 0.01
-                ? 0.01
-                : request.weightPerItem,
-            isMultiStop: true,
-            selectedQuote: request.selectedQuote,
-            stops: request.stops,
-            serviceType: request.serviceType,
-            priority: request.priority,
-            paymentMethod: request.paymentMethod,
-            addOns: request.addOns,
-            specialInstructions: request.specialInstructions,
-            declaredValue: request.declaredValue,
-          );
-
-          orderResponse = await repository.placeMultiStopOrder(
-            request: fixedRequest,
-          );
-        } else {
-          orderResponse = await repository.placeMultiStopOrder(
-            request: request,
-          );
-        }
+        if (request.quantity < 1 || request.weightPerItem < 0.01) ;
+        orderResponse = await repository.placeMultiStopOrder(request: request);
       }
       // STANDARD ORDER
       else {
-        print("🔄 Preparing standard order data...");
         final request = await repository.prepareStandardOrderData();
         orderResponse = await repository.placeStandardOrder(request: request);
       }
 
-      // ✅ CHECK RESPONSE
-      if (orderResponse.success) {
-        print("✅ Order created successfully!");
+      if (!orderResponse.success) throw Exception(orderResponse.message);
 
-        // 1. WALLET YA PAY LATER
-        if (selectedMethod == 'wallet' || selectedMethod == 'pay_later') {
-          final order = orderResponse.data.order;
+      final order = orderResponse.data.order;
 
-          // Cache clear karo
-          ref.read(orderCacheProvider.notifier).clearCache();
+      // ✅ Print response and clear cache **before WebView**
+      print("✅ Order created successfully: ${order.orderNumber}");
+      ref.read(orderCacheProvider.notifier).clearCache();
+      print("🗑️ Order cache cleared after order creation");
 
-          // Success screen pe jao
+      // WALLET OR PAY LATER
+      if (selectedMethod == 'wallet' || selectedMethod == 'pay_later') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OrderSuccessful(
+              orderNumber: order.orderNumber,
+              status: order.status,
+              totalAmount: order.finalCost,
+              createedAt: order.createdAt,
+              distanceKm: order.distanceKm,
+              finalCost: order.finalCost,
+              trackingCode: order.trackingCode,
+              totalWeightKg: order.totalWeightKg,
+              paymentMethod: selectedMethod,
+              paymentStatus: order.paymentStatus,
+            ),
+          ),
+          (route) => false,
+        );
+      }
+      // CARD PAYMENT
+      else if (selectedMethod == 'card') {
+        if (orderResponse.requiresPayment == true) {
+          final payment = orderResponse.data.payment;
+          if (payment != null && payment.checkoutUrl.isNotEmpty) {
+            // WebView open karo **order already created hai, cache cleared hai**
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PaymentWebViewScreen(
+                  checkoutUrl: payment.checkoutUrl,
+                  orderId: order.id,
+                ),
+              ),
+            );
+          } else {
+            throw Exception("Payment URL not received from server");
+          }
+        } else {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (_) => OrderSuccessful(
                 orderNumber: order.orderNumber,
                 status: order.status,
-                totalAmount: order.finalCost.toStringAsFixed(2),
+                totalAmount: order.finalCost,
                 createedAt: order.createdAt,
-                distanceKm: order.distanceKm.toStringAsFixed(2),
-                finalCost: order.finalCost.toStringAsFixed(2),
+                distanceKm: order.distanceKm,
+                finalCost: order.finalCost,
                 trackingCode: order.trackingCode,
-                totalWeightKg: order.totalWeightKg.toStringAsFixed(2),
+                totalWeightKg: order.totalWeightKg,
                 paymentMethod: selectedMethod,
                 paymentStatus: order.paymentStatus,
               ),
@@ -160,132 +150,6 @@ class _PaymentMethodModalState extends ConsumerState<PaymentMethodModal> {
             (route) => false,
           );
         }
-        // 2. CARD PAYMENT
-        // PaymentMethodModal mein _placeOrder function ka card wala part update karo
-        else if (selectedMethod == 'card') {
-          // Check karo ke payment required hai
-          if (orderResponse.requiresPayment == true) {
-            final payment = orderResponse.data.payment;
-
-            if (payment != null && payment.checkoutUrl.isNotEmpty) {
-              print("💳 Payment URL received: ${payment.checkoutUrl}");
-
-              // Close payment modal first
-              Navigator.pop(context);
-
-              // WebView open karo
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PaymentWebViewScreen(
-                    checkoutUrl: payment.checkoutUrl,
-                    amount: payment.amount,
-                    orderNumber: orderResponse.data.order.orderNumber,
-                 ),
-                ),
-              );
-            } else {
-              throw Exception("Payment URL not received from server");
-            }
-          } else {
-            // Agar card select kiya par payment not required
-            final order = orderResponse.data.order;
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(
-                builder: (_) => OrderSuccessful(
-                  orderNumber: order.orderNumber,
-                  status: order.status,
-                  totalAmount: order.finalCost.toStringAsFixed(2),
-                  createedAt: order.createdAt,
-                  distanceKm: order.distanceKm.toStringAsFixed(2),
-                  finalCost: order.finalCost.toStringAsFixed(2),
-                  trackingCode: order.trackingCode,
-                  totalWeightKg: order.totalWeightKg.toStringAsFixed(2),
-                  paymentMethod: selectedMethod,
-                  paymentStatus: order.paymentStatus,
-                ),
-              ),
-              (route) => false,
-            );
-          }
-        }
-
-        // else if (selectedMethod == 'card') {
-        //         // Check karo ke payment required hai
-        //         if (orderResponse.requiresPayment == true) {
-        //           final payment = orderResponse.data.payment;
-
-        //           if (payment != null && payment.checkoutUrl.isNotEmpty) {
-        //             print("💳 Payment URL received: ${payment.checkoutUrl}");
-
-        //             // WebView open karo
-        //             Navigator.push(
-        //               context,
-        //               MaterialPageRoute(
-        //                 builder: (_) => PaymentWebViewScreen(
-
-        //                   checkoutUrl: payment.checkoutUrl,
-        //                   amount: payment.amount,
-        //                   orderNumber: orderResponse.data.order.orderNumber,
-        //                   onPaymentSuccess: () {
-        //                     // Payment successful hone ke baad
-        //                     Navigator.pushAndRemoveUntil(
-        //                       context,
-        //                       MaterialPageRoute(
-        //                         builder: (_) => OrderSuccessful(
-        //                           orderNumber: orderResponse.data.order.orderNumber,
-        //                           status: orderResponse.data.order.status,
-        //                           totalAmount: payment.amount.toStringAsFixed(2),
-        //                           createedAt: orderResponse.data.order.createdAt,
-        //                           distanceKm: orderResponse.data.order.distanceKm
-        //                               .toStringAsFixed(2),
-        //                           finalCost: orderResponse.data.order.finalCost
-        //                               .toStringAsFixed(2),
-        //                           trackingCode: orderResponse.data.order.trackingCode,
-        //                           totalWeightKg: orderResponse
-        //                               .data
-        //                               .order
-        //                               .totalWeightKg
-        //                               .toStringAsFixed(2),
-        //                           paymentMethod: selectedMethod,
-        //                           paymentStatus:
-        //                               orderResponse.data.order.paymentStatus,
-        //                         ),
-        //                       ),
-        //                       (route) => false,
-        //                     );
-        //                   },
-        //                 ),
-        //               ),
-        //             );
-        //           } else {
-        //             throw Exception("Payment URL not received from server");
-        //           }
-        //         } else {
-        //           // Agar card select kiya par payment not required
-        //           final order = orderResponse.data.order;
-        //           Navigator.pushAndRemoveUntil(
-        //             context,
-        //             MaterialPageRoute(
-        //               builder: (_) => OrderSuccessful(
-        //                 orderNumber: order.orderNumber,
-        //                 status: order.status,
-        //                 totalAmount: order.finalCost.toStringAsFixed(2),
-        //                 createedAt: order.createdAt,
-        //                 distanceKm: order.distanceKm.toStringAsFixed(2),
-        //                 finalCost: order.finalCost.toStringAsFixed(2),
-        //                 trackingCode: order.trackingCode,
-        //                 totalWeightKg: order.totalWeightKg.toStringAsFixed(2),
-        //                 paymentMethod: selectedMethod,
-        //                 paymentStatus: order.paymentStatus,
-        //               ),
-        //             ),
-        //             (route) => false,
-        //           );
-        //         }
-      } else {
-        throw Exception(orderResponse.message);
       }
     } catch (e) {
       print("❌ Error placing order: $e");
@@ -464,23 +328,22 @@ class _PaymentMethodModalState extends ConsumerState<PaymentMethodModal> {
   }
 }
 
-class PaymentWebViewScreen extends StatefulWidget {
+class PaymentWebViewScreen extends ConsumerStatefulWidget {
   final String checkoutUrl;
-  final double amount;
-  final String orderNumber;
+  final int orderId; // 👈 add this
 
   const PaymentWebViewScreen({
     super.key,
     required this.checkoutUrl,
-    required this.amount,
-    required this.orderNumber,
+    required this.orderId,
   });
 
   @override
-  _PaymentWebViewScreenState createState() => _PaymentWebViewScreenState();
+  ConsumerState<PaymentWebViewScreen> createState() =>
+      _PaymentWebViewScreenState();
 }
 
-class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
+class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
   late WebViewController _controller;
   bool _isLoading = true;
   bool _paymentCompleted = false;
@@ -521,9 +384,7 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       ..loadRequest(Uri.parse(widget.checkoutUrl));
   }
 
-  void _checkPaymentResult(String url) {
-  print('🔍 Checking payment result URL: $url');
-
+ void _checkPaymentResult(String url) async {
   final successPatterns = [
     'success',
     'thank-you',
@@ -537,38 +398,48 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     if (url.toLowerCase().contains(pattern)) {
       if (!_paymentCompleted) {
         _paymentCompleted = true;
-        print('🎉 PAYMENT SUCCESS DETECTED!');
 
-        Future.delayed(const Duration(milliseconds: 500), () {
+        try {
+          print("🔄 Fetching updated order from backend...");
+
+          final repository = ref.read(placeOrderRepositoryProvider);
+          final updatedOrder = await repository.getOrderById(widget.orderId);
+
+          if (!mounted) return;
+
+          // ✅ Ensure all fields including distance & weight are passed
           rootNavigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (_) => OrderSuccessful(
-                orderNumber: widget.orderNumber,
-                status: "confirmed",
-                totalAmount: widget.amount.toStringAsFixed(2),
-                createedAt: DateTime.now().toString(),
-                distanceKm: "0",
-                finalCost: widget.amount.toStringAsFixed(2),
-                trackingCode: "",
-                totalWeightKg: "0",
+                orderNumber: updatedOrder.orderNumber,
+                status: updatedOrder.status,
+                totalAmount: updatedOrder.finalCost,
+                createedAt: updatedOrder.createdAt,
+                distanceKm: updatedOrder.distanceKm,
+                finalCost: updatedOrder.finalCost,
+                trackingCode: updatedOrder.trackingCode,
+                totalWeightKg: updatedOrder.totalWeightKg,
                 paymentMethod: "card",
-                paymentStatus: "paid",
+                paymentStatus: updatedOrder.paymentStatus,
               ),
             ),
             (route) => false,
           );
-        });
+
+          print("✅ Payment complete, updated order loaded successfully");
+        } catch (e) {
+          print("❌ Error fetching updated order: $e");
+        }
       }
       return;
     }
   }
 }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Pay R${widget.amount.toStringAsFixed(2)}"),
+        title: Text("Payment Methods"),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {

@@ -417,11 +417,19 @@ class OrderResponse {
 
   factory OrderResponse.fromJson(Map<String, dynamic> json) {
     return OrderResponse(
-      success: json['success'] ?? false,
-      message: json['message'] ?? '',
-      requiresPayment: json['requires_payment'] ?? false, // ✅ Yeh important hai
+      success: json['success'] is bool ? json['success'] : false,
+      message: json['message']?.toString() ?? '',
+      requiresPayment: _parseRequiresPayment(json['requires_payment']),
       data: OrderData.fromJson(json['data'] ?? {}),
     );
+  }
+
+  static bool _parseRequiresPayment(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value == '1' || value.toLowerCase() == 'true';
+    return false;
   }
 }
 
@@ -437,7 +445,7 @@ class OrderData {
   factory OrderData.fromJson(Map<String, dynamic> json) {
     return OrderData(
       order: Order.fromJson(json['order'] ?? {}),
-      payment: json['payment'] != null 
+      payment: json['payment'] != null
           ? PaymentResponse.fromJson(json['payment'])
           : null,
     );
@@ -459,10 +467,10 @@ class PaymentResponse {
 
   factory PaymentResponse.fromJson(Map<String, dynamic> json) {
     return PaymentResponse(
-      checkoutUrl: json['checkout_url'] ?? '',
-      checkoutId: json['checkout_id'] ?? '',
-      reference: json['reference'] ?? '',
-      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      checkoutUrl: json['checkout_url']?.toString() ?? '',
+      checkoutId: json['checkout_id']?.toString() ?? '',
+      reference: json['reference']?.toString() ?? '',
+      amount: (json['amount'] is num) ? (json['amount'] as num).toDouble() : 0.0,
     );
   }
 }
@@ -496,17 +504,21 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'] ?? 0,
-      orderNumber: json['order_number'] ?? '',
-      trackingCode: json['tracking_code'] ?? '',
-      status: json['status'] ?? '',
-      paymentStatus: json['payment_status'] ?? '',
-      isMultiStop: json['is_multi_stop'] ?? false,
-      stopsCount: json['stops_count'],
-      totalWeightKg: (json['total_weight_kg'] ?? 0).toDouble(),
-      distanceKm: (json['distance_km'] ?? 0).toDouble(),
+      id: json['id'] is int ? json['id'] : 0,
+      orderNumber: json['order_number']?.toString() ?? '',
+      trackingCode: json['tracking_code']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      paymentStatus: json['payment_status']?.toString() ?? '',
+      isMultiStop: json['is_multi_stop'] == true || json['is_multi_stop'] == 1,
+      stopsCount: json['stops_count'] is int ? json['stops_count'] : null,
+      totalWeightKg: (json['total_weight_kg'] is num)
+          ? (json['total_weight_kg'] as num).toDouble()
+          : 0.0,
+      distanceKm: (json['distance_km'] is num)
+          ? (json['distance_km'] as num).toDouble()
+          : 0.0,
       finalCost: double.tryParse(json['final_cost']?.toString() ?? '0') ?? 0.0,
-      createdAt: json['created_at'] ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 }

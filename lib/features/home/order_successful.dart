@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:logisticscustomer/features/bottom_navbar/bottom_navbar_screen.dart';
-import 'package:lottie/lottie.dart';
+import 'package:logisticscustomer/features/home/orders_flow/ordr_tracking/order_tracking_screen.dart';
 import '../../constants/colors.dart';
+import 'package:lottie/lottie.dart';
 
 class OrderSuccessful extends StatelessWidget {
+  
   final String orderNumber;
-  final String totalAmount;
+  final double totalAmount;
   final String status;
   final String paymentStatus;
   final String paymentMethod;
-  final String totalWeightKg;
+  final double totalWeightKg;
   final String trackingCode;
-  final String distanceKm;
-  final String finalCost;
+  final double distanceKm;
+  final double finalCost;
   final String createedAt;
 
   const OrderSuccessful({
@@ -31,13 +33,13 @@ class OrderSuccessful extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool showShipmentDetails = paymentMethod != "card";
     return Scaffold(
       backgroundColor: AppColors.lightGrayBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Center(
                 child: Lottie.asset(
@@ -49,8 +51,8 @@ class OrderSuccessful extends StatelessWidget {
                   animate: true,
                 ),
               ),
-              SizedBox(height: 10),
-              Text(
+              const SizedBox(height: 10),
+              const Text(
                 "Order Placed Successfully!",
                 style: TextStyle(
                   fontSize: 22,
@@ -58,7 +60,6 @@ class OrderSuccessful extends StatelessWidget {
                   color: AppColors.darkText,
                 ),
               ),
-
               const SizedBox(height: 20),
 
               // Order Details Card
@@ -71,7 +72,6 @@ class OrderSuccessful extends StatelessWidget {
                   border: Border.all(color: AppColors.electricTeal, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      // ignore: deprecated_member_use
                       color: AppColors.mediumGray.withOpacity(0.25),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
@@ -97,7 +97,6 @@ class OrderSuccessful extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 10),
-
                     Text(
                       "Tracking",
                       style: TextStyle(fontSize: 14, color: AppColors.darkGray),
@@ -113,19 +112,28 @@ class OrderSuccessful extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 10),
-
-                    Text(
-                      "Weight: $totalWeightKg",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.electricTeal,
+                    if (showShipmentDetails) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        "Weight: ${totalWeightKg.toStringAsFixed(2)} kg",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.electricTeal,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Distance: ${distanceKm.toStringAsFixed(2)} km",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.electricTeal,
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 10),
-
-                    // STATUS
                     Text(
                       "Status: $status",
                       style: TextStyle(
@@ -138,9 +146,7 @@ class OrderSuccessful extends StatelessWidget {
                       "Waiting for driver assignment",
                       style: TextStyle(fontSize: 14, color: AppColors.darkGray),
                     ),
-
                     const SizedBox(height: 10),
-
                     Text(
                       "Payment Status: $paymentStatus",
                       style: TextStyle(
@@ -151,10 +157,8 @@ class OrderSuccessful extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 10),
-
-                    // AMOUNT + PAYMENT
                     Text(
-                      "Total Amount: R$totalAmount",
+                      "Total Amount: R${totalAmount.toStringAsFixed(2)}",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -162,7 +166,6 @@ class OrderSuccessful extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-
                     Text(
                       "Payment Method: $paymentMethod",
                       style: TextStyle(
@@ -171,41 +174,20 @@ class OrderSuccessful extends StatelessWidget {
                         color: AppColors.darkText,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
                     Text(
-                      "Distance : $distanceKm",
+                      "Created At: $createedAt",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: AppColors.darkText,
                       ),
-                    ),
-
-                    const SizedBox(height: 10),
-                    Text(
-                      "Created At : $createedAt",
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.darkText,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // MESSAGE
-                    Text(
-                      "You'll be notified when a driver accepts your order.",
-                      style: TextStyle(fontSize: 14, color: AppColors.darkGray),
                     ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 25),
-
-              // BUTTONS
               Row(
                 children: [
                   Expanded(
@@ -219,13 +201,21 @@ class OrderSuccessful extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TripsBottomNavBarScreen(initialIndex: 1),
-                          ),
-                        );
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => OrderTrackingScreen(
+                                  trackingCode: trackingCode ,
+                                ),
+                              ),
+                            );
+                        // Navigator.pushReplacement(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) =>
+                        //         TripsBottomNavBarScreen(initialIndex: 1),
+                        //   ),
+                        // );
                       },
                       child: const Text(
                         "Track Order",
@@ -266,7 +256,6 @@ class OrderSuccessful extends StatelessWidget {
                   ),
                 ],
               ),
-
               const SizedBox(height: 30),
             ],
           ),

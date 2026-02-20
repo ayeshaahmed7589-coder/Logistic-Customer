@@ -1146,8 +1146,9 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                           children: [
                             Expanded(
                               child: _buildTextField(
-                                 focusNode: weightFocus,
+                                focusNode: weightFocus,
                                 controller: weightController,
+                                isNumber: true,
                                 label: "Total Weight (kg)",
                                 icon: Icons.scale,
                               ),
@@ -1155,9 +1156,10 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                             gapW8,
                             Expanded(
                               child: _buildTextField(
-                                 focusNode: quantityFocus,
+                                focusNode: quantityFocus,
                                 controller: quantityController,
                                 label: "Quantity",
+                                isNumber: true,
                                 icon: Icons.numbers,
                               ),
                             ),
@@ -1165,9 +1167,10 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                         ),
 
                         _buildTextField(
-                           focusNode: declaredValueFocus,
+                          focusNode: declaredValueFocus,
                           controller: declaredValueController,
                           label: "Declared Value (R)",
+                          isNumber: true,
                           icon: Icons.attach_money,
                         ),
 
@@ -1185,12 +1188,14 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                           SizedBox(height: 20),
                           Column(
                             children: [
+                              gapH12,
                               Row(
                                 children: [
                                   Expanded(
                                     child: _buildTextField(
-                                       focusNode: lengthFocus,
+                                      focusNode: lengthFocus,
                                       controller: lengthController,
+                                      isNumber: true,
                                       label: "Length (cm)",
                                       icon: Icons.straighten,
                                     ),
@@ -1198,8 +1203,9 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: _buildTextField(
-                                       focusNode: widthFocus,
+                                      focusNode: widthFocus,
                                       controller: widthController,
+                                      isNumber: true,
                                       label: "Width (cm)",
                                       icon: Icons.width_normal,
                                     ),
@@ -1211,8 +1217,9 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
                                 children: [
                                   Expanded(
                                     child: _buildTextField(
-                                       focusNode: heightFocus,
+                                      focusNode: heightFocus,
                                       controller: heightController,
+                                      isNumber: true,
                                       label: "Height (cm)",
                                       icon: Icons.height,
                                     ),
@@ -1250,10 +1257,8 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
 
   // CALCULATION CARD WIDGET
   Widget _buildCalculationCard() {
-    // Get item weight from controller or fixed packaging weight
     double itemWeight = double.tryParse(weightController.text) ?? 0;
 
-    // If packaging type has fixed weight, use that
     if (selectedPackagingTypeId != null && selectedPackagingTypeId! > 0) {
       final packagingState = ref.watch(packagingTypeControllerProvider);
       packagingState.when(
@@ -1281,265 +1286,236 @@ class _Step1ScreenState extends ConsumerState<Step1Screen> {
       );
     }
 
-    final quantityText = quantityController.text;
-    int quantity = int.tryParse(quantityText) ?? 1;
-
-    // Calculate total weight
+    int quantity = int.tryParse(quantityController.text) ?? 1;
     double totalWeight = itemWeight * quantity;
 
-    // Determine load type
     String loadType = "Light Load";
-    Color loadColor = Colors.green;
+    Color loadColor = Colors.white;
 
     if (totalWeight >= 100) {
       loadType = "Heavy Load";
-      loadColor = Colors.red;
+      loadColor = Colors.white;
     } else if (totalWeight >= 50) {
       loadType = "Medium Load";
-      loadColor = Colors.orange;
+      loadColor = Colors.white;
     }
-
-    // Calculate estimated price
-    double baseRatePerKg = 0;
-    double productMultiplier = 1.0;
-    double packagingMultiplier = 1.0;
-
-    // Get product multiplier if selected
-    if (selectedProductTypeId != null) {
-      final productState = ref.watch(productTypeControllerProvider);
-      productState.when(
-        data: (categories) {
-          for (final category in categories) {
-            final product = category.products.firstWhere(
-              (p) => p.id == selectedProductTypeId,
-              orElse: () => ProductTypeItem(
-                id: 0,
-                name: '',
-                category: '',
-                description: '',
-                baseValueMultiplier: 1.0,
-                icon: '',
-                categoryLabel: '',
-              ),
-            );
-            if (product.id > 0) {
-              productMultiplier = product.baseValueMultiplier;
-            }
-          }
-        },
-        loading: () {},
-        error: (error, stackTrace) {},
-      );
-    }
-
-    // Get packaging multiplier if selected
-    if (selectedPackagingTypeId != null) {
-      final packagingState = ref.watch(packagingTypeControllerProvider);
-      packagingState.when(
-        data: (items) {
-          final selectedItem = items.firstWhere(
-            (item) => item.id == selectedPackagingTypeId,
-            orElse: () => PackagingTypeItem(
-              id: 0,
-              name: '',
-              description: '',
-              fixedWeightKg: null,
-              requiresDimensions: false,
-              typicalCapacityKg: null,
-              handlingMultiplier: 1.0,
-              icon: 'box',
-            ),
-          );
-          packagingMultiplier = selectedItem.handlingMultiplier;
-        },
-        loading: () {},
-        error: (error, stackTrace) {},
-      );
-    }
-
-    // ignore: unused_local_variable
-    double estimatedPrice =
-        totalWeight * baseRatePerKg * productMultiplier * packagingMultiplier;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: AppColors.mediumGray.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
-        border: Border.all(
-          color: AppColors.electricTeal.withOpacity(0.3),
-          width: 1,
-        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.pureWhite,
+            border: Border.all(color: AppColors.electricTeal.withOpacity(0.25)),
+          ),
+          child: Column(
             children: [
-              Text(
-                "Package Calculation",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkText,
-                ),
-              ),
+              /// 🔥 Gradient Header
               Container(
+                width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+                  horizontal: 16,
+                  vertical: 14,
                 ),
                 decoration: BoxDecoration(
-                  color: loadColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: loadColor.withOpacity(0.3)),
-                ),
-                child: Text(
-                  loadType,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: loadColor,
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.electricTeal,
+                      AppColors.electricTeal.withOpacity(0.7),
+                    ],
                   ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.calculate, color: Colors.white, size: 20),
+                        SizedBox(width: 4),
+                        Text(
+                          "Package Calculation",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        loadType,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: loadColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _modernCalculationRow(
+                      icon: Icons.scale,
+                      label: "Item Weight",
+                      value: "${itemWeight.toStringAsFixed(2)} kg",
+                    ),
+
+                    _modernCalculationRow(
+                      icon: Icons.confirmation_number_outlined,
+                      label: "Quantity",
+                      value: quantity.toString(),
+                    ),
+
+                    // const SizedBox(height: 4),
+                    Divider(color: AppColors.lightGrayBackground),
+
+                    // const SizedBox(height: 12),
+
+                    /// ⭐ Highlight Total Weight
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.electricTeal.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.inventory, color: AppColors.electricTeal),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              "Total Weight",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.darkText,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            "${totalWeight.toStringAsFixed(2)} kg",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.electricTeal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    if (selectedProductTypeName != null ||
+                        selectedPackagingTypeName != null) ...[
+                      // const SizedBox(height: 16),
+                      Divider(color: AppColors.lightGrayBackground),
+                      // const SizedBox(height: 8),
+                    ],
+
+                    if (selectedProductTypeName != null)
+                      _infoChipRow(
+                        icon: Icons.category,
+                        text: selectedProductTypeName!,
+                        color: Colors.blue,
+                      ),
+
+                    if (selectedPackagingTypeName != null)
+                      _infoChipRow(
+                        icon: Icons.inventory_2_outlined,
+                        text: selectedPackagingTypeName!,
+                        color: Colors.orange,
+                      ),
+                  ],
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // Calculation details
-          _buildCalculationRow(
-            label: "Item Weight",
-            value: "${itemWeight.toStringAsFixed(2)} kg",
-            icon: Icons.scale,
-          ),
-
-          _buildCalculationRow(
-            label: "Quantity",
-            value: quantity.toString(),
-            icon: Icons.numbers,
-          ),
-
-          const Divider(height: 16, thickness: 1),
-
-          _buildCalculationRow(
-            label: "Total Weight",
-            value: "${totalWeight.toStringAsFixed(2)} kg",
-            icon: Icons.inventory,
-            isTotal: true,
-          ),
-
-          const SizedBox(height: 8),
-
-          if (selectedProductTypeName != null ||
-              selectedPackagingTypeName != null)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Divider(height: 16, thickness: 1),
-
-                if (selectedProductTypeName != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        Icon(Icons.category, size: 14, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "Product: $selectedProductTypeName",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                if (selectedPackagingTypeName != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 14,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "Packaging: $selectedPackagingTypeName",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildCalculationRow({
+  Widget _modernCalculationRow({
+    required IconData icon,
     required String label,
     required String value,
-    required IconData icon,
-    bool isTotal = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
           Container(
-            width: 28,
-            height: 28,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isTotal
-                  ? AppColors.electricTeal.withOpacity(0.1)
-                  : Colors.grey[100],
-              borderRadius: BorderRadius.circular(6),
+              color: AppColors.electricTeal.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              size: 16,
-              color: isTotal ? AppColors.electricTeal : Colors.grey[600],
-            ),
+            child: Icon(icon, size: 18, color: AppColors.electricTeal),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.darkGray),
             ),
           ),
           Text(
             value,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-              color: isTotal ? AppColors.electricTeal : AppColors.darkText,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.darkText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoChipRow({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.darkText,
+              ),
             ),
           ),
         ],

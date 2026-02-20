@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logisticscustomer/features/bottom_navbar/bottom_navbar_screen.dart';
+import 'package:logisticscustomer/features/home/orders_flow/all_orders/orders.dart';
 
 import '../../../../common_widgets/custom_text.dart';
 import '../../../../constants/colors.dart';
@@ -25,7 +27,9 @@ class OrderTrackingScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_outlined, size: 20),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (context)=> TripsBottomNavBarScreen(initialIndex: 1,)));
+          }
         ),
       ),
       body: state.when(

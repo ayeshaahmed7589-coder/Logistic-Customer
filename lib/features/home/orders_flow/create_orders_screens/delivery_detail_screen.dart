@@ -1155,7 +1155,7 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
           ),
 
           Container(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: 10, bottom: 10),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: AppColors.electricTeal)),
@@ -1566,6 +1566,7 @@ class _Step2ScreenState extends ConsumerState<Step2Screen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          gapH12,
           Row(
             children: [
               Expanded(

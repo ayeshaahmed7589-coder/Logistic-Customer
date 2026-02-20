@@ -384,7 +384,7 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
       ..loadRequest(Uri.parse(widget.checkoutUrl));
   }
 
- void _checkPaymentResult(String url) async {
+  void _checkPaymentResult(String url) async {
   final successPatterns = [
     'success',
     'thank-you',
@@ -396,41 +396,54 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
 
   for (var pattern in successPatterns) {
     if (url.toLowerCase().contains(pattern)) {
-      if (!_paymentCompleted) {
-        _paymentCompleted = true;
+      if (_paymentCompleted) return;
+      _paymentCompleted = true;
 
-        try {
-          print("🔄 Fetching updated order from backend...");
+      try {
+        print("🔄 Payment success detected, waiting for backend update...");
 
-          final repository = ref.read(placeOrderRepositoryProvider);
-          final updatedOrder = await repository.getOrderById(widget.orderId);
+        final repository = ref.read(placeOrderRepositoryProvider);
 
-          if (!mounted) return;
+        Order updatedOrder;
+        int retryCount = 0;
 
-          // ✅ Ensure all fields including distance & weight are passed
-          rootNavigatorKey.currentState?.pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => OrderSuccessful(
-                orderNumber: updatedOrder.orderNumber,
-                status: updatedOrder.status,
-                totalAmount: updatedOrder.finalCost,
-                createedAt: updatedOrder.createdAt,
-                distanceKm: updatedOrder.distanceKm,
-                finalCost: updatedOrder.finalCost,
-                trackingCode: updatedOrder.trackingCode,
-                totalWeightKg: updatedOrder.totalWeightKg,
-                paymentMethod: "card",
-                paymentStatus: updatedOrder.paymentStatus,
-              ),
+        // ⏳ Retry max 5 times (every 1.5 sec)
+        do {
+          await Future.delayed(const Duration(milliseconds: 1500));
+          updatedOrder = await repository.getOrderById(widget.orderId);
+
+          print("🔁 Retry $retryCount → Payment Status: ${updatedOrder.paymentStatus}");
+
+          retryCount++;
+        } while (
+            updatedOrder.paymentStatus.toLowerCase() != "paid" &&
+            retryCount < 5);
+
+        if (!mounted) return;
+
+        rootNavigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => OrderSuccessful(
+              orderNumber: updatedOrder.orderNumber,
+              status: updatedOrder.status,
+              totalAmount: updatedOrder.finalCost,
+              createedAt: updatedOrder.createdAt,
+              distanceKm: updatedOrder.distanceKm,
+              finalCost: updatedOrder.finalCost,
+              trackingCode: updatedOrder.trackingCode,
+              totalWeightKg: updatedOrder.totalWeightKg,
+              paymentMethod: "card",
+              paymentStatus: updatedOrder.paymentStatus,
             ),
-            (route) => false,
-          );
+          ),
+          (route) => false,
+        );
 
-          print("✅ Payment complete, updated order loaded successfully");
-        } catch (e) {
-          print("❌ Error fetching updated order: $e");
-        }
+        print("✅ Final Payment Status: ${updatedOrder.paymentStatus}");
+      } catch (e) {
+        print("❌ Error fetching updated order: $e");
       }
+
       return;
     }
   }
@@ -439,36 +452,58 @@ class _PaymentWebViewScreenState extends ConsumerState<PaymentWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Payment Methods"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            // Ask for confirmation before closing
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text("Cancel Payment?"),
-                content: const Text(
-                  "Are you sure you want to cancel the payment?",
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("No"),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      Navigator.pop(context); // Close WebView
-                    },
-                    child: const Text("Yes"),
-                  ),
-                ],
-              ),
-            );
-          },
+        automaticallyImplyLeading: false,
+        title: Text(
+          "Payment Management",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
         ),
+        actions: [
+          TextButton(
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
+
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back),
+        //   onPressed: () {
+        //     // Ask for confirmation before closing
+        //     showDialog(
+        //       context: context,
+        //       builder: (context) => AlertDialog(
+        //         title: const Text("Cancel Payment?"),
+        //         content: const Text(
+        //           "Are you sure you want to cancel the payment?",
+        //         ),
+        //         actions: [
+        //           TextButton(
+        //             onPressed: () => Navigator.pop(context),
+        //             child: const Text("No"),
+        //           ),
+        //           TextButton(
+        //             onPressed: () {
+        //               Navigator.pop(context); // Close dialog
+        //               Navigator.pop(context); // Close WebView
+        //             },
+        //             child: const Text("Yes"),
+        //           ),
+        //         ],
+        //       ),
+        //     );
+        //   },
+        // ),
       ),
+
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
